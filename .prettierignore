@@ -1,0 +1,11 @@
+# Specs and generated code are not reformatted
+context/
+docs/
+src/components/ui/
+src/generated/
+prisma/migrations/
+package-lock.json
+.next/
+
+# Kit file kept byte-identical to the reviewed version
+src/features/boards/snapshot.ts

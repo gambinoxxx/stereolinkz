@@ -1,26 +1,158 @@
+/*
+ * RateBoard admin tokens: the only place hex values live in the admin UI.
+ *
+ * Naming scheme
+ * - Raw tokens in :root use the names from context/ui-context.md → Colors
+ *   exactly (--bg-base, --text-primary, --accent-primary, …).
+ * - @theme exposes each one as --color-<token>, so the Tailwind utility is
+ *   the property prefix plus the token name: bg-bg-base, bg-bg-surface,
+ *   text-text-primary, text-accent-primary, border-border-default,
+ *   bg-state-error-soft, text-sidebar-text-active, …
+ * - shadcn/ui's variables (--background, --primary, --border, …) are
+ *   aliases of our tokens, never their own values. shadcn's default
+ *   palette, dark theme, chart and sidebar colours are not used.
+ * - Radius: rounded-lg (8px) and rounded-2xl (16px) as in ui-context.md,
+ *   plus named steps: rounded-control (10px: buttons, inputs, callouts,
+ *   board frame), rounded-panel (14px: cards, panels, tables),
+ *   rounded-modal (18px) and rounded-sheet (20px: phone bottom sheets).
+ *
+ * Board templates do not use these. They take inline styles from
+ * src/features/templates/theme.ts (Satori cannot read CSS variables).
+ */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --bg-base: #f6f4fa;
+  --bg-surface: #ffffff;
+  --bg-subtle: #fbfafd;
+  --bg-sidebar: #1d0a38;
+
+  /* Text */
+  --text-primary: #1f0b3f;
+  --text-secondary: #5e5577;
+  --text-muted: #8d84a3;
+
+  /* Accents */
+  --accent-primary: #5b2bc4;
+  --accent-primary-hover: #4b21a6;
+  --accent-soft: #efe9fb;
+  --accent-gold: #e9b949;
+  --accent-gold-soft: #fbf1d9;
+  --accent-gold-text: #86610f;
+
+  /* Borders */
+  --border-default: #e8e4f0;
+  --border-subtle: #f1eef6;
+  --border-input: #dcd5e8;
+
+  /* States */
+  --state-error: #c2413a;
+  --state-error-soft: #fbeae8;
+  --state-success: #0e8a5f;
+  --state-success-soft: #e4f4ec;
+
+  /* Sidebar text */
+  --sidebar-text: #c4b8e0;
+  --sidebar-text-active: #ffffff;
+  --sidebar-text-muted: #9c8fc0;
+
+  /* shadcn/ui aliases (our tokens only) */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: var(--bg-surface);
+  --secondary: var(--bg-subtle);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-subtle);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-soft);
+  --accent-foreground: var(--accent-primary);
+  --destructive: var(--state-error);
+  --border: var(--border-default);
+  --input: var(--border-input);
+  --ring: var(--accent-primary);
+  --radius: 10px;
 }
 
 @theme inline {
+  /* Our tokens */
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-hover: var(--accent-primary-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-gold-soft: var(--accent-gold-soft);
+  --color-accent-gold-text: var(--accent-gold-text);
+  --color-border-default: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-input: var(--border-input);
+  --color-state-error: var(--state-error);
+  --color-state-error-soft: var(--state-error-soft);
+  --color-state-success: var(--state-success);
+  --color-state-success-soft: var(--state-success-soft);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-active: var(--sidebar-text-active);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
+
+  /* shadcn/ui names */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Radius scale (ui-context.md → Border Radius) */
+  --radius-lg: 8px;
+  --radius-control: var(--radius);
+  --radius-panel: 14px;
+  --radius-2xl: 16px;
+  --radius-modal: 18px;
+  --radius-sheet: 20px;
+
+  /*
+   * --font-sans is set on <html> by next/font (Archivo, src/app/layout.tsx).
+   * That declaration is unlayered, so it wins over Tailwind's default.
+   */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+  }
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
 }

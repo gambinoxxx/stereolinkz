@@ -58,6 +58,14 @@
 
 - Admin UI uses Tailwind utility classes bound to the tokens in
   `ui-context.md` (defined once in `app/globals.css` under `@theme`).
+  Utilities are the property prefix plus the token name: `bg-bg-base`,
+  `text-text-secondary`, `border-border-default`. Named radius steps:
+  `rounded-control` (10px), `rounded-panel` (14px), `rounded-modal`
+  (18px), `rounded-sheet` (20px), plus `rounded-lg` (8px) and
+  `rounded-2xl` (16px).
+- Code is formatted with Prettier (default options). Run `npm run format`
+  before committing; `npm run format:check` must pass. Specs
+  (`context/`, `docs/`), generated code and `components/ui/` are ignored.
   No hard-coded hex values in admin components.
 - Follow the radius, spacing and type scale in `ui-context.md`.
 - Use shadcn/ui components (Button, Input, Select, Switch, Sheet,
