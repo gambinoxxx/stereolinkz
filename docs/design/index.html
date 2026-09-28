@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+RateBoard (Stereolinkz) page designs: index.
+One standalone HTML file per screen and per drawer/modal state. Each file starts with a comment
+describing its route, purpose, layout, data, actions and rules. Open any file directly; links between
+files work offline (fonts load from Google Fonts when online).
+-->
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RateBoard page designs</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1F0B3F;--ink3:#8D84A3;--line:#E8E4F0;--brand:#5B2BC4;--gold:#E9B949}
+*{box-sizing:border-box;margin:0}body{font-family:Archivo,system-ui,sans-serif;background:#F6F4FA;color:var(--ink);padding:48px 16px}
+main{max-width:720px;margin:0 auto}h1{font-size:30px;letter-spacing:-.6px}p{color:#5E5577;margin:8px 0 28px;line-height:1.5}
+ul{list-style:none;padding:0;background:#fff;border:1px solid var(--line);border-radius:14px}
+li{display:flex;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid #F1EEF6;flex-wrap:wrap}li:last-child{border:0}
+a{color:var(--brand);font-weight:600;text-decoration:none}a:hover{text-decoration:underline}span{color:var(--ink3);font-size:14px}
+</style></head><body><main><h1>RateBoard page designs</h1>
+<p>Stereolinkz admin screens, one file per page or state. Each file opens on its own and has notes at the top describing the route, data and behaviour.</p>
+<ul><li><a href="login.html">Login</a><span>/login</span></li><li><a href="dashboard.html">Dashboard</a><span>/admin</span></li><li><a href="forex.html">Forex rates</a><span>/admin/forex</span></li><li><a href="forex-edit.html">Edit forex rate (drawer)</a><span>/admin/forex (drawer over the table)</span></li><li><a href="forex-add.html">Add currency (drawer)</a><span>/admin/forex (drawer)</span></li><li><a href="pof.html">POF rates</a><span>/admin/pof</span></li><li><a href="pof-edit.html">Edit POF rate (drawer)</a><span>/admin/pof (drawer)</span></li><li><a href="pof-add.html">Add POF rate (drawer)</a><span>/admin/pof (drawer)</span></li><li><a href="banks.html">Banks</a><span>/admin/banks</span></li><li><a href="bank-add.html">Add bank (drawer)</a><span>/admin/banks (drawer)</span></li><li><a href="bank-edit.html">Edit bank (drawer)</a><span>/admin/banks (drawer)</span></li><li><a href="bank-delete.html">Delete bank (confirm)</a><span>/admin/banks (confirmation modal)</span></li><li><a href="templates.html">Templates</a><span>/admin/templates</span></li><li><a href="generator.html">Generator</a><span>/admin/generator</span></li><li><a href="generator-edited.html">Generator with edits + WhatsApp view</a><span>/admin/generator (state)</span></li><li><a href="generator-pof.html">Generator, POF board</a><span>/admin/generator (POF type)</span></li><li><a href="generator-done.html">Generator, board generated</a><span>/admin/generator (after Generate)</span></li><li><a href="history.html">History</a><span>/admin/history</span></li><li><a href="history-board.html">Board detail (modal)</a><span>/admin/history (modal)</span></li><li><a href="history-regenerate.html">Regenerate (modal)</a><span>/admin/history (modal)</span></li><li><a href="settings.html">Settings</a><span>/admin/settings</span></li></ul></main></body></html>

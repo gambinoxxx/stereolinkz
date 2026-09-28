@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stereolinkz rate boards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  /* ── Tokens ─────────────────────────────────────────── */
+  :root {
+    --midnight: #1F0B3F;  /* ink on light surfaces */
+    --cobalt:   #6A35D9;  /* violet: buy, rates, brand */
+    --signal:   #E9B949;  /* gold: sell, brand bars, highlights */
+    --mist:     #F7F4FC;  /* rate card surface */
+    --slate:    #6E6187;  /* secondary text */
+    --white:    #FFFFFF;
+  }
+
+  /* ── Viewer chrome (not part of the board) ──────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Archivo", system-ui, sans-serif;
+    background: #E4DFEE;
+    color: var(--midnight);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .viewer-bar {
+    display: flex; gap: 8px; padding: 14px 16px 10px;
+  }
+  .viewer-bar button {
+    font: 600 15px "Archivo", sans-serif;
+    padding: 10px 18px; border-radius: 999px; border: 2px solid var(--midnight);
+    background: transparent; color: var(--midnight); cursor: pointer;
+  }
+  .viewer-bar button[aria-pressed="true"] { background: var(--midnight); color: var(--white); }
+  .viewer-bar button:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
+  .stage { flex: 1; width: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 0 12px 16px; overflow: hidden; }
+  .frame { position: relative; box-shadow: 0 20px 50px rgba(31,11,63,.3); border-radius: 18px; overflow: hidden; }
+  .frame .board { position: absolute; top: 0; left: 0; transform-origin: top left; }
+  .board[hidden] { display: none; }
+
+  /* ── Board: 1080 × 1920, flexbox only (ports to Satori) ─ */
+  .board {
+    width: 1080px; height: 1920px;
+    display: flex; flex-direction: column;
+    background: var(--midnight);
+    background-image: linear-gradient(165deg, #3B1675 0%, #2A0F58 45%, #1C0A3D 100%);
+    color: var(--white);
+    padding: 150px 72px 0;           /* top 150 clears WhatsApp's progress bar + name */
+    overflow: hidden; position: relative;
+  }
+
+  /* Header */
+  .brand-row { display: flex; justify-content: space-between; align-items: center; }
+  .logo { display: flex; align-items: flex-end; gap: 18px; }
+  .logo-bars { display: flex; align-items: flex-end; gap: 7px; height: 64px; }
+  .logo-bars span { width: 12px; border-radius: 6px; background: var(--signal); }
+  .logo-word { font-size: 60px; font-weight: 800; font-stretch: 112%; letter-spacing: -1.5px; line-height: 1; }
+  .logo-word b { color: var(--signal); font-weight: 800; }
+  .date-chip {
+    display: flex; flex-direction: column; align-items: flex-end;
+    font-size: 28px; font-weight: 500; color: #C4B6E3; line-height: 1.3;
+  }
+  .date-chip strong { color: var(--white); font-weight: 700; font-size: 30px; }
+
+  /* Headline + equalizer motif */
+  .hero { position: relative; display: flex; flex-direction: column; margin-top: 60px; }
+  .eq {
+    position: absolute; right: -72px; top: -20px;
+    display: flex; align-items: flex-end; gap: 14px; height: 280px; opacity: .18;
+  }
+  .eq span { width: 26px; border-radius: 13px 13px 0 0; background: var(--cobalt); }
+  .eq span:nth-child(3n) { background: #A77CFF; }
+  .headline {
+    position: relative;
+    font-size: 124px; font-weight: 800; font-stretch: 112%;
+    letter-spacing: -4px; line-height: .92;
+  }
+  .subline { position: relative; margin-top: 20px; font-size: 36px; font-weight: 500; color: #D4C8EE; }
+
+  /* Rate card */
+  .card {
+    margin-top: 44px;
+    display: flex; flex-direction: column;
+    background: var(--mist); color: var(--midnight);
+    border-radius: 44px; padding: 36px 40px 34px;
+    box-shadow: 0 30px 60px rgba(0,0,0,.28);
+  }
+  .col-heads { display: flex; justify-content: flex-end; gap: 16px; padding-bottom: 14px; }
+  .col-heads span { width: 232px; text-align: center; font-size: 30px; font-weight: 700; color: var(--slate); }
+  .row {
+    display: flex; align-items: center; gap: 28px;
+    padding: 20px 0; border-top: 3px solid #E6DFF2;
+  }
+  .flag { width: 108px; height: 108px; border-radius: 54px; overflow: hidden; flex-shrink: 0; box-shadow: 0 0 0 5px var(--white), 0 8px 18px rgba(31,11,63,.18); }
+  .flag svg { width: 108px; height: 108px; display: block; }
+  .ccy { display: flex; flex-direction: column; flex: 1; }
+  .ccy-code { font-size: 66px; font-weight: 900; font-stretch: 110%; letter-spacing: -1px; line-height: 1; }
+  .ccy-name { white-space: nowrap; font-size: 26px; font-weight: 500; color: var(--slate); margin-top: 6px; }
+  .price {
+    width: 232px; height: 112px; border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 68px; font-weight: 800; font-stretch: 105%; letter-spacing: -1.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .price.buy  { background: var(--cobalt); color: var(--white); }
+  .price.sell { background: var(--signal); color: var(--midnight); }
+  .prices { display: flex; gap: 16px; }
+  .card-note {
+    display: flex; align-items: center; gap: 16px;
+    margin-top: 6px; padding-top: 24px; border-top: 3px solid #E6DFF2;
+    font-size: 30px; font-weight: 600;
+  }
+  .card-note i { width: 18px; height: 18px; border-radius: 9px; background: var(--cobalt); flex-shrink: 0; font-style: normal; }
+
+  /* POF rows */
+  .col-heads.pof { justify-content: space-between; }
+  .col-heads.pof span { width: auto; text-align: left; }
+  .row.pof { padding: 16px 0; gap: 24px; }
+  .mono {
+    width: 80px; height: 80px; border-radius: 40px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; font-weight: 800; color: var(--white);
+  }
+  .bank { display: flex; align-items: center; gap: 18px; flex: 1; }
+  .bank-name { font-size: 48px; font-weight: 800; letter-spacing: -.5px; line-height: 1.05; }
+  .pill {
+    padding: 6px 16px; border-radius: 999px; white-space: nowrap;
+    background: var(--signal); color: var(--midnight);
+    font-size: 24px; font-weight: 700;
+  }
+  .pct {
+    width: 200px; height: 88px; border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--cobalt); color: var(--white);
+    font-size: 56px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums;
+  }
+
+  /* Below the card */
+  .reach { margin-top: 30px; font-size: 31px; font-weight: 500; line-height: 1.35; color: #E8E0F7; }
+  .contact {
+    margin-top: 28px; display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; border-radius: 28px; background: rgba(255,255,255,.08);
+    border: 2px solid rgba(255,255,255,.14);
+  }
+  .contact-label { font-size: 28px; font-weight: 500; color: #C4B6E3; }
+  .contact-value { font-size: 40px; font-weight: 800; letter-spacing: -.5px; }
+  .contact-dot { width: 64px; height: 64px; border-radius: 32px; background: var(--signal); display: flex; align-items: center; justify-content: center; }
+  .fine { margin-top: 18px; font-size: 23px; color: #A294C4; line-height: 1.4; }
+
+  /* Bottom 340px sits under WhatsApp's caption + reply bar: decoration only */
+  .foot-band { position: absolute; left: 0; right: 0; bottom: 0; height: 22px; display: flex; }
+  .foot-band span:first-child { flex: 3; background: var(--cobalt); }
+  .foot-band span:last-child  { flex: 1; background: var(--signal); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="viewer-bar" role="group" aria-label="Choose board">
+  <button type="button" data-show="forex" aria-pressed="true">Forex rates</button>
+  <button type="button" data-show="pof" aria-pressed="false">POF rates</button>
+</div>
+
+<div class="stage">
+  <div class="frame" id="frame">
+
+    <!-- ════════════════ FOREX BOARD ════════════════ -->
+    <section class="board" id="forex" aria-label="Forex rate board">
+      <div class="brand-row">
+        <div class="logo">
+          <div class="logo-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div>
+          <div class="logo-word">stereo<b>linkz</b></div>
+        </div>
+        <div class="date-chip"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div>
+      </div>
+
+      <div class="hero">
+        <div class="eq" aria-hidden="true">
+          <span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span>
+        </div>
+        <div class="headline">Today’s<br>forex rates</div>
+        <div class="subline">Naira per unit, settled fast</div>
+      </div>
+
+      <div class="card">
+        <div class="col-heads"><span>We buy</span><span>We sell</span></div>
+
+        <div class="row">
+          <div class="flag"><svg viewBox="0 0 60 60" aria-label="US flag">
+            <rect width="60" height="60" fill="#fff"/>
+            <g fill="#C8102E"><rect y="0" width="60" height="4.6"/><rect y="9.2" width="60" height="4.6"/><rect y="18.4" width="60" height="4.6"/><rect y="27.6" width="60" height="4.6"/><rect y="36.8" width="60" height="4.6"/><rect y="46" width="60" height="4.6"/><rect y="55.2" width="60" height="4.8"/></g>
+            <rect width="30" height="32.2" fill="#0A3161"/>
+            <g fill="#fff"><circle cx="6" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="24" cy="6" r="1.6"/><circle cx="10.5" cy="12" r="1.6"/><circle cx="19.5" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/><circle cx="24" cy="18" r="1.6"/><circle cx="10.5" cy="24" r="1.6"/><circle cx="19.5" cy="24" r="1.6"/></g>
+          </svg></div>
+          <div class="ccy"><div class="ccy-code">USD</div><div class="ccy-name">US dollar</div></div>
+          <div class="prices"><div class="price buy">1365</div><div class="price sell">1378</div></div>
+        </div>
+
+        <div class="row">
+          <div class="flag"><svg viewBox="0 0 60 60" aria-label="UK flag">
+            <rect width="60" height="60" fill="#012169"/>
+            <path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"/>
+            <path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"/>
+            <path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"/>
+            <path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"/>
+          </svg></div>
+          <div class="ccy"><div class="ccy-code">GBP</div><div class="ccy-name">British pound</div></div>
+          <div class="prices"><div class="price buy">1815</div><div class="price sell">1840</div></div>
+        </div>
+
+        <div class="row">
+          <div class="flag"><svg viewBox="0 0 60 60" aria-label="EU flag">
+            <rect width="60" height="60" fill="#003399"/>
+            <g fill="#FFCC00">
+              <circle cx="30" cy="13" r="2.4"/><circle cx="38.5" cy="15.3" r="2.4"/><circle cx="44.7" cy="21.5" r="2.4"/><circle cx="47" cy="30" r="2.4"/><circle cx="44.7" cy="38.5" r="2.4"/><circle cx="38.5" cy="44.7" r="2.4"/><circle cx="30" cy="47" r="2.4"/><circle cx="21.5" cy="44.7" r="2.4"/><circle cx="15.3" cy="38.5" r="2.4"/><circle cx="13" cy="30" r="2.4"/><circle cx="15.3" cy="21.5" r="2.4"/><circle cx="21.5" cy="15.3" r="2.4"/>
+            </g>
+          </svg></div>
+          <div class="ccy"><div class="ccy-code">EUR</div><div class="ccy-name">Euro</div></div>
+          <div class="prices"><div class="price buy">1560</div><div class="price sell">1583</div></div>
+        </div>
+
+        <div class="card-note"><i></i>T+1 settlement to China and the rest of the world</div>
+      </div>
+
+      <p class="reach">Pay into the UK, US, Europe, Canada, China and more by wire, ACH or local bank transfer.</p>
+
+      <div class="contact">
+        <div>
+          <div class="contact-label">Send a message to trade</div>
+          <div class="contact-value">+234 800 000 0000</div>
+        </div>
+        <div class="contact-dot" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>
+        </div>
+      </div>
+      <p class="fine">Rates can change without notice. Rates for large amounts are agreed on request.</p>
+
+      <div class="foot-band" aria-hidden="true"><span></span><span></span></div>
+    </section>
+
+    <!-- ════════════════ POF BOARD ════════════════ -->
+    <section class="board" id="pof" aria-label="Proof of funds rate board" hidden>
+      <div class="brand-row">
+        <div class="logo">
+          <div class="logo-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div>
+          <div class="logo-word">stereo<b>linkz</b></div>
+        </div>
+        <div class="date-chip"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div>
+      </div>
+
+      <div class="hero">
+        <div class="eq" aria-hidden="true">
+          <span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span>
+        </div>
+        <div class="headline">Proof of<br>funds rates</div>
+        <div class="subline">For visa, school and travel applications</div>
+      </div>
+
+      <div class="card">
+        <div class="col-heads pof"><span>Bank</span><span style="width:200px;text-align:center">Per month</span></div>
+
+        <div class="row pof"><div class="mono" style="background:#6B2C91">W</div>
+          <div class="bank"><div class="bank-name">Wema</div></div><div class="pct">3.4%</div></div>
+        <div class="row pof"><div class="mono" style="background:#1F0B3F">P</div>
+          <div class="bank"><div class="bank-name">Providus</div><div class="pill">New account</div></div><div class="pct">3.4%</div></div>
+        <div class="row pof"><div class="mono" style="background:#0B7A75">E</div>
+          <div class="bank"><div class="bank-name">Ecobank</div><div class="pill">New account</div></div><div class="pct">3.4%</div></div>
+        <div class="row pof"><div class="mono" style="background:#3E5BC9">F</div>
+          <div class="bank"><div class="bank-name">Fidelity</div><div class="pill">New account</div></div><div class="pct">3.4%</div></div>
+        <div class="row pof"><div class="mono" style="background:#B8327A">P</div>
+          <div class="bank"><div class="bank-name">Parallex</div></div><div class="pct">2.1%</div></div>
+        <div class="row pof"><div class="mono" style="background:#C77700">G</div>
+          <div class="bank"><div class="bank-name">Globus</div></div><div class="pct">2.3%</div></div>
+      </div>
+
+      <div class="contact">
+        <div>
+          <div class="contact-label">Send a message to apply</div>
+          <div class="contact-value">+234 800 000 0000</div>
+        </div>
+        <div class="contact-dot" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>
+        </div>
+      </div>
+      <p class="fine">Rates can change without notice. Terms and conditions apply.</p>
+
+      <div class="foot-band" aria-hidden="true"><span></span><span></span></div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  // Scale the fixed 1080×1920 board to fit the screen.
+  const frame = document.getElementById('frame');
+  const boards = [...document.querySelectorAll('.board')];
+  function fit() {
+    const bar = document.querySelector('.viewer-bar').offsetHeight;
+    const s = Math.min((window.innerWidth - 24) / 1080, (window.innerHeight - bar - 16) / 1920, 1);
+    frame.style.width = 1080 * s + 'px';
+    frame.style.height = 1920 * s + 'px';
+    boards.forEach(b => b.style.transform = `scale(${s})`);
+  }
+  document.querySelectorAll('[data-show]').forEach(btn => btn.addEventListener('click', () => {
+    boards.forEach(b => b.hidden = b.id !== btn.dataset.show);
+    document.querySelectorAll('[data-show]').forEach(x => x.setAttribute('aria-pressed', x === btn));
+  }));
+  window.addEventListener('resize', fit);
+  fit();
+</script>
+</body>
+</html>
