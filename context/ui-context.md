@@ -63,6 +63,11 @@ Sidebar text: `#C4B8E0` normal, `#FFFFFF` active or hover, `#9C8FC0`
 secondary. Define these as `--sidebar-text`, `--sidebar-text-active` and
 `--sidebar-text-muted`.
 
+Login brand panel (reuses the Purple Signal board colours):
+`--brand-panel-start` `#3B1675`, `--brand-panel-mid` `#2A0F58`,
+`--brand-panel-end` `#1C0A3D` (165° gradient, utility `bg-brand-panel`)
+and `--brand-panel-text` `#D4C8EE` for the panel's subtext.
+
 ### Board Tokens (templates only, in `features/templates/theme.ts`)
 
 | Role | Purple Signal | Daylight |

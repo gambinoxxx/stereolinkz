@@ -9,10 +9,16 @@ change.
 
 ## Current Goal
 
-- Phase 1: Authentication (waiting for the owner to create the Clerk app)
+- Phase 1: Authentication, owner membership (waiting for the owner's Clerk user ID)
 
 ## Completed
 
+- 2026-09-28: Phase 1, authentication. Clerk sign-in at `/login` matching
+  `login.html` at 1440px and 390px (tilted board deferred to Phase 6);
+  signed out, `/admin` → `/login`; signed in, `/login` → `/admin`; `/` →
+  `/admin`. Key files: `src/proxy.ts`, `src/app/layout.tsx`,
+  `src/app/(auth)/login/[[...login]]/page.tsx`, `src/app/admin/layout.tsx`,
+  `src/components/wordmark.tsx`.
 - 2026-09-28: Phase 1, seed. `npm run db:seed` is idempotent (two runs:
   Organization 1, Membership 0, Currency 5, ForexRate 8, Bank 7,
   PofRate 8). Key files: `prisma/seed.ts`, `src/features/banks/slug.ts`.
@@ -82,6 +88,17 @@ change.
 - 2026-09-28: The seed never overwrites existing parents (`update: {}`),
   so Settings and bank/currency edits made in the app survive a re-run.
   Currency `symbol` is left null (not specified in the seed data).
+- 2026-09-28: Clerk 7 (`@clerk/nextjs` 7.9). `src/proxy.ts` is plain
+  `clerkMiddleware()`; protection is next to the data (`architecture.md`
+  → Auth updated). Clerk CSS sits in a `clerk` cascade layer
+  (`cssLayerName`) so Tailwind utilities restyle `<SignIn />`. Copy set
+  through `localization` (v7 shows the "combined" title keys). Clerk 7
+  removed `appearance.layout`; its defaults already give the design's
+  single Google block button on top.
+- 2026-09-28: Login brand panel colours added as `--brand-panel-*` tokens
+  (reuse of Purple Signal board colours), recorded in `ui-context.md`.
+- 2026-09-28: The placeholder admin header has a sign-out button so the
+  second-account check can be run; the real shell replaces it in Phase 2.
 
 ## Session Notes
 
@@ -96,3 +113,10 @@ change.
   `sslmode=require` is treated as `verify-full`; harmless now.
   The connection string was pasted in chat, so the owner should reset
   the `neondb_owner` password after Phase 1.
+- 2026-09-28: Authentication works locally. Clerk development instance;
+  its "Development mode" footer shows under `<SignIn />` until production
+  keys are used. The Clerk secret key was pasted in chat, so the owner
+  should roll it after Phase 1. VS Code twice saved a stale `.env.local`
+  buffer over the file on disk; close that tab without saving.
+  Headless Chrome cannot go below ~500px wide; 390px screenshots are taken
+  with DevTools device emulation instead.

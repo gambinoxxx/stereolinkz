@@ -16,9 +16,14 @@
  *   board frame), rounded-panel (14px: cards, panels, tables),
  *   rounded-modal (18px) and rounded-sheet (20px: phone bottom sheets).
  *
+ * - Brand panel (login): --brand-panel-* reuse the Purple Signal board
+ *   colours. Use bg-brand-panel and text-brand-panel-text.
+ *
  * Board templates do not use these. They take inline styles from
  * src/features/templates/theme.ts (Satori cannot read CSS variables).
  */
+/* Clerk's styles sit in their own layer so utilities can override them. */
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -58,6 +63,12 @@
   --sidebar-text: #c4b8e0;
   --sidebar-text-active: #ffffff;
   --sidebar-text-muted: #9c8fc0;
+
+  /* Brand panel (login), from the Purple Signal board tokens */
+  --brand-panel-start: #3b1675;
+  --brand-panel-mid: #2a0f58;
+  --brand-panel-end: #1c0a3d;
+  --brand-panel-text: #d4c8ee;
 
   /* shadcn/ui aliases (our tokens only) */
   --background: var(--bg-base);
@@ -106,6 +117,7 @@
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-text-active: var(--sidebar-text-active);
   --color-sidebar-text-muted: var(--sidebar-text-muted);
+  --color-brand-panel-text: var(--brand-panel-text);
 
   /* shadcn/ui names */
   --color-background: var(--background);
@@ -139,6 +151,15 @@
    * --font-sans is set on <html> by next/font (Archivo, src/app/layout.tsx).
    * That declaration is unlayered, so it wins over Tailwind's default.
    */
+}
+
+@utility bg-brand-panel {
+  background-image: linear-gradient(
+    165deg,
+    var(--brand-panel-start) 0%,
+    var(--brand-panel-mid) 45%,
+    var(--brand-panel-end) 100%
+  );
 }
 
 @layer base {

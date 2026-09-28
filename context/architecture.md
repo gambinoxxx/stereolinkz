@@ -158,8 +158,11 @@ template, then inserts a RateBoardImage only.
 
 ## Auth and Access Model
 
-- Every person signs in via Clerk. `proxy.ts` redirects signed-out
-  visitors from `/admin/*` to `/login`.
+- Every person signs in via Clerk. `src/proxy.ts` runs plain
+  `clerkMiddleware()` to attach the session; it does not protect routes
+  (`createRouteMatcher` is deprecated). Signed-out visitors are sent to
+  `/login` by `requireMember()`, called in the admin layout and again in
+  every page query, action and route handler.
 - A Clerk session is not enough. `requireMember()` in
   `lib/server/auth.ts` looks up a `Membership` for the Clerk user. It
   returns `{ userId, organizationId, role }` or throws, which the app
