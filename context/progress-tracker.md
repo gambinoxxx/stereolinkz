@@ -9,10 +9,13 @@ change.
 
 ## Current Goal
 
-- Phase 1: Seed
+- Phase 1: Authentication (waiting for the owner to create the Clerk app)
 
 ## Completed
 
+- 2026-09-28: Phase 1, seed. `npm run db:seed` is idempotent (two runs:
+  Organization 1, Membership 0, Currency 5, ForexRate 8, Bank 7,
+  PofRate 8). Key files: `prisma/seed.ts`, `src/features/banks/slug.ts`.
 - 2026-09-28: Phase 1, database. Prisma 7.10 wired (prisma-client generator,
   `prisma.config.ts`, `@prisma/adapter-pg`); first migration `init` applied
   to Neon with the `forex_sell_gte_buy` and `pof_rate_range` CHECK
@@ -35,9 +38,9 @@ change.
 
 ## Next Up
 
-- Phase 1: Seed
 - Phase 1: Authentication (Clerk sign-in)
 - Phase 1: Membership guard
+- Phase 1: Deploy
 
 ## Open Questions
 
@@ -64,7 +67,6 @@ change.
   sidebar palette from shadcn. Radius adds named steps (`rounded-control`
   10px, `rounded-panel` 14px, `rounded-modal` 18px, `rounded-sheet` 20px).
   Recorded in `code-standards.md` → Styling.
-
 - 2026-09-28: Prisma 7.10.0 (latest stable 7.x), pinned to `^7`. npm's
   `latest` tag for `prisma` pointed at 8.0.0-rc, which we skip. Wiring:
   `prisma-client` generator → `src/generated/prisma` (gitignored,
@@ -73,6 +75,13 @@ change.
   `.env.local` then `.env` (same precedence as Next.js).
 - 2026-09-28: Seed runs with `tsx` via `migrations.seed` in
   `prisma.config.ts` (Prisma 7 no longer reads `package.json#prisma.seed`).
+- 2026-09-28: Bank slug rule: lowercase, drop non-alphanumerics, then
+  remove "bank", "plc", "ltd" from the joined string, so "Eco Bank" and
+  "Ecobank" both give `eco`. A name made only of those words gives ""
+  and must be rejected by Phase 3's validation.
+- 2026-09-28: The seed never overwrites existing parents (`update: {}`),
+  so Settings and bank/currency edits made in the app survive a re-run.
+  Currency `symbol` is left null (not specified in the seed data).
 
 ## Session Notes
 
