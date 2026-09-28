@@ -1,0 +1,216 @@
+// RateBoard — proposed schema v0.1 (for review, not yet migrated)
+//
+// Principles:
+//  1. Banks and currencies are rows, never models or columns.
+//  2. Rates are append-only. Editing a rate inserts a new row; "current" = newest row.
+//  3. A RateBoard stores a self-contained JSON snapshot, so old boards never read live tables.
+//  4. Everything tenant-owned hangs off Organization (one org in the MVP).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Prisma 7: connection URL lives in prisma.config.ts instead
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tenancy & access
+// ─────────────────────────────────────────────────────────────
+
+model Organization {
+  id            String  @id @default(cuid())
+  name          String
+  slug          String  @unique
+  clerkOrgId    String? @unique // null in MVP; linked if Clerk Organizations are enabled later
+  timezone      String  @default("Africa/Lagos") // dates printed on boards use this, not server UTC
+  quoteCurrency String  @default("NGN")
+
+  // Brand values templates read (copied into each board snapshot at generation time)
+  logoUrl         String?
+  backgroundColor String? // board background base, e.g. #2A0F58
+  primaryColor    String? // buy prices and POF rate pills, e.g. #6A35D9
+  accentColor     String? // sell prices, notes, logo bars, e.g. #E9B949
+  contactLine     String? // WhatsApp number printed on boards
+  email           String?
+
+  // Board defaults (Settings and Templates pages)
+  defaultFinePrint        String?
+  defaultForexTemplateKey String? // e.g. "forex/purple-signal"; null = first registered template
+  defaultPofTemplateKey   String?
+
+  memberships Membership[]
+  currencies  Currency[]
+  banks       Bank[]
+  rateBoards  RateBoard[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+// Authorization source of truth. Being signed in to Clerk is not enough;
+// every server action checks for a Membership.
+model Membership {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clerkUserId    String
+  role           MemberRole   @default(ADMIN)
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, clerkUserId])
+  @@index([clerkUserId])
+}
+
+// ACTIVE   = managed + available to boards
+// INACTIVE = managed, hidden from boards (reactivatable)
+// ARCHIVED = soft-deleted; hidden everywhere, history kept
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────────────────────
+// Forex
+// ─────────────────────────────────────────────────────────────
+
+model Currency {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  code      String       // ISO 4217, uppercase: "USD"
+  name      String       // "US Dollar"
+  symbol    String?      // "$"
+  flagCode  String?      // "us", "gb", "eu" → bundled SVG flag (emoji flags render unreliably in SVG)
+  sortOrder Int          @default(0)
+  status    RecordStatus @default(ACTIVE)
+
+  rates ForexRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status, sortOrder])
+}
+
+// Immutable. No updatedAt on purpose.
+model ForexRate {
+  id         String   @id @default(cuid())
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Restrict)
+
+  buy  Decimal @db.Decimal(14, 4) // in Organization.quoteCurrency
+  sell Decimal @db.Decimal(14, 4) // CHECK (sell >= buy) added via raw SQL in the migration
+
+  createdById String? // Clerk user id
+  createdAt   DateTime @default(now())
+
+  @@index([currencyId, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Banks & POF
+// ─────────────────────────────────────────────────────────────
+
+model Bank {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String       // "Wema Bank"
+  shortName String?      // "Wema" — what most templates print
+  slug      String       // normalized name, blocks "Ecobank" vs "Eco Bank" duplicates
+  logoUrl   String?      // Vercel Blob URL; never overwritten, a new upload = new URL
+  sortOrder Int          @default(0)
+  status    RecordStatus @default(ACTIVE)
+  pofActive Boolean      @default(true) // show this bank's current POF rate on new POF boards
+
+  pofRates PofRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status, sortOrder])
+}
+
+// Immutable. One rate stream per bank (see open question on multiple offers).
+model PofRate {
+  id     String @id @default(cuid())
+  bankId String
+  bank   Bank   @relation(fields: [bankId], references: [id], onDelete: Restrict)
+
+  rate Decimal @db.Decimal(5, 2) // percent: 3.40 means 3.4%
+  note String? // "New account"
+
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([bankId, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Boards & images
+// ─────────────────────────────────────────────────────────────
+
+enum RateBoardType {
+  FOREX
+  POF
+  CUSTOM
+}
+
+// Created only when the user clicks Generate. Never updated afterwards.
+model RateBoard {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type            RateBoardType
+  templateKey     String // code registry key, e.g. "forex/purple-signal"
+  templateVersion Int
+
+  snapshot        Json // everything needed to re-render; validated by Zod (board-snapshot.ts)
+  snapshotVersion Int  @default(1)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  images RateBoardImage[]
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([organizationId, type, createdAt(sort: Desc)])
+}
+
+// Separate from RateBoard so regenerating (or a future square/feed format)
+// adds an image instead of mutating the board.
+model RateBoardImage {
+  id          String    @id @default(cuid())
+  rateBoardId String
+  rateBoard   RateBoard @relation(fields: [rateBoardId], references: [id], onDelete: Cascade)
+
+  format          String // "story" (1080×1920) for MVP
+  width           Int
+  height          Int
+  templateKey     String
+  templateVersion Int
+
+  blobUrl      String
+  blobPathname String // needed to delete the blob later
+  byteSize     Int
+
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([rateBoardId, createdAt(sort: Desc)])
+}

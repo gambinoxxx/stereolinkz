@@ -14,7 +14,7 @@
 | Hosting          | Vercel (Node.js runtime for rendering)        | App, server actions, render route |
 
 No other state, data-fetching or background-job libraries. If a real
-need appears, raise it in `progress-tracker.md` first.
+need appears, add it to `progress-tracker.md` → Open Questions first.
 
 ## System Boundaries
 
@@ -164,6 +164,51 @@ template, then inserts a RateBoardImage only.
   owner's Clerk user ID from an env var); no self sign-up grants access.
 - Generated PNG and logo URLs are public but unguessable (Blob random
   suffix). This is acceptable because boards are posted publicly.
+
+## Environment Variables
+
+Values live in `.env.local` (never committed) and in Vercel. List every
+new variable here and in `.env.example`.
+
+| Variable | Used by | Set in |
+| -------- | ------- | ------ |
+| `DATABASE_URL` | Prisma | local, Vercel |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk | local, Vercel |
+| `CLERK_SECRET_KEY` | Clerk | local, Vercel |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` = `/login` | Clerk | local, Vercel |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` = `/admin` | Clerk | local, Vercel |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob | local, Vercel |
+| `SEED_OWNER_CLERK_USER_ID` | `prisma/seed.ts` | local, prod seed only |
+
+## Settled Decisions
+
+Decided before the build started. Each is reflected in the schema and
+the rest of this file. Decisions made during the build are recorded in
+`progress-tracker.md` → Architecture Decisions.
+
+- **Rates are append-only.** The current rate is the newest row; there
+  is no active flag on rate rows. Why: history and old boards must
+  never change.
+- **Visibility lives on the parent record:** `Currency.status`,
+  `Bank.status` and `Bank.pofActive`. Why: rate rows stay immutable.
+- **One POF rate per bank at a time.** The optional note (for example
+  "New account") describes that single rate; there is no `PofOffer`
+  model. Why: confirmed by the owner.
+- **POF rates are charged per month.** Boards show a "Per month" column.
+- **Boards store a Zod-validated JSON snapshot** and never reference
+  live rates. Images have their own table, so regenerating adds a row.
+- **Templates are code**, a registry keyed by key and version; the
+  database stores only those two values.
+- **The schema is organization-scoped from day one**; the MVP has one
+  seeded organization (Stereolinkz).
+- **Rendering uses Satori and resvg on the Node runtime.** The preview
+  uses the same template component.
+- **Vitest only**, as a dev dependency for pure logic; no end-to-end
+  framework in the MVP.
+- **Brand:** Stereolinkz, purple and gold. Board dates use the
+  Africa/Lagos time zone.
+- **Placeholder WhatsApp number** `+234 800 000 0000` until the owner
+  sets the real one in Settings.
 
 ## Invariants
 

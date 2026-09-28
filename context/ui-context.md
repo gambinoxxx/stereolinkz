@@ -87,11 +87,16 @@ the snapshot.
 | Role | Font | Variable |
 | ---- | ---- | -------- |
 | UI text | Archivo (variable: weight 400–900, width 62–125), via `next/font/google` | `--font-sans` |
-| Board text | Archivo TTF files (400, 500, 600, 700, 800, 900) bundled in `public/fonts/` for Satori | — |
+| Board text | Archivo WOFF files (`latin` + `latin-ext`, weights 400–900) from `@fontsource/archivo`, committed in `assets/fonts/` for Satori | — |
 | Numbers | Archivo with `font-variant-numeric: tabular-nums` | — |
 
-No monospace font. The font must include the ₦ glyph; check this in
-the Phase 1 render spike.
+No monospace font. Archivo has the ₦ glyph only in its `latin-ext`
+subset, so `next/font` must load `subsets: ["latin", "latin-ext"]` and
+Satori must load the `latin-ext` files too.
+
+Satori ignores `font-stretch`. The board headline uses Archivo's normal
+width in the PNG; the preview must match, so templates do not set
+`font-stretch`.
 
 Admin type scale:
 
@@ -109,7 +114,7 @@ Board type scale (at 1080 × 1920):
 
 | Use | Size / weight |
 | --- | ------------- |
-| Headline | 124px / 800, stretch 112%, tracking −4px, line-height 0.92, two lines |
+| Headline | 124px / 800, tracking −4px, line-height 0.92, two lines |
 | Wordmark | 60px / 800 |
 | Currency code | 66px / 900 |
 | Buy/sell price | 68px / 800 |

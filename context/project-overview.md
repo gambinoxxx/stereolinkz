@@ -61,7 +61,8 @@ rate calculator.
 - Table of currencies with buy, sell, spread, change since the previous
   rate, last updated, and an active switch.
 - Edit and add in a side drawer (bottom sheet on phones) that shows
-  recent history.
+  recent history. Edit changes rates only; a currency's code, name,
+  symbol and flag are fixed once it is added.
 - Activate/deactivate currencies; drag rows to set their order on boards.
 - Validation: buy > 0, sell > 0, sell ≥ buy, currency code is 3 letters
   and unique.

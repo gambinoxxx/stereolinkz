@@ -119,18 +119,18 @@
   snapshot renders to a 1080 × 1920 PNG).
 - Test files sit next to the code: `format.test.ts`.
 - No end-to-end framework in the MVP. UI is verified against the
-  design files at 1440px and 390px, as listed in each unit of
+  design files at 1440px and 390px, as listed in each phase of
   `implementation-plan.md`.
 - Dates in tests are fixed values passed in. Never depend on the real clock.
 
 ## Git and Pull Requests
 
-- One branch and one pull request per unit: `unit/<id>-<short-name>`
-  (for example `unit/4.2-edit-forex-rate`).
-- The PR description has the unit ID, a summary, the completed
-  Done-when list and, for UI units, screenshots at 1440px and 390px.
-- Commit messages are imperative and name the unit: `4.2: insert
-  ForexRate on save`.
+- One branch and one pull request per phase: `phase-<n>-<short-name>`
+  (for example `phase-4-forex`).
+- Commit each working piece inside the phase, imperative and naming
+  the phase: `phase 4: insert ForexRate on save`.
+- The PR description has the phase number, a summary, the completed
+  Done-when list, and screenshots at 1440px and 390px of every page touched.
 - Never commit `.env*` files, generated PNGs or `tmp/` render output.
 
 ## File Organization
@@ -146,5 +146,5 @@
 - `components/shell/` — sidebar, mobile top bar, bottom tab bar, page header
 - `components/board/` — scaled board preview frame and WhatsApp overlay
 - `prisma/` — schema, migrations, seed
-- `public/fonts/` — Archivo TTF files bundled for Satori
+- `assets/fonts/` — Archivo WOFF files (latin + latin-ext) read by Satori on the server
 - `docs/design/` — page design HTML files (reference only)
