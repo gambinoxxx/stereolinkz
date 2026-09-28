@@ -97,7 +97,10 @@ the snapshot.
 
 No monospace font. Archivo has the ₦ glyph only in its `latin-ext`
 subset, so `next/font` must load `subsets: ["latin", "latin-ext"]` and
-Satori must load the `latin-ext` files too.
+Satori must load the `latin-ext` files too. Satori only falls back per
+glyph between fonts with different names, so `lib/render/fonts.ts`
+registers the `latin` files as "Archivo" and the `latin-ext` files as
+"Archivo latin-ext". Templates still set `fontFamily: "Archivo"`.
 
 Satori ignores `font-stretch`. The board headline uses Archivo's normal
 width in the PNG; the preview must match, so templates do not set
