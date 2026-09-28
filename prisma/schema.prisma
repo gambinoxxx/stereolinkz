@@ -7,12 +7,13 @@
 //  4. Everything tenant-owned hangs off Organization (one org in the MVP).
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Prisma 7: connection URL lives in prisma.config.ts instead
+  // Prisma 7: the connection URL lives in prisma.config.ts
 }
 
 // ─────────────────────────────────────────────────────────────

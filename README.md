@@ -34,3 +34,8 @@ npm run dev                  # http://localhost:3000
 | `npm run lint`                    | ESLint                                      |
 | `npm run typecheck`               | Generate route types and run `tsc --noEmit` |
 | `npm run format` / `format:check` | Prettier write / check                      |
+| `npm run db:generate`             | Generate the Prisma client                  |
+| `npm run db:migrate`              | Create and apply a migration (development)  |
+| `npm run db:deploy`               | Apply pending migrations (target database)  |
+| `npm run db:studio`               | Open Prisma Studio                          |
+| `npm run db:seed`                 | Seed the Stereolinkz organization and data  |

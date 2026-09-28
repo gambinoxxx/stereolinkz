@@ -71,6 +71,14 @@ docs/design/                      Page design HTML files (visual spec, read-only
 - **Code (git)**: templates, flag SVGs and fonts. The database stores
   only `templateKey` + `templateVersion`.
 
+### Prisma wiring
+
+Prisma 7: the `prisma-client` generator writes to `src/generated/prisma`
+(gitignored). The CLI reads the connection URL from `prisma.config.ts`;
+the app connects through the `@prisma/adapter-pg` driver adapter in
+`lib/server/db.ts`. The CHECK constraints `forex_sell_gte_buy` and
+`pof_rate_range` are hand-added SQL in the first migration.
+
 ### Data model (see `prisma/schema.prisma`)
 
 ```

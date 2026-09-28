@@ -154,5 +154,7 @@
 - `components/shell/` — sidebar, mobile top bar, bottom tab bar, page header
 - `components/board/` — scaled board preview frame and WhatsApp overlay
 - `prisma/` — schema, migrations, seed
+- `prisma.config.ts` — Prisma 7 config: datasource URL (from `.env.local`, then `.env`), migrations path, seed command
+- `src/generated/prisma/` — generated Prisma client (gitignored; `postinstall` and `build` regenerate it). Import from `@/generated/prisma/client`, and only via `lib/server/db.ts` for queries
 - `assets/fonts/` — Archivo WOFF files (latin + latin-ext) read by Satori on the server
 - `docs/design/` — page design HTML files (reference only)
