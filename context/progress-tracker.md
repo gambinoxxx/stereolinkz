@@ -9,10 +9,13 @@ change.
 
 ## Current Goal
 
-- Phase 1: Authentication, owner membership (waiting for the owner's Clerk user ID)
+- Phase 1: Membership guard, second-account check (waiting for the owner)
 
 ## Completed
 
+- 2026-09-28: Phase 1, owner membership. `SEED_OWNER_CLERK_USER_ID` set in
+  `.env.local`; seed re-run created the OWNER Membership (other counts
+  unchanged).
 - 2026-09-28: Phase 1, authentication. Clerk sign-in at `/login` matching
   `login.html` at 1440px and 390px (tilted board deferred to Phase 6);
   signed out, `/admin` → `/login`; signed in, `/login` → `/admin`; `/` →
@@ -40,13 +43,16 @@ change.
 
 ## In Progress
 
-- None.
+- Membership guard: `requireMember()` / `getMember()` in
+  `src/lib/server/auth.ts`, `safeAction()` in `src/lib/server/action.ts`,
+  `/not-authorized` page, admin layout and page guarded. Built and
+  committed; left: the owner signs in with a second account, which must
+  land on `/not-authorized`.
 
 ## Next Up
 
-- Phase 1: Authentication (Clerk sign-in)
-- Phase 1: Membership guard
-- Phase 1: Deploy
+- Phase 1: Deploy (Vercel Preview)
+- Phase 1: Render spike
 
 ## Open Questions
 
@@ -99,6 +105,13 @@ change.
   (reuse of Purple Signal board colours), recorded in `ui-context.md`.
 - 2026-09-28: The placeholder admin header has a sign-out button so the
   second-account check can be run; the real shell replaces it in Phase 2.
+- 2026-09-28: `requireMember()` reads through a React `cache()`d lookup,
+  so a request queries Membership once however many times it is called.
+  `getMember()` shares that lookup and returns null (no user or no
+  membership) for route handlers. `safeAction()` calls `requireMember()`
+  before its try block and uses `unstable_rethrow` so redirects inside an
+  action still work; other errors are logged and replaced with "Something
+  went wrong. Try again."
 
 ## Session Notes
 

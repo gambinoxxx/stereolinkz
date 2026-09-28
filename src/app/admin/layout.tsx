@@ -1,13 +1,16 @@
 import { SignOutButton } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 
 import { Wordmark } from "@/components/wordmark";
+import { requireMember } from "@/lib/server/auth";
 
 // Placeholder shell; the real app shell is Phase 2.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  const { userId } = await auth();
-  if (!userId) redirect("/login");
+  // Layouts are NOT a security boundary: they don't re-run on every
+  // navigation, and server actions and route handlers bypass them. Every
+  // page query, server action and route handler must call requireMember()
+  // itself (architecture.md → Invariant 7). This call only keeps
+  // non-members from seeing the shell.
+  await requireMember();
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
