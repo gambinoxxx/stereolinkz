@@ -9,10 +9,14 @@ change.
 
 ## Current Goal
 
-- Phase 1: Membership guard, second-account check (waiting for the owner)
+- Phase 1: Render spike (local first)
 
 ## Completed
 
+- 2026-09-28: Phase 1, membership guard. Owner confirmed locally: signed in,
+  `/login` → `/admin`; the owner sees `/admin`; a second Clerk account
+  lands on `/not-authorized`. Key files: `src/lib/server/auth.ts`,
+  `src/lib/server/action.ts`, `src/app/not-authorized/page.tsx`.
 - 2026-09-28: Phase 1, owner membership. `SEED_OWNER_CLERK_USER_ID` set in
   `.env.local`; seed re-run created the OWNER Membership (other counts
   unchanged).
@@ -43,16 +47,12 @@ change.
 
 ## In Progress
 
-- Membership guard: `requireMember()` / `getMember()` in
-  `src/lib/server/auth.ts`, `safeAction()` in `src/lib/server/action.ts`,
-  `/not-authorized` page, admin layout and page guarded. Built and
-  committed; left: the owner signs in with a second account, which must
-  land on `/not-authorized`.
+- Deploy: on hold at the owner's request; nothing pushed yet.
 
 ## Next Up
 
-- Phase 1: Deploy (Vercel Preview)
-- Phase 1: Render spike
+- Phase 1: Render spike (local)
+- Phase 1: Deploy (Vercel Preview), then confirm the spike on the Preview
 
 ## Open Questions
 
@@ -112,6 +112,9 @@ change.
   before its try block and uses `unstable_rethrow` so redirects inside an
   action still work; other errors are logged and replaced with "Something
   went wrong. Try again."
+- 2026-09-28: Render spike built locally before Deploy (owner asked to
+  hold Vercel). The spike's Done-when item still needs the Preview, so
+  Phase 1 stays open until Deploy is done and the PNG is confirmed there.
 
 ## Session Notes
 
