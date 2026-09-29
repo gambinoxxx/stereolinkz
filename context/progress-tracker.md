@@ -313,11 +313,10 @@ change.
   and pruned the stale remote ref. This Mac's npm 10.9 strips the
   `libc` fields from `package-lock.json` on `npm install`; don't commit
   that change (Vercel needs them to pick resvg's glibc build).
-- 2026-09-29: Phase 2 complete and tagged `phase-2-complete` locally.
-  Committed but not pushed: the checks note, the menu focus fix and this
-  close-out (the four Phase 2 build commits were already on `origin/main`).
-  Pushing `main` deploys production; the owner then checks the shell at
-  https://stereolinkz-czj8.vercel.app at desktop and phone widths.
+- 2026-09-29: Phase 2 complete, tagged `phase-2-complete` and pushed
+  with `--follow-tags` (owner approved). Vercel deployed `93085dc` to
+  production: https://stereolinkz-czj8.vercel.app. The owner checks the
+  shell there at desktop and phone widths.
   Signed-in browser checks can be repeated with a one-time Clerk
   sign-in token (Backend API `sign_in_tokens`, dev instance) opened as
   `/login?__clerk_ticket=…`; sign the session out afterwards.
