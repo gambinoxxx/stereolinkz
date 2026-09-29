@@ -78,3 +78,21 @@ export function flagDataUri(code: string): string | null {
   const flag = FLAGS[code];
   return flag ? `data:image/svg+xml;base64,${btoa(flag)}` : null;
 }
+
+// Picker labels, in the order the add-currency drawer lists them
+// (forex-add.html). Keyed by flag code, like the SVGs above.
+export const FLAG_OPTIONS = [
+  { code: "us", label: "United States" },
+  { code: "gb", label: "United Kingdom" },
+  { code: "eu", label: "European Union" },
+  { code: "ca", label: "Canada" },
+  { code: "cn", label: "China" },
+  { code: "ng", label: "Nigeria" },
+] as const;
+
+export type FlagCode = (typeof FLAG_OPTIONS)[number]["code"];
+
+export const FLAG_CODES = FLAG_OPTIONS.map((flag) => flag.code) as [
+  FlagCode,
+  ...FlagCode[],
+];

@@ -9,10 +9,21 @@ change.
 
 ## Current Goal
 
-- Phase 4: add currency (`currencyInput`, `createCurrency`, `CurrencyDrawer`)
+- Phase 4: status (optimistic switch), then reorder
 
 ## Completed
 
+- 2026-09-30: Phase 4, add currency. `CurrencyDrawer` (code auto-uppercase,
+  symbol, name, flag picker with previews and "No flag", ₦ rates with the
+  spread hint, active switch) creates the Currency and its first
+  ForexRate in one `$transaction` through `createCurrency`. Verified: QAA
+  (no flag) shows a code badge and sorts last; QAB (Nigeria flag,
+  inactive) shows the flag, dimmed; lowercase "usd" → "USD already
+  exists. Edit it from the table instead." on the code field; empty
+  submit shows field errors. Matches `forex-add.html` at 1440px and 390px.
+  Key files: `src/features/currencies/{schema,actions}.ts` (+ tests),
+  `src/features/currencies/components/CurrencyDrawer.tsx`,
+  `src/features/templates/assets/flags/index.ts` (`FLAG_OPTIONS`).
 - 2026-09-30: Phase 4, edit rate. `ForexRateDrawer` (summary, ₦ inputs,
   live spread, last 4 changes) saves through `saveForexRate`, which
   inserts one ForexRate (`createdById` = the Clerk user) and never
@@ -201,7 +212,6 @@ change.
 
 ## Next Up
 
-- Phase 4: status (optimistic switch) and reorder (drag + up/down)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -470,11 +480,21 @@ change.
 - 2026-09-30: Unchanged rates (decimal-equal buy and sell) return
   `unchanged: true` and insert nothing; the drawer stays open with "No
   changes to save".
+- 2026-09-30: The add-currency flag picker defaults to "No flag" (the
+  design's select starts on United States), so a new currency never gets
+  a wrong flag by default. Flag labels live next to the flag SVGs
+  (`FLAG_OPTIONS`, keyed by flag code); "No flag" uses a `none` sentinel
+  because Radix Select items can't have an empty value. Placeholders are
+  "3 letters", "Optional" and "Name on boards" instead of the design's
+  "CAD", "$" and "Canadian dollar" (Invariant 1).
+- 2026-09-30: New currencies get `sortOrder` = max + 1 (last on boards
+  until reordered), inside the same transaction as the insert.
 
 ## Session Notes
 
 - 2026-09-30: Dev database now has test rates from Phase 4 checks (USD
-  1370/1385 at 00:46 Lagos on 30 Sept, CNY 189/195); rates are
+  1370/1385 at 00:46 Lagos on 30 Sept, CNY 189/195) and test currencies
+  QAA and QAB (to be archived when Phase 4's checks are done); rates are
   insert-only, so they stay. Checking timestamps with raw `pg` gives
   wrong times on this Mac: Prisma's `timestamp(3)` columns hold UTC
   without a zone and `pg` reads them as local (Pacific) time. Read them

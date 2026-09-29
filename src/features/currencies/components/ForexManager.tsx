@@ -8,6 +8,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CurrencyDrawer } from "@/features/currencies/components/CurrencyDrawer";
 import { ForexTable } from "@/features/currencies/components/ForexTable";
 import type {
   CurrencyList,
@@ -31,6 +32,7 @@ export function ForexManager({
 }: ForexManagerProps) {
   const router = useRouter();
   const [editing, setEditing] = useState<CurrencyListItem | null>(null);
+  const [adding, setAdding] = useState(false);
 
   function setFilter(next: StatusFilter) {
     router.replace(
@@ -39,8 +41,9 @@ export function ForexManager({
     );
   }
 
-  // Wired in the Add currency part.
-  function openAdd() {}
+  function openAdd() {
+    setAdding(true);
+  }
 
   return (
     <>
@@ -99,6 +102,7 @@ export function ForexManager({
         timeZone={timeZone}
         now={now}
       />
+      <CurrencyDrawer open={adding} onOpenChange={setAdding} />
     </>
   );
 }
