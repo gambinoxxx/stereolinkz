@@ -5,14 +5,23 @@ change.
 
 ## Current Phase
 
-- Phase 2: Shared foundations, complete
+- Phase 3: Banks, in progress
 
 ## Current Goal
 
-- None. Phase 3 has not started.
+- Phase 3: add and edit (schema, actions, BankDrawer)
 
 ## Completed
 
+- 2026-09-29: Phase 3, bank list. `/admin/banks` lists every
+  non-archived bank (one query: newest rate + `_count`) with BankMark,
+  status chip, current POF rate and note, record count, and Edit /
+  Deactivate / Delete (disabled with a tooltip when the bank has rate
+  history). Cards under 760px; matches `banks.html` at 1440px and 390px;
+  Zenith shows Inactive with "No rate". Key files:
+  `src/features/banks/queries.ts`,
+  `src/features/banks/components/BanksTable.tsx`,
+  `src/app/admin/banks/page.tsx`.
 - 2026-09-29: Phase 2 complete. All Done-when items checked, tagged
   phase-2-complete.
 - 2026-09-29: Phase 2, visual and keyboard check (signed in as the owner
@@ -124,10 +133,9 @@ change.
 
 ## Next Up
 
-- Phase 3: owner creates the Vercel Blob store and adds
-  `BLOB_READ_WRITE_TOKEN` (local and Vercel) before the logo upload part
-- Phase 3: bank list (`features/banks/queries.ts`, `BanksTable`), then
-  add/edit (`schema.ts`, `actions.ts`, `BankDrawer`)
+- Phase 3: status and delete (`setBankStatus`, `deleteBank`, confirm dialog)
+- Phase 3: ⏸ owner creates the Vercel Blob store and adds
+  `BLOB_READ_WRITE_TOKEN` (local and Vercel), then logo upload
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -301,6 +309,11 @@ change.
   close. `MobileMenuProvider` remembers the opener and refocuses it in
   `onCloseAutoFocus`, except when a link closed the menu (focus then
   belongs to the new page). No `components/ui` file changed.
+- 2026-09-29: Banks table: the design hides the Deactivate button on
+  phones (`.t-bank .c-act .btn.ghost:not(.icon){display:none}`); status
+  is changed there through the drawer's Active switch. Column headers are
+  visual only; each cell has its own label, visible on phones and
+  screen-reader-only on desktop.
 
 ## Session Notes
 
