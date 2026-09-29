@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -40,6 +40,19 @@ export async function requireMember(): Promise<Member> {
   if (!member) redirect("/not-authorized");
   return member;
 }
+
+// The signed-in person's name for the shell and greetings (from Clerk, not
+// our data). Cached so the sidebar and a page share one Clerk call.
+export const getViewer = cache(
+  async (): Promise<{ firstName: string; fullName: string }> => {
+    const user = await currentUser();
+    const fallback =
+      user?.username ?? user?.primaryEmailAddress?.emailAddress ?? "Member";
+    const firstName = user?.firstName?.trim() || fallback;
+    const fullName = user?.fullName?.trim() || firstName;
+    return { firstName, fullName };
+  },
+);
 
 // For route handlers that must answer with 401/403 JSON instead of redirecting.
 export async function getMember(): Promise<Member | null> {

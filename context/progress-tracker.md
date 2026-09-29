@@ -9,10 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 2: app shell (`src/components/shell/`)
+- Phase 2: check the shell and dev kit at 1440px and 390px (needs `.env.local` in the Codespace)
 
 ## Completed
 
+- 2026-09-29: Phase 2, app shell (built; visual check pending). Sidebar
+  (brand, three nav groups, gold marker + `aria-current`, user block
+  with Clerk name, membership role and sign-out), phone top bar, bottom
+  tab bar (Home, Forex, POF, raised Generate, More → sidebar drawer
+  from the left), `PageHeader`; `Toaster` and `TooltipProvider` in the
+  admin layout; placeholder pages for all eight routes with the
+  designs' titles and descriptions and an `EmptyState` naming the
+  phase. Build, lint, types and 24 tests pass. Key files:
+  `src/components/shell/*`, `src/app/admin/layout.tsx`,
+  `src/app/admin/*/page.tsx`, `src/components/wordmark.tsx`.
 - 2026-09-29: Phase 2, project components and dev kit. `InputAddon`,
   `StatusChip`, `RateDelta`, `CurrencyFlag`, `BankMark`, `EmptyState`,
   `Callout`, `EntityDrawer`; `/admin/dev-kit` shows every component and
@@ -101,7 +111,8 @@ change.
 
 ## Next Up
 
-- Phase 2: app shell, then the check at 1440px and 390px
+- Phase 2: visual check of the shell and dev kit at 1440px and 390px
+- Phase 2: end-of-phase checks, Done-when list, tag
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -254,6 +265,20 @@ change.
 - 2026-09-29: The dev kit uses sample props (USD/GBP/EUR flag codes,
   made-up bank names), like the spike fixture: dev only, removed in
   Phase 10.
+- 2026-09-29: Shell: the sidebar content is one server component used
+  twice (the fixed desktop aside and the phone menu drawer). Only
+  `NavLinks`, `MobileTopBar`, `BottomTabBar` and `MobileMenuProvider`
+  are client components; the provider shares the drawer's open state
+  between the menu button and More. Following a link closes the drawer.
+- 2026-09-29: Dashboard placeholder title is "Good day, <first name>"
+  from Clerk (`getViewer()`, React-cached). The design's date prefix
+  needs the org time zone from the database, so it waits for Phase 9.
+  Its two header links (Update rates, Generate board) are kept: they
+  are navigation, not data.
+- 2026-09-29: Focus outline is gold on the dark sidebar and top bar
+  (violet is too faint there); recorded in `ui-context.md`.
+- 2026-09-29: `Wordmark` takes a size (lg login, md sidebar, sm top
+  bar) with the bar heights from the designs.
 - 2026-09-29: Phase tags are annotated (`git tag -a`) so
   `--follow-tags` pushes them; recorded in `code-standards.md` → Git.
 

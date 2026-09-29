@@ -15,6 +15,7 @@ import { CurrencyFlag } from "@/components/currency-flag";
 import { EmptyState } from "@/components/empty-state";
 import { InputAddon } from "@/components/input-addon";
 import { RateDelta } from "@/components/rate-delta";
+import { PageHeader } from "@/components/shell/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,15 +46,11 @@ export default async function DevKitPage() {
   await requireMember();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-[25px] leading-[1.1] font-[750] tracking-[-0.7px] font-stretch-[108%] shell:text-[30px]">
-          Dev kit
-        </h1>
-        <p className="mt-1.5 text-text-secondary">
-          Every component in every state. Development only.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 [&>div:first-child]:mb-0">
+      <PageHeader
+        title="Dev kit"
+        description="Every component in every state. Development only."
+      />
 
       <Section title="Buttons">
         <Row label="Variants">

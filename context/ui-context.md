@@ -205,6 +205,10 @@ Project components (not shadcn):
   a slide-in drawer.
 - **Page header:** title and one-line description on the left, actions
   on the right. On phones the actions fill the width.
+- **Focus:** a 2px violet outline everywhere (`:focus-visible` in
+  `globals.css`); inputs use a violet ring instead. On the dark sidebar
+  and top bar the outline is gold, because violet on `--bg-sidebar` is
+  hard to see.
 - **Tables:** grid rows inside a 14px-radius panel with a subtle header
   row. Under 760px each row becomes a card: name and Edit on top, two
   labelled values and the status below.
