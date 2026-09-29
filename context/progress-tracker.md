@@ -9,10 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 3: status and delete (`setBankStatus`, `deleteBank`, confirm dialog)
+- Phase 3: logo upload (waiting for the owner to create the Vercel Blob store)
 
 ## Completed
 
+- 2026-09-29: Phase 3, status and delete. Deactivate/Activate toggles
+  `Bank.status` (toast, label flips, row dims); `deleteBank` re-checks the
+  rate count inside a transaction and hard-deletes only when it is zero;
+  confirmation dialog from `bank-delete.html` (bottom sheet on phones).
+  Verified: a new bank deletes; deleting Wema Bank through the real action
+  (button temporarily enabled, then reverted) returns "Deactivate this bank
+  instead. It has rate history." and deletes nothing. Sample banks removed;
+  the database is back to the seed's 7 banks. Key files:
+  `src/features/banks/actions.ts`,
+  `src/features/banks/components/{DeleteBankDialog,BanksManager}.tsx`.
 - 2026-09-29: Phase 3, add and edit. `BankDrawer` (React Hook Form +
   `zodResolver(bankInput)`) adds and edits through `createBank` /
   `updateBank` (`safeAction`, scoped `where: { id, organizationId }`).
@@ -342,9 +352,18 @@ change.
   the page header, table and drawer; `BanksTable` stays presentational.
   Pages revalidated after a bank change: `/admin/banks`, `/admin/pof`,
   `/admin`.
+- 2026-09-29: `deleteBank` refuses on two layers: the rate count checked
+  inside `$transaction`, and the Restrict foreign key (P2003, mapped to the
+  same message) if a rate lands between the check and the delete.
+  `setBankStatus` accepts only ACTIVE / INACTIVE; ARCHIVED is not used by
+  the UI and the list hides it.
 
 ## Session Notes
 
+- 2026-09-29: Phase 3 paused at the Blob store stop point. Committed but
+  not pushed: the bank list, add/edit and status/delete (plus the tracker
+  note from after the Phase 2 push). Next: owner creates the Blob store
+  and adds `BLOB_READ_WRITE_TOKEN`; then the logo upload part.
 - 2026-09-29: Back on the owner's Mac (has `.env.local`). All four
   Phase 2 commits were already on `origin/main`, so production is running
   the Phase 2 shell before its end-of-phase checks. On this Mac: build,

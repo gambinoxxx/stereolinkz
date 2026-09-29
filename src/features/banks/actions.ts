@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { bankInput, resolveShortName } from "@/features/banks/schema";
 import { bankSlug } from "@/features/banks/slug";
@@ -127,4 +128,74 @@ export async function createBank(input: unknown) {
 
 export async function updateBank(id: unknown, input: unknown) {
   return update(id, input);
+}
+
+const HAS_HISTORY = "Deactivate this bank instead. It has rate history.";
+
+const statusInput = z.enum(["ACTIVE", "INACTIVE"]);
+
+const setStatus = safeAction(
+  async (
+    { organizationId },
+    id: unknown,
+    status: unknown,
+  ): Promise<ActionResult<SavedBank & { status: "ACTIVE" | "INACTIVE" }>> => {
+    const parsed = statusInput.safeParse(status);
+    if (typeof id !== "string" || !parsed.success)
+      return { ok: false, error: NOT_FOUND };
+    try {
+      const bank = await db.bank.update({
+        where: { id, organizationId },
+        data: { status: parsed.data },
+        select: { id: true, name: true },
+      });
+      revalidateBankPages();
+      return { ok: true, data: { ...bank, status: parsed.data } };
+    } catch (error) {
+      if (isPrismaError(error, "P2025")) return { ok: false, error: NOT_FOUND };
+      throw error;
+    }
+  },
+);
+
+// Hard delete, only for a bank with no POF rates: with no rates it can't be
+// in any board snapshot. The server re-checks inside the transaction, so a
+// direct call can't bypass the disabled button; the Restrict foreign key
+// (P2003) covers a rate inserted between the check and the delete.
+const remove = safeAction(
+  async ({ organizationId }, id: unknown): Promise<ActionResult<SavedBank>> => {
+    if (typeof id !== "string") return { ok: false, error: NOT_FOUND };
+    try {
+      const result = await db.$transaction(async (tx) => {
+        const bank = await tx.bank.findFirst({
+          where: { id, organizationId },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { pofRates: true } },
+          },
+        });
+        if (!bank) return { ok: false as const, error: NOT_FOUND };
+        if (bank._count.pofRates > 0)
+          return { ok: false as const, error: HAS_HISTORY };
+        await tx.bank.delete({ where: { id, organizationId } });
+        return { ok: true as const, data: { id: bank.id, name: bank.name } };
+      });
+      if (result.ok) revalidateBankPages();
+      return result;
+    } catch (error) {
+      if (isPrismaError(error, "P2003"))
+        return { ok: false, error: HAS_HISTORY };
+      if (isPrismaError(error, "P2025")) return { ok: false, error: NOT_FOUND };
+      throw error;
+    }
+  },
+);
+
+export async function setBankStatus(id: unknown, status: unknown) {
+  return setStatus(id, status);
+}
+
+export async function deleteBank(id: unknown) {
+  return remove(id);
 }
