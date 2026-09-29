@@ -5,14 +5,27 @@ change.
 
 ## Current Phase
 
-- Phase 2: Shared foundations, in progress
+- Phase 2: Shared foundations, complete
 
 ## Current Goal
 
-- Phase 2: signed-in visual check of the shell and dev kit at 1440px and 390px (on the owner's Mac)
+- None. Phase 3 has not started.
 
 ## Completed
 
+- 2026-09-29: Phase 2 complete. All Done-when items checked, tagged
+  phase-2-complete.
+- 2026-09-29: Phase 2, visual and keyboard check (signed in as the owner
+  in headless Chrome via a one-time Clerk sign-in token; session signed
+  out after). All eight routes at 1440px and 390px: correct
+  `aria-current` item in the sidebar and tab bar, sidebar hidden under
+  900px with the top bar and tab bar shown, no horizontal scroll. The
+  shell matches `dashboard.html`; the dev kit drawer matches
+  `forex-edit.html` (460px right; bottom sheet at 390px). Escape closes
+  the phone menu (from the menu button and More), the drawer and the
+  dialog, and focus returns to the opener; a menu link navigates and
+  closes the menu; focus rings are visible. Fixed: the phone menu did
+  not return focus on close. Key file: `src/components/shell/mobile-menu.tsx`.
 - 2026-09-29: Phase 2, app shell (built; visual check pending). Sidebar
   (brand, three nav groups, gold marker + `aria-current`, user block
   with Clerk name, membership role and sign-out), phone top bar, bottom
@@ -111,8 +124,10 @@ change.
 
 ## Next Up
 
-- Phase 2: visual check of the shell and dev kit at 1440px and 390px
-- Phase 2: end-of-phase checks, Done-when list, tag
+- Phase 3: owner creates the Vercel Blob store and adds
+  `BLOB_READ_WRITE_TOKEN` (local and Vercel) before the logo upload part
+- Phase 3: bank list (`features/banks/queries.ts`, `BanksTable`), then
+  add/edit (`schema.ts`, `actions.ts`, `BankDrawer`)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -281,6 +296,11 @@ change.
   bar) with the bar heights from the designs.
 - 2026-09-29: Phase tags are annotated (`git tag -a`) so
   `--follow-tags` pushes them; recorded in `code-standards.md` → Git.
+- 2026-09-29: The phone menu drawer has no `SheetTrigger` (the menu
+  button and More both open it), so Radix could not return focus on
+  close. `MobileMenuProvider` remembers the opener and refocuses it in
+  `onCloseAutoFocus`, except when a link closed the menu (focus then
+  belongs to the new page). No `components/ui` file changed.
 
 ## Session Notes
 
@@ -293,6 +313,14 @@ change.
   and pruned the stale remote ref. This Mac's npm 10.9 strips the
   `libc` fields from `package-lock.json` on `npm install`; don't commit
   that change (Vercel needs them to pick resvg's glibc build).
+- 2026-09-29: Phase 2 complete and tagged `phase-2-complete` locally.
+  Committed but not pushed: the checks note, the menu focus fix and this
+  close-out (the four Phase 2 build commits were already on `origin/main`).
+  Pushing `main` deploys production; the owner then checks the shell at
+  https://stereolinkz-czj8.vercel.app at desktop and phone widths.
+  Signed-in browser checks can be repeated with a one-time Clerk
+  sign-in token (Backend API `sign_in_tokens`, dev instance) opened as
+  `/login?__clerk_ticket=…`; sign the session out afterwards.
 - 2026-09-29: Working on `main` (no branches). Phase 1 closed out and
   tagged `phase-1-complete`. `phase-1-foundation` was already gone
   locally and on GitHub (deleted on merge). Production:
