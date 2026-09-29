@@ -1,6 +1,5 @@
 "use client";
 
-import { Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { BankMark } from "@/components/bank-mark";
@@ -73,15 +72,19 @@ export function LogoField({
           error && "border-state-error",
         )}
       >
-        <BankMark
-          name={name.trim() || "?"}
-          slug={slug}
-          logoUrl={shownUrl}
-          size={44}
-        />
+        {shownUrl || name.trim() ? (
+          <BankMark name={name} slug={slug} logoUrl={shownUrl} size={44} />
+        ) : (
+          // No name yet: a neutral "?" as in bank-add.html.
+          <span
+            aria-hidden="true"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-text-muted text-[17px] font-bold text-primary-foreground"
+          >
+            ?
+          </span>
+        )}
         <div className="min-w-0">
-          <b className="flex items-center gap-1.5 text-[14px]">
-            <Upload aria-hidden="true" className="size-4" strokeWidth={1.9} />
+          <b className="block text-[14px]">
             {file ? "Replace logo" : shownUrl ? "Change logo" : "Upload logo"}
           </b>
           {file && (

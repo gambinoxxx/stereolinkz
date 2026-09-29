@@ -5,14 +5,20 @@ change.
 
 ## Current Phase
 
-- Phase 3: Banks, in progress
+- Phase 3: Banks, complete
 
 ## Current Goal
 
-- Phase 3: end-of-phase checks, Done-when list, tag
+- None. Phase 4 has not started.
 
 ## Completed
 
+- 2026-09-29: Phase 3 complete. All Done-when items checked, tagged
+  phase-3-complete.
+- 2026-09-29: Phase 3, end-of-phase visual check: `/admin/banks` and the
+  add drawer match `banks.html` and `bank-add.html` at 1440px and 390px
+  (the drawer's empty "?" is grey and the drop zone has no icon, as in
+  the design).
 - 2026-09-29: Phase 3, logo upload. Public Blob store `stereolinkz-blob`
   connected to `stereolinkz-czj8`. The bank drawer takes a logo (click or
   drag; live preview; "Remove logo"); actions take FormData and run
@@ -168,9 +174,11 @@ change.
 
 ## Next Up
 
-- Phase 3: end-of-phase checks, Done-when list, screenshots, tag, push (⏸)
-- Phase 3 on production: owner uploads a logo on the live site (proves
-  OIDC Blob auth on Vercel)
+- Phase 3 on production (after the push): owner uploads a logo on the
+  live site and sees it in the Blob dashboard (proves OIDC Blob auth)
+- Phase 4: forex list (`features/currencies/queries.ts`
+  `listCurrenciesWithRates`, `ForexTable`, `?status=` filter)
+- Phase 4: edit rate (`forexRateInput`, `saveForexRate`, `ForexRateDrawer`)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -410,8 +418,8 @@ change.
 
 ## Session Notes
 
-- 2026-09-29: Phase 3 all four parts built on the owner's Mac. Committed
-  but not pushed: list, add/edit, status/delete, logo upload (plus the
+- 2026-09-29: Phase 3 complete and tagged `phase-3-complete` locally.
+  Committed but not pushed: list, add/edit, status/delete, logo upload (plus the
   tracker note from after the Phase 2 push). `.env.local` had an empty
   duplicate `BLOB_READ_WRITE_TOKEN=` line from the template and a block
   appended by `vercel env pull`; the empty line was removed. Browser
