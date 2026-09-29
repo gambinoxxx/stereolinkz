@@ -9,7 +9,7 @@ change.
 
 ## Current Goal
 
-- Phase 2: check the shell and dev kit at 1440px and 390px (needs `.env.local` in the Codespace)
+- Phase 2: signed-in visual check of the shell and dev kit at 1440px and 390px (on the owner's Mac)
 
 ## Completed
 
@@ -284,6 +284,15 @@ change.
 
 ## Session Notes
 
+- 2026-09-29: Back on the owner's Mac (has `.env.local`). All four
+  Phase 2 commits were already on `origin/main`, so production is running
+  the Phase 2 shell before its end-of-phase checks. On this Mac: build,
+  lint, `tsc --noEmit`, `npm test` (24 passed) and `format:check` all
+  pass; no hex in `.tsx`. Deleted the leftover local `phase-1-foundation`
+  branch (its one extra commit was a tracker line superseded on `main`)
+  and pruned the stale remote ref. This Mac's npm 10.9 strips the
+  `libc` fields from `package-lock.json` on `npm install`; don't commit
+  that change (Vercel needs them to pick resvg's glibc build).
 - 2026-09-29: Working on `main` (no branches). Phase 1 closed out and
   tagged `phase-1-complete`. `phase-1-foundation` was already gone
   locally and on GitHub (deleted on merge). Production:
