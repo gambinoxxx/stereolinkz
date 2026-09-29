@@ -9,10 +9,18 @@ change.
 
 ## Current Goal
 
-- Phase 2: project components (`src/components/`)
+- Phase 2: app shell (`src/components/shell/`)
 
 ## Completed
 
+- 2026-09-29: Phase 2, project components and dev kit. `InputAddon`,
+  `StatusChip`, `RateDelta`, `CurrencyFlag`, `BankMark`, `EmptyState`,
+  `Callout`, `EntityDrawer`; `/admin/dev-kit` shows every component and
+  state with a working drawer (validation, pending, toast) and delete
+  dialog; `notFound()` in production. Types, lint and 22 tests pass;
+  visual check pending (needs `.env.local` in the Codespace). Key files:
+  `src/components/*.tsx`, `src/lib/bank-mark.ts`,
+  `src/app/admin/dev-kit/*`.
 - 2026-09-29: Phase 2, UI primitives. shadcn button, input, select,
   textarea, switch, checkbox, sheet, dialog, toggle-group (+ toggle),
   tabs, sonner, tooltip, badge, skeleton, label, tailored to the design
@@ -93,7 +101,7 @@ change.
 
 ## Next Up
 
-- Phase 2: Dev kit page, then the app shell
+- Phase 2: app shell, then the check at 1440px and 390px
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -237,6 +245,15 @@ change.
 - 2026-09-29: `@/lib/utils` `cn` is `createCn` from `cn/config` with our
   radius names, so project components can override `rounded-*`.
   Generated `components/ui` files keep importing `cn` from `"cn"`.
+- 2026-09-29: `BankMark` colour: FNV-1a hash of the slug mod 6 over
+  `--bank-mark-1…6` (`src/lib/bank-mark.ts`, tested), so a bank keeps
+  its colour everywhere. Monogram is the first letter or digit.
+- 2026-09-29: Flags and logos use `next/image` with `unoptimized` (data
+  URIs and small Blob logos gain nothing from optimisation, and no
+  `remotePatterns` entry is needed for Blob).
+- 2026-09-29: The dev kit uses sample props (USD/GBP/EUR flag codes,
+  made-up bank names), like the spike fixture: dev only, removed in
+  Phase 10.
 - 2026-09-29: Phase tags are annotated (`git tag -a`) so
   `--follow-tags` pushes them; recorded in `code-standards.md` → Git.
 

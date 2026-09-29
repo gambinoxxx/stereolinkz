@@ -183,6 +183,12 @@ Project components (not shadcn):
 - `components/board/WhatsAppOverlay`: preview-only overlay (progress bars, name, caption, Reply bar); never part of the PNG
 - `RateDelta`: up/down arrow with amount, green/red, "No change" in muted
 - `StatusSwitch`, `BankMark` (logo or letter monogram), `CurrencyFlag` (bundled SVG by `flagCode`)
+- `InputAddon` (₦ / % add-ons; gold `changed` state), `StatusChip`
+  (Active / Inactive / Archived), `Callout` (info, warn),
+  `EmptyState` (the dashed "More designs" card from `templates.html`:
+  icon, title, one line, optional action), `EntityDrawer` (Sheet with a
+  `<form>` body, Cancel and a primary action)
+- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 10)
 
 ## Layout Patterns
 
