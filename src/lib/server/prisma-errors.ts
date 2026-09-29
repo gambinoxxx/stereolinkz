@@ -13,3 +13,22 @@ export function isPrismaError(
     error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
   );
 }
+
+// A Postgres CHECK constraint (SQLSTATE 23514) rejected the write. With
+// the pg driver adapter Prisma 7 reports it as P2039 and puts the
+// Postgres error in meta.driverAdapterError.cause.
+export function isCheckViolation(error: unknown, constraint: string): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  const cause = (
+    error.meta as
+      | {
+          driverAdapterError?: {
+            cause?: { originalCode?: string; originalMessage?: string };
+          };
+        }
+      | undefined
+  )?.driverAdapterError?.cause;
+  if (cause?.originalCode === "23514")
+    return cause.originalMessage?.includes(constraint) ?? false;
+  return error.message.includes(constraint); // other adapters or versions
+}

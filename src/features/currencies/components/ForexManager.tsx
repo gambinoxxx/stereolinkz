@@ -3,6 +3,7 @@
 import { Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import type {
   CurrencyListItem,
 } from "@/features/currencies/queries";
 import type { StatusFilter } from "@/features/currencies/status-filter";
+import { ForexRateDrawer } from "@/features/forex-rates/components/ForexRateDrawer";
 
 type ForexManagerProps = CurrencyList & {
   filter: StatusFilter;
@@ -28,6 +30,7 @@ export function ForexManager({
   now,
 }: ForexManagerProps) {
   const router = useRouter();
+  const [editing, setEditing] = useState<CurrencyListItem | null>(null);
 
   function setFilter(next: StatusFilter) {
     router.replace(
@@ -36,11 +39,8 @@ export function ForexManager({
     );
   }
 
-  // Wired in the Edit rate and Add currency parts.
+  // Wired in the Add currency part.
   function openAdd() {}
-  function openEdit(currency: CurrencyListItem) {
-    void currency;
-  }
 
   return (
     <>
@@ -88,7 +88,16 @@ export function ForexManager({
         timeZone={timeZone}
         now={now}
         onAdd={openAdd}
-        onEdit={openEdit}
+        onEdit={setEditing}
+      />
+
+      <ForexRateDrawer
+        currency={editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        timeZone={timeZone}
+        now={now}
       />
     </>
   );

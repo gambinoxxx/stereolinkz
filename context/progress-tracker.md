@@ -9,10 +9,23 @@ change.
 
 ## Current Goal
 
-- Phase 4: edit rate (`forexRateInput`, `saveForexRate`, `ForexRateDrawer`)
+- Phase 4: add currency (`currencyInput`, `createCurrency`, `CurrencyDrawer`)
 
 ## Completed
 
+- 2026-09-30: Phase 4, edit rate. `ForexRateDrawer` (summary, ₦ inputs,
+  live spread, last 4 changes) saves through `saveForexRate`, which
+  inserts one ForexRate (`createdById` = the Clerk user) and never
+  touches older rows. Verified: ForexRate rows 8 → 9 (USD 2 → 3; the two
+  older USD rows identical before and after); USD 1365/1378 → 1370/1385
+  shows ↑7 and "Today, 12:46 AM" without a reload; unchanged values →
+  "No changes to save", nothing inserted, drawer stays open; sell below
+  buy → red hint and field error; commas accepted; toast "CNY saved. The
+  previous rate is in history."; tapping a phone card opens the drawer.
+  Matches `forex-edit.html` at 1440px and 390px. Key files:
+  `src/features/forex-rates/{schema,actions}.ts` (+ tests),
+  `src/features/forex-rates/components/{ForexRateDrawer,SpreadHint}.tsx`,
+  `src/lib/server/prisma-errors.ts`.
 - 2026-09-29: Phase 4, forex list. `/admin/forex` lists non-archived
   currencies in board order with flag, buy, sell with `RateDelta`,
   spread (hidden 760–1100px), "Updated" in Lagos time, status switch and
@@ -188,7 +201,6 @@ change.
 
 ## Next Up
 
-- Phase 4: add currency (`currencyInput`, `createCurrency`, `CurrencyDrawer`)
 - Phase 4: status (optimistic switch) and reorder (drag + up/down)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
@@ -444,9 +456,29 @@ change.
   from the forex filter and the dev kit demo; no `components/ui` change.
 - 2026-09-29: New token `--grip` (`#B9B0CB`, `text-grip`) for drag
   handles, from `forex.html`; recorded in `ui-context.md`.
+- 2026-09-30: Rate input is normalised before validation: trim, remove
+  spaces and thousands commas ("1,365" → "1365"), then
+  `^\d{1,10}(\.\d{1,4})?$` (fits `Decimal(14,4)`). buy > 0, sell > 0 and
+  sell ≥ buy are one shared `checkRatePair` refinement (also used by the
+  add-currency form). Zod 4 runs object refinements even after a field
+  failed, so the pair check skips values that aren't decimals.
+  `normaliseDecimal` / `isDecimal` are shared with the live spread hint.
+- 2026-09-30: The DB CHECK `forex_sell_gte_buy` is a safety net behind
+  Zod: Prisma 7 with the pg adapter reports it as P2039 with
+  `meta.driverAdapterError.cause.originalCode = "23514"`;
+  `isCheckViolation(error, constraint)` maps it to the sell field error.
+- 2026-09-30: Unchanged rates (decimal-equal buy and sell) return
+  `unchanged: true` and insert nothing; the drawer stays open with "No
+  changes to save".
 
 ## Session Notes
 
+- 2026-09-30: Dev database now has test rates from Phase 4 checks (USD
+  1370/1385 at 00:46 Lagos on 30 Sept, CNY 189/195); rates are
+  insert-only, so they stay. Checking timestamps with raw `pg` gives
+  wrong times on this Mac: Prisma's `timestamp(3)` columns hold UTC
+  without a zone and `pg` reads them as local (Pacific) time. Read them
+  as `"createdAt"::text` (UTC) or through Prisma.
 - 2026-09-29: Phase 3 complete, tagged `phase-3-complete`, pushed and
   confirmed on production (live logo upload). Earlier notes: previously
   committed but not pushed were list, add/edit, status/delete, logo upload (plus the
