@@ -13,6 +13,11 @@ change.
 
 ## Completed
 
+- 2026-09-29: Phase 3 on production. Pushed `3b0ecea` with tag
+  `phase-3-complete`; Vercel deployed it. The owner added a bank with a
+  logo on https://stereolinkz-czj8.vercel.app/admin/banks and it worked,
+  with only `BLOB_STORE_ID` set on Vercel: production Blob uploads use
+  OIDC, no `BLOB_READ_WRITE_TOKEN` needed there.
 - 2026-09-29: Phase 3 complete. All Done-when items checked, tagged
   phase-3-complete.
 - 2026-09-29: Phase 3, end-of-phase visual check: `/admin/banks` and the
@@ -174,8 +179,6 @@ change.
 
 ## Next Up
 
-- Phase 3 on production (after the push): owner uploads a logo on the
-  live site and sees it in the Blob dashboard (proves OIDC Blob auth)
 - Phase 4: forex list (`features/currencies/queries.ts`
   `listCurrenciesWithRates`, `ForexTable`, `?status=` filter)
 - Phase 4: edit rate (`forexRateInput`, `saveForexRate`, `ForexRateDrawer`)
@@ -386,8 +389,9 @@ change.
   `BLOB_READ_WRITE_TOKEN`. Connecting the store added `BLOB_STORE_ID` (and
   an unused `BLOB_WEBHOOK_PUBLIC_KEY`) to Vercel but no token, so
   production uses OIDC (project OIDC federation must stay on); locally the
-  read-write token in `.env.local` is used. Fallback if production uploads
-  fail: add `BLOB_READ_WRITE_TOKEN` to Vercel (no quotes).
+  read-write token in `.env.local` is used. Confirmed on production by a
+  live logo upload. Fallback if that ever breaks: add
+  `BLOB_READ_WRITE_TOKEN` to Vercel (no quotes).
 - 2026-09-29: Server Action body limit raised to 2 MB with
   `experimental.serverActions.bodySizeLimit: "2mb"` (the option name in
   the installed Next 16 docs), so a 1 MB logo plus form fields and
@@ -418,8 +422,9 @@ change.
 
 ## Session Notes
 
-- 2026-09-29: Phase 3 complete and tagged `phase-3-complete` locally.
-  Committed but not pushed: list, add/edit, status/delete, logo upload (plus the
+- 2026-09-29: Phase 3 complete, tagged `phase-3-complete`, pushed and
+  confirmed on production (live logo upload). Earlier notes: previously
+  committed but not pushed were list, add/edit, status/delete, logo upload (plus the
   tracker note from after the Phase 2 push). `.env.local` had an empty
   duplicate `BLOB_READ_WRITE_TOKEN=` line from the template and a block
   appended by `vercel env pull`; the empty line was removed. Browser
