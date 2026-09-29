@@ -5,14 +5,30 @@ change.
 
 ## Current Phase
 
-- Phase 1: Foundation, in progress
+- Phase 1: Foundation, complete
 
 ## Current Goal
 
-- Phase 1: Deploy (on hold until the owner is ready)
+- Phase 2: Shared foundations, plan posted (formatting and tests first)
 
 ## Completed
 
+- 2026-09-29: Phase 1 complete. All Done-when items checked, tagged
+  phase-1-complete. Two are carried forward, not failed: the warm
+  render (2.3–2.7 s on Vercel, target under 2 s) is fixed by the card
+  shadow decision in Phase 6; the second-account block was confirmed
+  locally and still needs one check on production.
+- 2026-09-29: Phase 1, render spike on Vercel. Production
+  `/api/dev/render-spike` shows ₦, the US/GB/EU flags and the heavy
+  headline. `X-Render-Ms` 2317 ms then 2686 ms (the reload likely hit a
+  new instance, so both count as cold; no warm figure below 2 s).
+- 2026-09-29: Phase 1, deploy. The owner fast-forward merged
+  `phase-1-foundation` into `main` and pushed; Vercel project
+  `stereolinkz-czj8` deploys `main` (a duplicate project was deleted).
+  First deploys failed with `P1001 Can't reach database server at base`:
+  `DATABASE_URL` had been pasted with the quotes from `.env.local`;
+  without quotes it works. `/login` and `/admin` work on production:
+  https://stereolinkz-czj8.vercel.app
 - 2026-09-28: Phase 1, render spike (local). `/api/dev/render-spike`
   renders the fixture to a PNG: IHDR says 1080 × 1920; ₦, all six flags
   and weights 800/900 render; 401 JSON when signed out. Not yet run on
@@ -55,22 +71,26 @@ change.
 
 ## In Progress
 
-- Deploy: on hold at the owner's request; nothing pushed yet.
+- Nothing in progress.
 
 ## Next Up
 
-- Phase 1: Render spike (local)
-- Phase 1: Deploy (Vercel Preview), then confirm the spike on the Preview
+- Phase 2: Formatting and tests (Vitest, `lib/format.ts`, `lib/decimal.ts`)
+- Phase 2: UI primitives (shadcn), then project components
+- Phase 6: rewrite Satori's box-shadow filter region in
+  `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
+  render test that fails if a Satori upgrade changes the filter output
 
 ## Open Questions
 
-- Board card shadow cost (blocks the Phase 6 template decision). Satori
-  gives box-shadow filters a region ~3× the element, and resvg blurs all
-  of it: the rate card's 60px shadow costs ~2 s of the ~2.1 s warm render
-  on the dev laptop (2015 i5). Options, measured locally: keep it
-  (~2.1 s), rewrite the filter region after Satori (~0.6 s), or drop the
-  card shadow (~0.3 s; small flag shadows stay). Decide with the Vercel
-  Preview timing.
+- Second-account block on production: confirmed locally only. The owner
+  should sign in with the second account at
+  https://stereolinkz-czj8.vercel.app/admin and see `/not-authorized`.
+- Secrets pasted in chat (Neon `neondb_owner` password, Clerk secret
+  key): the owner chose to rotate them at the end of the project. Must
+  be done in Phase 10 before launch, in `.env.local` and in Vercel (no
+  quotes), then redeploy.
+
 - Stereolinkz logo file: until it is uploaded, boards use the
   equalizer-bar wordmark. Needed by Phase 9.
 - Who else needs access at launch? Their Clerk user IDs are needed
@@ -148,32 +168,44 @@ change.
   USD/GBP/EUR sample rows as the prompt asked. Treated like seed data (an
   exception to Invariant 1) and deleted with the route in Phase 6. Its
   subheading adds "(₦)" only to prove the glyph renders.
+- 2026-09-29: Board card shadow: keep it and rewrite the filter region
+  after Satori (owner chose option 2 of 3). Vercel production measured
+  2317 ms and 2686 ms with the shadow as is (target under 2 s); local
+  timings were keep ~2.1 s, rewrite ~0.6 s, drop ~0.3 s (Vercel est.
+  ~0.8 s for the rewrite). Why: the board keeps its designed look and
+  renders well under the target. Fallback if a Satori upgrade breaks the
+  rewrite: drop the card shadow. Built in Phase 6.
+- 2026-09-29: Work on `main` only until launch; push after checks pass;
+  tag each phase. Why: solo build, branches added steps and caused a
+  deploy mix-up. Recorded in `code-standards.md` → Git,
+  `implementation-plan.md` → How to use this plan and Branching and
+  review, and `ai-workflow-rules.md` → Updating the Progress Tracker.
+- 2026-09-29: Vercel is production, not a Preview. Phase 1's "Vercel
+  Preview" checks were run on production (`stereolinkz-czj8`, deploys
+  `main`).
 
 ## Session Notes
 
-- 2026-09-28: Branch `phase-1-foundation`. Project setup done and
-  committed; build, lint, `tsc --noEmit` and `prettier --check` pass.
-  `.gitignore` ignores `.env*` but keeps `.env.example`.
+- 2026-09-29: Working on `main` (no branches). Phase 1 closed out and
+  tagged `phase-1-complete`. `phase-1-foundation` was already gone
+  locally and on GitHub (deleted on merge). Production:
+  https://stereolinkz-czj8.vercel.app (Vercel project
+  `stereolinkz-czj8`, deploys every push to `main`).
 - 2026-09-28: Database: Neon (eu-central-1, pooled URL) in `.env.local`.
   The first `migrate dev` hit P1001 while the Neon compute woke up; a
   retry worked. `npm audit` reports 4 high findings in `mysql2`, a
   transitive dev dependency of the Prisma CLI (unused with Postgres; the
   suggested fix is a downgrade to Prisma 6, not taken). `pg` warns that
   `sslmode=require` is treated as `verify-full`; harmless now.
-  The connection string was pasted in chat, so the owner should reset
-  the `neondb_owner` password after Phase 1.
-- 2026-09-28: Authentication works locally. Clerk development instance;
-  its "Development mode" footer shows under `<SignIn />` until production
-  keys are used. The Clerk secret key was pasted in chat, so the owner
-  should roll it after Phase 1. VS Code twice saved a stale `.env.local`
-  buffer over the file on disk; close that tab without saving.
-  Headless Chrome cannot go below ~500px wide; 390px screenshots are taken
-  with DevTools device emulation instead.
-- 2026-09-28: Render spike, local timings on the dev laptop (2015 i5):
-  cold ~2.4 s, warm ~2.0–2.2 s (satori ~60 ms, resvg the rest, mostly the
-  card shadow). Vercel timing still to record. The spike route
-  `/api/dev/render-spike` is TEMPORARY: Phase 6 deletes it and its
-  fixture. The rough template hard-codes the "stereolinkz" wordmark;
-  Phase 6 should draw the brand from the snapshot (name / logoUrl).
-  The traced resvg binary is darwin-x64 locally; Vercel installs the
-  linux build itself.
+- 2026-09-28: Clerk development instance; its "Development mode" footer
+  shows under `<SignIn />` until production keys are used. VS Code twice
+  saved a stale `.env.local` buffer over the file on disk; close that
+  tab without saving. Headless Chrome cannot go below ~500px wide; 390px
+  screenshots are taken with DevTools device emulation instead.
+- 2026-09-28: Render spike: local (2015 i5) cold ~2.4 s, warm ~2.0–2.2 s
+  (satori ~60 ms, resvg the rest, mostly the card shadow); Vercel
+  2317 / 2686 ms. The spike route `/api/dev/render-spike` is TEMPORARY:
+  Phase 6 deletes it and its fixture. The rough template hard-codes the
+  "stereolinkz" wordmark; Phase 6 should draw the brand from the
+  snapshot (name / logoUrl). The traced resvg binary is darwin-x64
+  locally; Vercel installs the linux build itself.

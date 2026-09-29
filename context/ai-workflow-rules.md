@@ -129,11 +129,11 @@ at the end of a phase. Keep entries short and dated (`2026-10-02:`).
 | Next Up | The next one to three pieces, from `implementation-plan.md` | After every update |
 | Open Questions | Unresolved product or technical questions, and what they block. Remove a question once it is answered, and record the answer under Architecture Decisions | When one arises or is answered |
 | Architecture Decisions | Decisions that affect the system design or data model, with why. Pre-build decisions are in `architecture.md` → Settled Decisions; do not repeat them | When decided |
-| Session Notes | Everything the next session needs to resume: the branch, state of the work, commands to run, anything half-done or surprising (e.g. "render spike: warm 640 ms on Preview") | End of every session |
+| Session Notes | Everything the next session needs to resume: what is committed but not pushed, state of the work, commands to run, anything half-done or surprising (e.g. "render spike: warm 640 ms on Preview") | End of every session |
 
 When a phase finishes, also add a summary line to Completed:
-`<date>: Phase <n> complete. All Done-when items checked, branch
-phase-<n>-<name> ready for PR.`
+`<date>: Phase <n> complete. All Done-when items checked, tagged
+phase-<n>-complete.`
 
 ## Before Moving to the Next Phase
 

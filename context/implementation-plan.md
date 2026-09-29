@@ -27,8 +27,10 @@ only by recording it in `progress-tracker.md` → Architecture Decisions first.
    the phase complete at the end.
 8. Only then start the next phase.
 
-Commit as you go inside a phase (one commit per logical piece), but a
-phase is reviewed and merged as one pull request.
+Commit as you go on `main` (one commit per logical piece); there are
+no branches or pull requests. The owner reviews each phase at its end;
+then it is tagged `phase-<n>-complete` and pushed (see Branching and
+review).
 
 ### Standard checks (every phase)
 
@@ -752,12 +754,15 @@ Completed in the tracker.
 
 ## Branching and review
 
-- One branch per phase: `phase-3-banks`.
-- Commit per logical piece inside the phase, named for the phase:
+- No branches or pull requests until launch: all work happens on
+  `main` (revisit in Phase 10).
+- Commit per logical piece, named for the phase:
   `phase 3: bank drawer with slug check`.
-- One pull request per phase, with the Done-when list checked and
-  screenshots at 1440px and 390px of every page touched.
-- Merge only when the standard checks pass on the Vercel Preview.
+- Push only after the standard checks pass locally, because every push
+  to `main` deploys to production.
+- The owner reviews each phase at its end: the Done-when list checked
+  and screenshots at 1440px and 390px of every page touched. Then tag
+  `phase-<n>-complete` and `git push --follow-tags`.
 
 ## Coverage map
 

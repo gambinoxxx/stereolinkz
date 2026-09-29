@@ -131,14 +131,19 @@
   `implementation-plan.md`.
 - Dates in tests are fixed values passed in. Never depend on the real clock.
 
-## Git and Pull Requests
+## Git
 
-- One branch and one pull request per phase: `phase-<n>-<short-name>`
-  (for example `phase-4-forex`).
-- Commit each working piece inside the phase, imperative and naming
-  the phase: `phase 4: insert ForexRate on save`.
-- The PR description has the phase number, a summary, the completed
-  Done-when list, and screenshots at 1440px and 390px of every page touched.
+- Work directly on `main`; no branches or pull requests until launch
+  (revisit branches in Phase 10).
+- Commit each working piece with the tracker update, imperative and
+  naming the phase: `phase 4: insert ForexRate on save`.
+- Push only when `npm run build`, `npm run lint`, `npx tsc --noEmit`,
+  `npm test` and `npm run format:check` all pass: pushing `main`
+  deploys to production.
+- Tag each finished phase `phase-<n>-complete` and push with
+  `git push --follow-tags`.
+- Env values in Vercel are pasted without quotes (quotes copied from
+  `.env.local` broke `DATABASE_URL` in Phase 1).
 - Never commit `.env*` files, generated PNGs or `tmp/` render output.
 
 ## File Organization
