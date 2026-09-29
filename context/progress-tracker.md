@@ -9,10 +9,21 @@ change.
 
 ## Current Goal
 
-- Phase 3: add and edit (schema, actions, BankDrawer)
+- Phase 3: status and delete (`setBankStatus`, `deleteBank`, confirm dialog)
 
 ## Completed
 
+- 2026-09-29: Phase 3, add and edit. `BankDrawer` (React Hook Form +
+  `zodResolver(bankInput)`) adds and edits through `createBank` /
+  `updateBank` (`safeAction`, scoped `where: { id, organizationId }`).
+  Verified in the browser: empty name shows a field error; Enter saves;
+  toast, drawer closes and the row appears without a reload; "Eco Bank"
+  is rejected when "Ecobank" exists ("A bank called “Ecobank” already
+  exists.", on add and on rename); the Active switch sets Inactive; a
+  blank short name becomes the first word; new banks sort last. Key
+  files: `src/features/banks/{schema,actions}.ts`,
+  `src/features/banks/components/{BankDrawer,BanksManager}.tsx`,
+  `src/lib/server/prisma-errors.ts`.
 - 2026-09-29: Phase 3, bank list. `/admin/banks` lists every
   non-archived bank (one query: newest rate + `_count`) with BankMark,
   status chip, current POF rate and note, record count, and Edit /
@@ -133,7 +144,6 @@ change.
 
 ## Next Up
 
-- Phase 3: status and delete (`setBankStatus`, `deleteBank`, confirm dialog)
 - Phase 3: ⏸ owner creates the Vercel Blob store and adds
   `BLOB_READ_WRITE_TOKEN` (local and Vercel), then logo upload
 - Phase 6: rewrite Satori's box-shadow filter region in
@@ -314,6 +324,24 @@ change.
   is changed there through the drawer's Active switch. Column headers are
   visual only; each cell has its own label, visible on phones and
   screen-reader-only on desktop.
+- 2026-09-29: React Hook Form 7.89 and `@hookform/resolvers` 5.9 added
+  (agreed stack). Installed with `npx npm@11 install` so the lockfile keeps
+  its `libc` fields; use npm 11 for every install on the owner's Mac.
+- 2026-09-29: Bank form rules: name trimmed, required, ≤ 60, and its slug
+  must not be empty ("Enter a bank name, not just “Bank”."); short name ≤ 14,
+  blank → first word of the name (cut to 14). New banks get
+  `sortOrder` = current max + 1 (they appear last until reordering exists).
+- 2026-09-29: A duplicate slug names the bank that already has it ("A bank
+  called “Ecobank” already exists." when "Eco Bank" is entered), so the
+  admin knows which row to edit. The P2002 is caught in the action, not
+  pre-checked, so two simultaneous saves cannot both pass.
+- 2026-09-29: The add drawer's placeholders are "Full bank name" and "Name
+  on boards" instead of the design's "Access Bank" / "Access": no bank name
+  in code (Invariant 1).
+- 2026-09-29: `BanksManager` (client) owns the drawer state and renders
+  the page header, table and drawer; `BanksTable` stays presentational.
+  Pages revalidated after a bank change: `/admin/banks`, `/admin/pof`,
+  `/admin`.
 
 ## Session Notes
 
