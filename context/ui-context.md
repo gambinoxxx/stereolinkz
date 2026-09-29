@@ -182,7 +182,7 @@ Project components (not shadcn):
 - `components/board/BoardFrame`: renders a template at 1080 × 1920 and scales it to its container
 - `components/board/WhatsAppOverlay`: preview-only overlay (progress bars, name, caption, Reply bar); never part of the PNG
 - `RateDelta`: up/down arrow with amount, green/red, "No change" in muted
-- `StatusSwitch`, `BankMark` (logo or letter monogram), `CurrencyFlag` (bundled SVG by `flagCode`)
+- `StatusSwitch`, `BankMark` (logo or letter monogram; falls back to the monogram if the logo fails to load), `CurrencyFlag` (bundled SVG by `flagCode`)
 - `InputAddon` (₦ / % add-ons; gold `changed` state), `StatusChip`
   (Active / Inactive / Archived), `Callout` (info, warn),
   `EmptyState` (the dashed "More designs" card from `templates.html`:

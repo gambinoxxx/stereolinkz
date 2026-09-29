@@ -118,7 +118,10 @@
   - POF note ≤ 24 characters
   - Bank name required, and its slug unique per organization
   - Short name ≤ 14 characters
-  - Logos: PNG, SVG or JPEG, ≤ 1 MB
+  - Logos: PNG, SVG or JPEG, ≤ 1 MB, checked on the file's bytes
+    (`lib/image-check.ts`, shared by the drawer and the server): PNG and
+    JPEG at least 256 px on the shortest side; SVG with no scripts, event
+    attributes, `foreignObject`, DOCTYPE/entities or external references
 
 ## Testing
 

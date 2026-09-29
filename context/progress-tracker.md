@@ -9,10 +9,24 @@ change.
 
 ## Current Goal
 
-- Phase 3: logo upload (waiting for the owner to create the Vercel Blob store)
+- Phase 3: end-of-phase checks, Done-when list, tag
 
 ## Completed
 
+- 2026-09-29: Phase 3, logo upload. Public Blob store `stereolinkz-blob`
+  connected to `stereolinkz-czj8`. The bank drawer takes a logo (click or
+  drag; live preview; "Remove logo"); actions take FormData and run
+  validate → upload → DB write → delete the new blob if the write fails.
+  Verified in the browser: upload shows in the list; each replace gets a
+  new URL and the old file still loads; remove falls back to the
+  monogram; a GIF, a 2 MB file, a 100px PNG and an SVG with `onload`
+  each show a field error (client pre-check, and the server when the
+  pre-check was temporarily bypassed); deleting the bank deleted its
+  current logo blob and kept nothing else touched. Test blobs and banks
+  cleaned up (store empty, 7 banks). Key files: `src/lib/image-check.ts`
+  (+ tests), `src/lib/server/blob.ts`, `src/features/banks/actions.ts`,
+  `src/features/banks/components/{BankDrawer,LogoField}.tsx`,
+  `src/components/bank-mark.tsx`, `next.config.ts`.
 - 2026-09-29: Phase 3, status and delete. Deactivate/Activate toggles
   `Bank.status` (toast, label flips, row dims); `deleteBank` re-checks the
   rate count inside a transaction and hard-deletes only when it is zero;
@@ -154,8 +168,9 @@ change.
 
 ## Next Up
 
-- Phase 3: ⏸ owner creates the Vercel Blob store and adds
-  `BLOB_READ_WRITE_TOKEN` (local and Vercel), then logo upload
+- Phase 3: end-of-phase checks, Done-when list, screenshots, tag, push (⏸)
+- Phase 3 on production: owner uploads a logo on the live site (proves
+  OIDC Blob auth on Vercel)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -357,13 +372,51 @@ change.
   same message) if a rate lands between the check and the delete.
   `setBankStatus` accepts only ACTIVE / INACTIVE; ARCHIVED is not used by
   the UI and the list hides it.
+- 2026-09-29: Blob store is public (boards and logos are posted
+  publicly; URLs are unguessable). Auth: `@vercel/blob` 2.8 resolves an
+  explicit token, then OIDC (`VERCEL_OIDC_TOKEN` + `BLOB_STORE_ID`), then
+  `BLOB_READ_WRITE_TOKEN`. Connecting the store added `BLOB_STORE_ID` (and
+  an unused `BLOB_WEBHOOK_PUBLIC_KEY`) to Vercel but no token, so
+  production uses OIDC (project OIDC federation must stay on); locally the
+  read-write token in `.env.local` is used. Fallback if production uploads
+  fail: add `BLOB_READ_WRITE_TOKEN` to Vercel (no quotes).
+- 2026-09-29: Server Action body limit raised to 2 MB with
+  `experimental.serverActions.bodySizeLimit: "2mb"` (the option name in
+  the installed Next 16 docs), so a 1 MB logo plus form fields and
+  multipart overhead fits.
+- 2026-09-29: Logo checks read the bytes, not the MIME type
+  (`lib/image-check.ts`, pure, shared by the drawer's pre-check and
+  `validateImage` on the server): ≤ 1 MB; PNG / JPEG by magic bytes with
+  the size read from the header, shortest side ≥ 256 px (so logos stay
+  sharp at the board's 80px mark and the admin's 44px mark on 2×
+  screens); SVG only if it has no `<script>`, `on…=` attributes,
+  `<foreignObject>`, DOCTYPE/ENTITY, `javascript:`, `@import` or
+  references other than `#id` (`href`, `url()`), because SVGs are served
+  from a public URL and could run code if opened directly. Square is
+  recommended in the hint, not enforced (marks crop to a circle).
+- 2026-09-29: Replacing a logo keeps the old blob (board snapshots copy
+  `logoUrl`, so an old board must keep its file). Removing a logo only
+  clears `logoUrl`. Deleting a bank deletes its current logo blob after
+  the DB delete (with no rates it is in no snapshot).
+- 2026-09-29: A duplicate name is checked before uploading, so a
+  rejected save doesn't upload a file first; the unique index still
+  decides, and a failed write deletes the new upload.
+- 2026-09-29: `BankMark` became a client component so a logo that fails
+  to load falls back to the monogram (it remembers the failed URL).
+- 2026-09-29: The drawer keeps the logo file in the React Hook Form values
+  (`bankInput.extend({ logo, removeLogo })`, client only), so `reset()` on
+  open clears it with the text fields and server `logo` errors map onto
+  the field.
 
 ## Session Notes
 
-- 2026-09-29: Phase 3 paused at the Blob store stop point. Committed but
-  not pushed: the bank list, add/edit and status/delete (plus the tracker
-  note from after the Phase 2 push). Next: owner creates the Blob store
-  and adds `BLOB_READ_WRITE_TOKEN`; then the logo upload part.
+- 2026-09-29: Phase 3 all four parts built on the owner's Mac. Committed
+  but not pushed: list, add/edit, status/delete, logo upload (plus the
+  tracker note from after the Phase 2 push). `.env.local` had an empty
+  duplicate `BLOB_READ_WRITE_TOKEN=` line from the template and a block
+  appended by `vercel env pull`; the empty line was removed. Browser
+  checks run signed in via a one-time Clerk sign-in token (scratch
+  scripts, not in the repo).
 - 2026-09-29: Back on the owner's Mac (has `.env.local`). All four
   Phase 2 commits were already on `origin/main`, so production is running
   the Phase 2 shell before its end-of-phase checks. On this Mac: build,

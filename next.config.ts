@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/dev/render-spike": ["./assets/fonts/**/*"],
   },
+  experimental: {
+    serverActions: {
+      // Logos are up to 1 MB; the default 1 MB limit would leave no room
+      // for the other form fields and the multipart overhead.
+      bodySizeLimit: "2mb",
+    },
+  },
 };
 
 export default nextConfig;

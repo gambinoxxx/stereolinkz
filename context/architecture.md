@@ -67,7 +67,11 @@ docs/design/                      Page design HTML files (visual spec, read-only
 - **Vercel Blob**: bank logos, the organization logo and generated
   PNGs. A blob is never overwritten; a new upload gets a new URL, so
   old snapshots keep pointing at the file they used. Board PNGs live at
-  `boards/{organizationId}/{rateBoardId}/{imageId}.png`.
+  `boards/{organizationId}/{rateBoardId}/{imageId}.png`; bank logos at
+  `logos/{organizationId}/banks/{slug}.{ext}` (plus Blob's random
+  suffix). The store is public (unguessable URLs). Replacing a logo keeps
+  the old file; deleting a bank (only possible with no rates, so it is in
+  no snapshot) deletes its current logo.
 - **Code (git)**: templates, flag SVGs and fonts. The database stores
   only `templateKey` + `templateVersion`.
 
@@ -179,7 +183,8 @@ template, then inserts a RateBoardImage only.
 ## Environment Variables
 
 Values live in `.env.local` (never committed) and in Vercel. List every
-new variable here and in `.env.example`.
+new variable here and in `.env.example`. Connecting the Blob store also
+added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 
 | Variable | Used by | Set in |
 | -------- | ------- | ------ |
@@ -188,7 +193,8 @@ new variable here and in `.env.example`.
 | `CLERK_SECRET_KEY` | Clerk | local, Vercel |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` = `/login` | Clerk | local, Vercel |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` = `/admin` | Clerk | local, Vercel |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob | local, Vercel |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob (local auth; starts `vercel_blob_rw_`) | local (Vercel fallback only) |
+| `BLOB_STORE_ID` | Vercel Blob (OIDC auth on Vercel, with the function's `VERCEL_OIDC_TOKEN`) | Vercel (added by connecting the store); optional locally |
 | `SEED_OWNER_CLERK_USER_ID` | `prisma/seed.ts` | local, prod seed only |
 
 ## Settled Decisions

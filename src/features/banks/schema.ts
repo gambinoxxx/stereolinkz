@@ -38,7 +38,7 @@ export const bankInput = z.object({
 export type BankInput = z.infer<typeof bankInput>;
 
 // An empty short name defaults to the first word of the name
-// ("Wema Bank" → "Wema"), cut to the board limit.
+// ("Acme Bank" → "Acme"), cut to the board limit.
 export function resolveShortName(input: BankInput): string {
   if (input.shortName !== "") return input.shortName;
   const firstWord = input.name.split(/\s+/)[0] ?? input.name;

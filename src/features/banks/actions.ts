@@ -6,6 +6,7 @@ import { z } from "zod";
 import { bankInput, resolveShortName } from "@/features/banks/schema";
 import { bankSlug } from "@/features/banks/slug";
 import { type ActionResult, safeAction } from "@/lib/server/action";
+import { deleteBlob, uploadImage, validateImage } from "@/lib/server/blob";
 import { db } from "@/lib/server/db";
 import { isPrismaError } from "@/lib/server/prisma-errors";
 
@@ -31,7 +32,7 @@ function invalidInput(
   return { ok: false, error: "Check the highlighted fields.", fieldErrors };
 }
 
-// The same slug means the same bank ("Eco Bank" = "Ecobank"). Name the
+// The same slug means the same bank ("Acme Bank" = "AcmeBank"). Name the
 // bank that already has it, so the admin knows which one to edit.
 async function duplicateName(
   organizationId: string,
@@ -50,84 +51,135 @@ async function duplicateName(
   };
 }
 
-const create = safeAction(
-  async (
-    { organizationId },
-    raw: unknown,
-  ): Promise<ActionResult<SavedBank>> => {
-    const parsed = bankInput.safeParse(raw);
-    if (!parsed.success) return invalidInput(parsed.error.issues);
-    const input = parsed.data;
-    const slug = bankSlug(input.name);
+type BankForm = {
+  input: unknown;
+  logo: File | null;
+  removeLogo: boolean;
+};
 
-    const { _max } = await db.bank.aggregate({
-      where: { organizationId },
-      _max: { sortOrder: true },
-    });
+// The drawer sends FormData: name, shortName, active ("true"/"false"), an
+// optional logo file and removeLogo ("true" clears the logo).
+function readBankForm(form: unknown): BankForm | null {
+  if (!(form instanceof FormData)) return null;
+  const text = (key: string) => {
+    const value = form.get(key);
+    return typeof value === "string" ? value : "";
+  };
+  const logo = form.get("logo");
+  return {
+    input: {
+      name: text("name"),
+      shortName: text("shortName"),
+      active: text("active") === "true",
+    },
+    logo: logo instanceof File && logo.size > 0 ? logo : null,
+    removeLogo: text("removeLogo") === "true",
+  };
+}
 
-    try {
-      const bank = await db.bank.create({
+const logoPath = (organizationId: string, slug: string, ext: string) =>
+  `logos/${organizationId}/banks/${slug}.${ext}`;
+
+// Same order as the generate flow: validate everything, upload, write the
+// row, and delete the new upload if the write fails. Replacing a logo keeps
+// the old file: board snapshots may point at it.
+async function saveBank(
+  organizationId: string,
+  id: string | null, // null = create
+  form: unknown,
+): Promise<ActionResult<SavedBank>> {
+  const data = readBankForm(form);
+  if (!data) return { ok: false, error: "Something went wrong. Try again." };
+  const parsed = bankInput.safeParse(data.input);
+  if (!parsed.success) return invalidInput(parsed.error.issues);
+  const input = parsed.data;
+  const slug = bankSlug(input.name);
+
+  const image = data.logo ? await validateImage(data.logo) : null;
+  if (image && !image.ok)
+    return {
+      ok: false,
+      error: image.error,
+      fieldErrors: { logo: image.error },
+    };
+
+  // Checked before uploading, so a duplicate name doesn't upload a file
+  // for nothing. The unique index still decides (P2002 below).
+  const clash = await db.bank.findFirst({
+    where: { organizationId, slug, ...(id ? { NOT: { id } } : {}) },
+    select: { id: true },
+  });
+  if (clash) return duplicateName(organizationId, slug, input.name);
+
+  const uploaded = image?.ok
+    ? await uploadImage(image, logoPath(organizationId, slug, image.ext))
+    : null;
+  const logoUrl = uploaded ? uploaded.url : data.removeLogo ? null : undefined; // keep the current logo
+
+  const fields = {
+    name: input.name,
+    shortName: resolveShortName(input),
+    slug,
+    status: input.active ? ("ACTIVE" as const) : ("INACTIVE" as const),
+    ...(logoUrl !== undefined ? { logoUrl } : {}),
+  };
+
+  try {
+    let bank: SavedBank;
+    if (id) {
+      bank = await db.bank.update({
+        where: { id, organizationId },
+        data: fields,
+        select: { id: true, name: true },
+      });
+    } else {
+      const { _max } = await db.bank.aggregate({
+        where: { organizationId },
+        _max: { sortOrder: true },
+      });
+      bank = await db.bank.create({
         data: {
+          ...fields,
           organizationId,
-          name: input.name,
-          shortName: resolveShortName(input),
-          slug,
-          status: input.active ? "ACTIVE" : "INACTIVE",
           sortOrder: (_max.sortOrder ?? -1) + 1, // new banks go last
         },
         select: { id: true, name: true },
       });
-      revalidateBankPages();
-      return { ok: true, data: bank };
-    } catch (error) {
-      if (isPrismaError(error, "P2002"))
-        return duplicateName(organizationId, slug, input.name);
-      throw error;
     }
-  },
+    revalidateBankPages();
+    return { ok: true, data: bank };
+  } catch (error) {
+    if (uploaded) await deleteBlob(uploaded.url);
+    if (isPrismaError(error, "P2002"))
+      return duplicateName(organizationId, slug, input.name);
+    if (isPrismaError(error, "P2025")) return { ok: false, error: NOT_FOUND };
+    throw error;
+  }
+}
+
+const create = safeAction(
+  ({ organizationId }, form: unknown): Promise<ActionResult<SavedBank>> =>
+    saveBank(organizationId, null, form),
 );
 
 const update = safeAction(
   async (
     { organizationId },
     id: unknown,
-    raw: unknown,
+    form: unknown,
   ): Promise<ActionResult<SavedBank>> => {
     if (typeof id !== "string") return { ok: false, error: NOT_FOUND };
-    const parsed = bankInput.safeParse(raw);
-    if (!parsed.success) return invalidInput(parsed.error.issues);
-    const input = parsed.data;
-    const slug = bankSlug(input.name);
-
-    try {
-      const bank = await db.bank.update({
-        where: { id, organizationId },
-        data: {
-          name: input.name,
-          shortName: resolveShortName(input),
-          slug,
-          status: input.active ? "ACTIVE" : "INACTIVE",
-        },
-        select: { id: true, name: true },
-      });
-      revalidateBankPages();
-      return { ok: true, data: bank };
-    } catch (error) {
-      if (isPrismaError(error, "P2002"))
-        return duplicateName(organizationId, slug, input.name);
-      if (isPrismaError(error, "P2025")) return { ok: false, error: NOT_FOUND };
-      throw error;
-    }
+    return saveBank(organizationId, id, form);
   },
 );
 
 // Exported as plain async functions: a "use server" file may only export those.
-export async function createBank(input: unknown) {
-  return create(input);
+export async function createBank(form: FormData) {
+  return create(form);
 }
 
-export async function updateBank(id: unknown, input: unknown) {
-  return update(id, input);
+export async function updateBank(id: string, form: FormData) {
+  return update(id, form);
 }
 
 const HAS_HISTORY = "Deactivate this bank instead. It has rate history.";
@@ -172,6 +224,7 @@ const remove = safeAction(
           select: {
             id: true,
             name: true,
+            logoUrl: true,
             _count: { select: { pofRates: true } },
           },
         });
@@ -179,10 +232,18 @@ const remove = safeAction(
         if (bank._count.pofRates > 0)
           return { ok: false as const, error: HAS_HISTORY };
         await tx.bank.delete({ where: { id, organizationId } });
-        return { ok: true as const, data: { id: bank.id, name: bank.name } };
+        return {
+          ok: true as const,
+          data: { id: bank.id, name: bank.name },
+          logoUrl: bank.logoUrl,
+        };
       });
-      if (result.ok) revalidateBankPages();
-      return result;
+      if (!result.ok) return result;
+      // With no rates the bank is in no snapshot, so its logo can go too
+      // (after the row is gone, best effort).
+      if (result.logoUrl) await deleteBlob(result.logoUrl);
+      revalidateBankPages();
+      return { ok: true, data: result.data };
     } catch (error) {
       if (isPrismaError(error, "P2003"))
         return { ok: false, error: HAS_HISTORY };

@@ -4,20 +4,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useId } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
-import { BankMark } from "@/components/bank-mark";
 import { EntityDrawer } from "@/components/entity-drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createBank, updateBank } from "@/features/banks/actions";
+import { LogoField } from "@/features/banks/components/LogoField";
 import type { BankListItem } from "@/features/banks/queries";
 import { bankSlug } from "@/features/banks/slug";
+import { bankInput, SHORT_NAME_MAX } from "@/features/banks/schema";
 import {
-  type BankInput,
-  bankInput,
-  SHORT_NAME_MAX,
-} from "@/features/banks/schema";
+  checkImageBytes,
+  LOGO_ERRORS,
+  MAX_LOGO_BYTES,
+} from "@/lib/image-check";
 
 type BankDrawerProps = {
   open: boolean;
@@ -25,7 +27,20 @@ type BankDrawerProps = {
   bank: BankListItem | null; // null = add a bank
 };
 
-const EMPTY: BankInput = { name: "", shortName: "", active: true };
+// The shared bank fields plus the logo, which only exists in the browser.
+const bankForm = bankInput.extend({
+  logo: z.instanceof(File).nullable(),
+  removeLogo: z.boolean(),
+});
+type BankFormValues = z.infer<typeof bankForm>;
+
+const EMPTY: BankFormValues = {
+  name: "",
+  shortName: "",
+  active: true,
+  logo: null,
+  removeLogo: false,
+};
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -39,8 +54,8 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 // Add and edit share this drawer (bank-add.html, bank-edit.html).
 export function BankDrawer({ open, onOpenChange, bank }: BankDrawerProps) {
   const id = useId();
-  const form = useForm<BankInput>({
-    resolver: zodResolver(bankInput),
+  const form = useForm<BankFormValues>({
+    resolver: zodResolver(bankForm),
     defaultValues: EMPTY,
   });
   const {
@@ -49,6 +64,7 @@ export function BankDrawer({ open, onOpenChange, bank }: BankDrawerProps) {
     reset,
     setError,
     setValue,
+    clearErrors,
     control,
     formState: { errors, isSubmitting },
   } = form;
@@ -62,6 +78,8 @@ export function BankDrawer({ open, onOpenChange, bank }: BankDrawerProps) {
             name: bank.name,
             shortName: bank.shortName ?? "",
             active: bank.status === "ACTIVE",
+            logo: null,
+            removeLogo: false,
           }
         : EMPTY,
     );
@@ -69,16 +87,51 @@ export function BankDrawer({ open, onOpenChange, bank }: BankDrawerProps) {
 
   const name = useWatch({ control, name: "name" });
   const active = useWatch({ control, name: "active" });
+  const logo = useWatch({ control, name: "logo" });
+  const removeLogo = useWatch({ control, name: "removeLogo" });
+
+  // Fast feedback with the same byte checks the server runs again.
+  async function pickLogo(file: File) {
+    const check =
+      file.size > MAX_LOGO_BYTES
+        ? { ok: false as const, error: LOGO_ERRORS.size }
+        : checkImageBytes(new Uint8Array(await file.arrayBuffer()));
+    if (!check.ok) {
+      setError("logo", { message: check.error });
+      return;
+    }
+    clearErrors("logo");
+    setValue("logo", file, { shouldDirty: true });
+    setValue("removeLogo", false);
+  }
+
+  function clearLogo() {
+    clearErrors("logo");
+    setValue("logo", null, { shouldDirty: true });
+    setValue("removeLogo", Boolean(bank?.logoUrl));
+  }
 
   const onSubmit = handleSubmit(async (values) => {
+    const data = new FormData();
+    data.set("name", values.name);
+    data.set("shortName", values.shortName);
+    data.set("active", String(values.active));
+    data.set("removeLogo", String(values.removeLogo));
+    if (values.logo) data.set("logo", values.logo);
+
     const result = bank
-      ? await updateBank(bank.id, values)
-      : await createBank(values);
+      ? await updateBank(bank.id, data)
+      : await createBank(data);
 
     if (!result.ok) {
       const fields = Object.entries(result.fieldErrors ?? {});
       for (const [field, message] of fields) {
-        if (field === "name" || field === "shortName" || field === "active") {
+        if (
+          field === "name" ||
+          field === "shortName" ||
+          field === "active" ||
+          field === "logo"
+        ) {
           setError(field, { message }, { shouldFocus: true });
         }
       }
@@ -145,27 +198,17 @@ export function BankDrawer({ open, onOpenChange, bank }: BankDrawerProps) {
         <FieldError id={shortError} message={errors.shortName?.message} />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[13.5px] font-semibold">Logo</span>
-        {/* Enabled in the Logo upload part of Phase 3 (needs the Blob store). */}
-        <div
-          aria-disabled="true"
-          className="flex items-center gap-3.5 rounded-[12px] border-[1.5px] border-dashed border-border-input bg-bg-subtle p-4 opacity-70"
-        >
-          <BankMark
-            name={name.trim() || "?"}
-            slug={bankSlug(name)}
-            logoUrl={bank?.logoUrl}
-            size={44}
-          />
-          <div>
-            <b className="text-[14px]">Upload logo</b>
-            <p className="text-[13px] text-text-muted">
-              Logo upload comes next. Without one, boards show the first letter.
-            </p>
-          </div>
-        </div>
-      </div>
+      <LogoField
+        id={`${id}-logo`}
+        name={name}
+        slug={bankSlug(name)}
+        currentUrl={bank?.logoUrl ?? null}
+        file={logo}
+        removed={removeLogo}
+        error={errors.logo?.message}
+        onPick={pickLogo}
+        onClear={clearLogo}
+      />
 
       <div className="flex items-center gap-2.5">
         <Switch
