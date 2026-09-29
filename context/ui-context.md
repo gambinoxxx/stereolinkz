@@ -63,6 +63,8 @@ Sidebar text: `#C4B8E0` normal, `#FFFFFF` active or hover, `#9C8FC0`
 secondary. Define these as `--sidebar-text`, `--sidebar-text-active` and
 `--sidebar-text-muted`.
 
+Drag handle on reorderable rows: `--grip` `#B9B0CB` (utility `text-grip`).
+
 Login brand panel (reuses the Purple Signal board colours):
 `--brand-panel-start` `#3B1675`, `--brand-panel-mid` `#2A0F58`,
 `--brand-panel-end` `#1C0A3D` (165° gradient, utility `bg-brand-panel`)

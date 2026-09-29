@@ -5,6 +5,8 @@ import {
   formatBoardPrice,
   formatBoardTime,
   formatDayHeading,
+  formatShortDateTime,
+  formatUpdatedAt,
   formatLongDate,
   formatPercent,
   formatPoints,
@@ -108,5 +110,49 @@ describe("formatDayHeading", () => {
     expect(formatDayHeading(new Date("2025-09-27T09:25:00Z"), now, LAGOS)).toBe(
       "Saturday, 27 September 2025",
     );
+  });
+});
+
+describe("formatUpdatedAt", () => {
+  const TZ = "Africa/Lagos";
+  const now = new Date("2026-09-27T15:00:00Z"); // 4:00 PM Sunday in Lagos
+
+  it("shows today's time in the org zone", () => {
+    expect(formatUpdatedAt(new Date("2026-09-27T09:25:00Z"), now, TZ)).toBe(
+      "Today, 10:25 AM",
+    );
+  });
+
+  it("counts Lagos midnight, not UTC midnight", () => {
+    // 23:30 UTC on the 26th is 00:30 on the 27th in Lagos.
+    expect(formatUpdatedAt(new Date("2026-09-26T23:30:00Z"), now, TZ)).toBe(
+      "Today, 12:30 AM",
+    );
+    // 22:30 UTC on the 26th is 23:30 on the 26th in Lagos.
+    expect(formatUpdatedAt(new Date("2026-09-26T22:30:00Z"), now, TZ)).toBe(
+      "26 Sept",
+    );
+  });
+
+  it("shows the short date for earlier days, with the year only when it differs", () => {
+    expect(formatUpdatedAt(new Date("2026-09-22T08:00:00Z"), now, TZ)).toBe(
+      "22 Sept",
+    );
+    expect(formatUpdatedAt(new Date("2025-12-31T12:00:00Z"), now, TZ)).toBe(
+      "31 Dec 2025",
+    );
+  });
+});
+
+describe("formatShortDateTime", () => {
+  it("prints date and time in the org zone", () => {
+    const now = new Date("2026-09-27T15:00:00Z");
+    expect(
+      formatShortDateTime(
+        new Date("2026-09-26T07:55:00Z"),
+        now,
+        "Africa/Lagos",
+      ),
+    ).toBe("26 Sept, 8:55 AM");
   });
 });

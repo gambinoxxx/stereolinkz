@@ -66,6 +66,9 @@
   --sidebar-text-active: #ffffff;
   --sidebar-text-muted: #9c8fc0;
 
+  /* Drag handle on reorderable rows (forex.html .grip) */
+  --grip: #b9b0cb;
+
   /* Brand panel (login), from the Purple Signal board tokens */
   --brand-panel-start: #3b1675;
   --brand-panel-mid: #2a0f58;
@@ -138,6 +141,7 @@
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-text-active: var(--sidebar-text-active);
   --color-sidebar-text-muted: var(--sidebar-text-muted);
+  --color-grip: var(--grip);
   --color-brand-panel-text: var(--brand-panel-text);
   --color-control-off: var(--control-off);
   --color-segmented-bg: var(--segmented-bg);

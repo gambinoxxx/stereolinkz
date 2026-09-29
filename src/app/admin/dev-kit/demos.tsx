@@ -183,7 +183,6 @@ export function SegmentedDemo() {
       type="single"
       variant="segmented"
       size="segmented"
-      spacing={0}
       value={value}
       onValueChange={(next) => next && setValue(next)}
       aria-label="Filter by status"

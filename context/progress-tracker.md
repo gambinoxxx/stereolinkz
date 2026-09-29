@@ -5,14 +5,23 @@ change.
 
 ## Current Phase
 
-- Phase 3: Banks, complete
+- Phase 4: Forex, in progress
 
 ## Current Goal
 
-- None. Phase 4 has not started.
+- Phase 4: edit rate (`forexRateInput`, `saveForexRate`, `ForexRateDrawer`)
 
 ## Completed
 
+- 2026-09-29: Phase 4, forex list. `/admin/forex` lists non-archived
+  currencies in board order with flag, buy, sell with `RateDelta`,
+  spread (hidden 760–1100px), "Updated" in Lagos time, status switch and
+  Edit; cards under 760px; All / Active / Inactive filter on `?status=`
+  (Zod, unknown → All). Verified against the seed (USD 1,365 / 1,378 ↑4,
+  GBP ↓5, EUR ↑5, spreads 13/25/23/17/6, "28 Sept") and `forex.html` at
+  1440px and 390px. Key files: `src/features/currencies/{queries,status-filter}.ts`,
+  `src/features/currencies/components/{ForexTable,ForexManager}.tsx`,
+  `src/app/admin/forex/page.tsx`, `src/lib/format.ts` (+ tests).
 - 2026-09-29: Phase 3 on production. Pushed `3b0ecea` with tag
   `phase-3-complete`; Vercel deployed it. The owner added a bank with a
   logo on https://stereolinkz-czj8.vercel.app/admin/banks and it worked,
@@ -179,9 +188,8 @@ change.
 
 ## Next Up
 
-- Phase 4: forex list (`features/currencies/queries.ts`
-  `listCurrenciesWithRates`, `ForexTable`, `?status=` filter)
-- Phase 4: edit rate (`forexRateInput`, `saveForexRate`, `ForexRateDrawer`)
+- Phase 4: add currency (`currencyInput`, `createCurrency`, `CurrencyDrawer`)
+- Phase 4: status (optimistic switch) and reorder (drag + up/down)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -419,6 +427,23 @@ change.
   (`bankInput.extend({ logo, removeLogo })`, client only), so `reset()` on
   open clears it with the text fields and server `logo` errors map onto
   the field.
+- 2026-09-29: `listCurrenciesWithRates` takes the latest 4 ForexRate rows
+  per currency in the list query: [0] is the current rate, [1] the
+  previous one for the change arrow, and all four are the edit drawer's
+  "Recent changes", so opening the drawer needs no extra fetch. Rates
+  cross to the client as decimal strings and dates as ISO strings.
+- 2026-09-29: "Updated" is `formatUpdatedAt(date, now, tz)`: "Today,
+  10:25 AM" when the rate is from today in the org zone, else "22 Sept";
+  the year is added when it differs from the current one ("31 Dec 2025"),
+  so an old rate never reads as recent. `now` comes from the server
+  render, so the client shows the same text. History rows use
+  `formatShortDateTime` ("27 Sept, 10:25 AM").
+- 2026-09-29: Segmented filters must not pass `spacing={0}` to
+  `ToggleGroup`: the generated item then applies `px-2` through a
+  group-variant class that outranks the segmented size's `px-3.5`. Removed
+  from the forex filter and the dev kit demo; no `components/ui` change.
+- 2026-09-29: New token `--grip` (`#B9B0CB`, `text-grip`) for drag
+  handles, from `forex.html`; recorded in `ui-context.md`.
 
 ## Session Notes
 

@@ -171,3 +171,32 @@ export function formatDayHeading(
     ? "Today"
     : formatLongDate(date, timeZone);
 }
+
+// Short date: "22 Sept", with the year when it isn't the current year in
+// the org zone ("22 Sept 2025"), so an old rate never reads as recent.
+function formatShortDate(date: Date, now: Date, timeZone: string): string {
+  const p = zonedParts(date, timeZone);
+  const year = zonedParts(now, timeZone).year === p.year ? "" : ` ${p.year}`;
+  return `${p.day} ${MONTHS_SHORT[p.month - 1]}${year}`;
+}
+
+// Tables' "Updated" column: "Today, 10:25 AM" for today in the org zone,
+// otherwise the short date ("22 Sept").
+export function formatUpdatedAt(
+  date: Date,
+  now: Date,
+  timeZone: string,
+): string {
+  return isSameOrgDay(date, now, timeZone)
+    ? `Today, ${formatBoardTime(date, timeZone)}`
+    : formatShortDate(date, now, timeZone);
+}
+
+// Rate history lists: "27 Sept, 10:25 AM" (year added as above).
+export function formatShortDateTime(
+  date: Date,
+  now: Date,
+  timeZone: string,
+): string {
+  return `${formatShortDate(date, now, timeZone)}, ${formatBoardTime(date, timeZone)}`;
+}
