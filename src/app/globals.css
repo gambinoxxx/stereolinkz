@@ -18,6 +18,8 @@
  *
  * - Brand panel (login): --brand-panel-* reuse the Purple Signal board
  *   colours. Use bg-brand-panel and text-brand-panel-text.
+ * - Breakpoints: sheet (760px) and shell (900px). max-sheet: is phones
+ *   (drawers become bottom sheets); shell: is the desktop sidebar layout.
  *
  * Board templates do not use these. They take inline styles from
  * src/features/templates/theme.ts (Satori cannot read CSS variables).
@@ -70,6 +72,25 @@
   --brand-panel-end: #1c0a3d;
   --brand-panel-text: #d4c8ee;
 
+  /* Controls (from the design files' component styles) */
+  --control-off: #d6cfe4; /* switch track when off */
+  --segmented-bg: #ede8f5; /* segmented filter track */
+  --bg-hover: #f1edf8; /* ghost button hover */
+  --border-hover: #d3cbe3; /* outline button hover */
+  --overlay: rgb(20 8 40 / 0.45); /* scrim behind drawers and modals */
+  --sidebar-avatar: #4b2a86;
+
+  /* Toasts clear the phone tab bar (Toaster in components/ui/sonner.tsx) */
+  --toast-offset: 24px;
+
+  /* Bank monograms (BankMark), picked by bank slug */
+  --bank-mark-1: #6b2c91;
+  --bank-mark-2: #3e5bc9;
+  --bank-mark-3: #0b7a75;
+  --bank-mark-4: #c77700;
+  --bank-mark-5: #b3261e;
+  --bank-mark-6: #b8327a;
+
   /* shadcn/ui aliases (our tokens only) */
   --background: var(--bg-base);
   --foreground: var(--text-primary);
@@ -118,6 +139,18 @@
   --color-sidebar-text-active: var(--sidebar-text-active);
   --color-sidebar-text-muted: var(--sidebar-text-muted);
   --color-brand-panel-text: var(--brand-panel-text);
+  --color-control-off: var(--control-off);
+  --color-segmented-bg: var(--segmented-bg);
+  --color-bg-hover: var(--bg-hover);
+  --color-border-hover: var(--border-hover);
+  --color-overlay: var(--overlay);
+  --color-sidebar-avatar: var(--sidebar-avatar);
+  --color-bank-mark-1: var(--bank-mark-1);
+  --color-bank-mark-2: var(--bank-mark-2);
+  --color-bank-mark-3: var(--bank-mark-3);
+  --color-bank-mark-4: var(--bank-mark-4);
+  --color-bank-mark-5: var(--bank-mark-5);
+  --color-bank-mark-6: var(--bank-mark-6);
 
   /* shadcn/ui names */
   --color-background: var(--background);
@@ -147,6 +180,10 @@
   --radius-modal: 18px;
   --radius-sheet: 20px;
 
+  /* Breakpoints (ui-context.md → Layout Patterns) */
+  --breakpoint-sheet: 760px;
+  --breakpoint-shell: 900px;
+
   /*
    * --font-sans is set on <html> by next/font (Archivo, src/app/layout.tsx).
    * That declaration is unlayered, so it wins over Tailwind's default.
@@ -175,5 +212,27 @@
     font-size: 15px;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
+  }
+  /* Visible focus everywhere; inputs replace it with a ring. */
+  :focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}
+
+@media (width < 900px) {
+  :root {
+    --toast-offset: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Motion is limited to drawers, modals, toasts and spinners; all of it
+   stops for people who ask for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }

@@ -9,10 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 2: UI primitives (shadcn components restyled through tokens)
+- Phase 2: project components (`src/components/`)
 
 ## Completed
 
+- 2026-09-29: Phase 2, UI primitives. shadcn button, input, select,
+  textarea, switch, checkbox, sheet, dialog, toggle-group (+ toggle),
+  tabs, sonner, tooltip, badge, skeleton, label, tailored to the design
+  (buttons 40/32/34px; inputs 42px with a violet ring; green switch;
+  460px right drawer and bottom sheet; modal as a bottom sheet under
+  760px; segmented toggle group; ink toast with gold icon). Control and
+  bank-mark tokens, breakpoints, focus outline and reduced motion in
+  `globals.css`; `useMediaQuery`. Visual check pending in the dev kit.
+  Key files: `src/components/ui/*`, `src/app/globals.css`,
+  `src/hooks/use-media-query.ts`, `src/lib/utils.ts`.
 - 2026-09-29: Phase 2, formatting and tests. Vitest 4 with `npm test` /
   `test:watch`; `formatRate`, `formatBoardPrice`, `formatPercent`,
   `formatPoints`, `formatBoardDate`, `formatBoardTime`, `formatLongDate`,
@@ -83,7 +93,6 @@ change.
 
 ## Next Up
 
-- Phase 2: UI primitives (shadcn), then project components
 - Phase 2: Dev kit page, then the app shell
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
@@ -203,6 +212,31 @@ change.
   2026") for the dashboard subtitle and day headings.
 - 2026-09-29: `subtractDecimalStrings` added to `lib/decimal.ts` for
   change arrows (RateDelta). It subtracts scaled BigInts, never floats.
+- 2026-09-29: shadcn components were tailored in one pass right after
+  generation: the generated sizes (32px buttons and inputs), neutral
+  variants and `next-themes` Toaster don't match the design, and cva
+  variants live inside the files, so wrapping each primitive would split
+  its styling in two. Changes: button variants/sizes (default, outline,
+  ghost, destructive, link; 40px, sm 32px, icon 34px); input, textarea
+  and select trigger at 42px with a violet ring; switch 34×20, green
+  when on; checkbox 18px violet; badge as the design's chip (default,
+  success, brand, gold, destructive); a `segmented` toggle variant;
+  tabs in the same look; sheet 460px right / 272px left / bottom sheet
+  with `rounded-sheet`; dialog `rounded-modal`, a bottom sheet under
+  760px; label, skeleton, overlay colours. From here on
+  `components/ui/*` is protected again: changes go through
+  className/variants, or a new Decision entry.
+- 2026-09-29: `next-themes` removed (added by the shadcn Sonner
+  template). The admin is light only; the Toaster sets `theme="light"`.
+- 2026-09-29: New tokens from the design files' component styles:
+  `--control-off`, `--segmented-bg`, `--bg-hover`, `--border-hover`,
+  `--overlay`, `--sidebar-avatar`, `--toast-offset`, and the
+  `--bank-mark-1…6` palette (the designs' 7 monogram colours minus
+  `#2A0F58`). Breakpoints `sheet` 760px and `shell` 900px. Recorded in
+  `ui-context.md`.
+- 2026-09-29: `@/lib/utils` `cn` is `createCn` from `cn/config` with our
+  radius names, so project components can override `rounded-*`.
+  Generated `components/ui` files keep importing `cn` from `"cn"`.
 - 2026-09-29: Phase tags are annotated (`git tag -a`) so
   `--follow-tags` pushes them; recorded in `code-standards.md` → Git.
 

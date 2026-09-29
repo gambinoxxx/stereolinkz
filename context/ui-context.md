@@ -68,6 +68,24 @@ Login brand panel (reuses the Purple Signal board colours):
 `--brand-panel-end` `#1C0A3D` (165° gradient, utility `bg-brand-panel`)
 and `--brand-panel-text` `#D4C8EE` for the panel's subtext.
 
+Control colours, taken from the design files' component styles:
+
+| Role | CSS Variable | Value |
+| ---- | ------------ | ----- |
+| Switch track when off | `--control-off` | `#D6CFE4` |
+| Segmented filter / tabs track | `--segmented-bg` | `#EDE8F5` |
+| Ghost button hover | `--bg-hover` | `#F1EDF8` |
+| Outline button hover border | `--border-hover` | `#D3CBE3` |
+| Scrim behind drawers and modals | `--overlay` | `rgb(20 8 40 / 0.45)` |
+| Sidebar user avatar | `--sidebar-avatar` | `#4B2A86` |
+
+Bank monograms (`BankMark` with no logo). The schema has no bank colour,
+so the colour is picked from the bank slug over a fixed palette:
+`--bank-mark-1` `#6B2C91`, `--bank-mark-2` `#3E5BC9`, `--bank-mark-3`
+`#0B7A75`, `--bank-mark-4` `#C77700`, `--bank-mark-5` `#B3261E`,
+`--bank-mark-6` `#B8327A` (the designs' monogram colours, minus
+`#2A0F58`, which is too close to the sidebar).
+
 ### Board Tokens (templates only, in `features/templates/theme.ts`)
 
 | Role | Purple Signal | Daylight |
@@ -168,6 +186,10 @@ Project components (not shadcn):
 
 ## Layout Patterns
 
+- **Breakpoints:** `sheet` (760px) and `shell` (900px) in `@theme`.
+  `max-sheet:` is phones (drawers and modals become bottom sheets, tables
+  become cards); `shell:` is the desktop sidebar layout. Toasts sit 24px
+  from the bottom, and above the tab bar under 900px (`--toast-offset`).
 - **App shell (≥ 900px):** fixed 248px sidebar on the left (brand,
   nav, separators, user block at the bottom). Content area max-width
   1200px, padding 34px 40px.
