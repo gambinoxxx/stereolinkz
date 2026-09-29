@@ -5,14 +5,22 @@ change.
 
 ## Current Phase
 
-- Phase 1: Foundation, complete
+- Phase 2: Shared foundations, in progress
 
 ## Current Goal
 
-- Phase 2: Shared foundations, plan posted (formatting and tests first)
+- Phase 2: UI primitives (shadcn components restyled through tokens)
 
 ## Completed
 
+- 2026-09-29: Phase 2, formatting and tests. Vitest 4 with `npm test` /
+  `test:watch`; `formatRate`, `formatBoardPrice`, `formatPercent`,
+  `formatPoints`, `formatBoardDate`, `formatBoardTime`, `formatLongDate`,
+  `formatDayHeading`, `isSameOrgDay`; `toDecimalString`,
+  `compareDecimalStrings`, `subtractDecimalStrings`. 19 tests pass,
+  including the Lagos midnight edge and the bank slug rule. Key files:
+  `vitest.config.mts`, `src/lib/format.ts`, `src/lib/decimal.ts`,
+  `src/lib/*.test.ts`, `src/features/banks/slug.test.ts`.
 - 2026-09-29: Phase 1 complete. All Done-when items checked, tagged
   phase-1-complete. Two are carried forward, not failed: the warm
   render (2.3–2.7 s on Vercel, target under 2 s) is fixed by the card
@@ -75,8 +83,8 @@ change.
 
 ## Next Up
 
-- Phase 2: Formatting and tests (Vitest, `lib/format.ts`, `lib/decimal.ts`)
 - Phase 2: UI primitives (shadcn), then project components
+- Phase 2: Dev kit page, then the app shell
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -183,6 +191,20 @@ change.
 - 2026-09-29: Vercel is production, not a Preview. Phase 1's "Vercel
   Preview" checks were run on production (`stereolinkz-czj8`, deploys
   `main`).
+- 2026-09-29: Vitest pinned to `^4` (4.1.11), not 5: Vitest 5 needs
+  `@types/node` 22+, and the project pins `^20`. Config is
+  `vitest.config.mts` (ESM, so Vite loads it without a warning).
+- 2026-09-29: Dates in `lib/format.ts` take numeric parts from
+  `Intl.DateTimeFormat#formatToParts` in the org zone (`hourCycle: h23`)
+  and build the text with our own month and weekday names ("Sept", a
+  normal space before AM/PM). The weekday comes from the zoned calendar
+  date. Why: ICU text differs between Node and browsers, and the PNG and
+  the preview must match. Added `formatLongDate` ("Sunday, 27 September
+  2026") for the dashboard subtitle and day headings.
+- 2026-09-29: `subtractDecimalStrings` added to `lib/decimal.ts` for
+  change arrows (RateDelta). It subtracts scaled BigInts, never floats.
+- 2026-09-29: Phase tags are annotated (`git tag -a`) so
+  `--follow-tags` pushes them; recorded in `code-standards.md` → Git.
 
 ## Session Notes
 
@@ -191,6 +213,13 @@ change.
   locally and on GitHub (deleted on merge). Production:
   https://stereolinkz-czj8.vercel.app (Vercel project
   `stereolinkz-czj8`, deploys every push to `main`).
+- 2026-09-29: This session runs in a GitHub Codespace (Linux) with no
+  `.env.local`. `npm ci` fails at `postinstall` (`prisma generate` needs
+  `DATABASE_URL`), so install with `npm ci --ignore-scripts`, then
+  `DATABASE_URL=postgresql://placeholder@localhost/none npx prisma
+  generate` and `npx next typegen` (needed before `tsc --noEmit`). The
+  build passes with that placeholder URL. Running the signed-in app
+  needs the owner to create `.env.local` here.
 - 2026-09-28: Database: Neon (eu-central-1, pooled URL) in `.env.local`.
   The first `migrate dev` hit P1001 while the Neon compute woke up; a
   retry worked. `npm audit` reports 4 high findings in `mysql2`, a

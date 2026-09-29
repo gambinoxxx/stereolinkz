@@ -140,8 +140,9 @@
 - Push only when `npm run build`, `npm run lint`, `npx tsc --noEmit`,
   `npm test` and `npm run format:check` all pass: pushing `main`
   deploys to production.
-- Tag each finished phase `phase-<n>-complete` and push with
-  `git push --follow-tags`.
+- Tag each finished phase with an annotated tag
+  (`git tag -a phase-<n>-complete -m "…"`) and push with
+  `git push --follow-tags`, which skips lightweight tags.
 - Env values in Vercel are pasted without quotes (quotes copied from
   `.env.local` broke `DATABASE_URL` in Phase 1).
 - Never commit `.env*` files, generated PNGs or `tmp/` render output.
