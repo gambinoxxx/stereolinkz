@@ -29,6 +29,22 @@ export type SnapshotOrg = {
   defaultFinePrint: string | null;
 };
 
+// Picks the snapshot's fields from an Organization row (or anything with
+// them), so every caller copies the same ones.
+export function toSnapshotOrg(org: SnapshotOrg): SnapshotOrg {
+  return {
+    name: org.name,
+    timezone: org.timezone,
+    quoteCurrency: org.quoteCurrency,
+    logoUrl: org.logoUrl,
+    backgroundColor: org.backgroundColor,
+    primaryColor: org.primaryColor,
+    accentColor: org.accentColor,
+    contactLine: org.contactLine,
+    defaultFinePrint: org.defaultFinePrint,
+  };
+}
+
 // What the generator may change; everything else comes from the org.
 export type ContentOverrides = Partial<
   Pick<

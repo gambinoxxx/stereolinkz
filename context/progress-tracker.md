@@ -9,10 +9,36 @@ change.
 
 ## Current Goal
 
-- Phase 7: Generate (`generateBoard`, upload, transaction, failure test)
+- Phase 7: ⏸ real phone test (owner), then the end-of-phase checks
 
 ## Completed
 
+- 2026-09-30: Phase 7, Generate, success panel and download (one commit:
+  the form imports the panel). `generateBoard` (safeAction): validate →
+  load the rows org-scoped (inactive / not `pofActive` → "Wema is no
+  longer active. Refresh the page and try again.") → `diffRates` against
+  the newest rates → `buildSnapshot` with server time, DB names / flags /
+  logos in sortOrder → render → upload to
+  `boards/{org}/{boardId}/{imageId}.png` (pre-generated UUIDs,
+  `addRandomSuffix: false`) → one `$transaction` (changed rates, board,
+  image) → revalidate six pages. Returns `{ boardId, imageUrl,
+  savedRates, generatedAtLabel, renderMs, snapshot }`; logs render /
+  upload / save ms. Upload failure deletes the (unique) path; a
+  transaction failure deletes the blob. `uploadBoardPng` accepts its own
+  retried upload ("already exists" + same size via `head`), found on a
+  phone hotspot. Client: `<form>` submit, "Generating image…", a ref
+  blocks double submits, the form locks and the preview shows the saved
+  snapshot. `GeneratedPanel`: time, saved-rates note, Download PNG,
+  Share (only when `navigator.canShare({ files })`; PNG prefetched so
+  Safari's share() stays in the tap), View in history, Make another
+  (refresh + remount in one transition, "Loading current rates…").
+  `GET /api/boards/[id]/download` (Node): 401 signed out, 404 for a
+  missing or other-org board, newest image, `attachment;
+  filename="stereolinkz-forex-1059am.png"`, `private, no-store`
+  (`boardFilename`, 3 tests). Checked: see Session Notes (failure test,
+  401 / 404, timings). Key files: `src/features/boards/{actions,filename}.ts`,
+  `src/features/boards/components/GeneratedPanel.tsx`,
+  `src/app/api/boards/[id]/download/route.ts`, `src/lib/server/blob.ts`.
 - 2026-09-30: Phase 7, live preview. `buildPreviewSnapshot(org, type,
   form, entities, now)`: never throws (half-typed values print "—",
   content clipped to its limits, empty text dropped); built on the new
@@ -743,6 +769,24 @@ change.
 
 ## Session Notes
 
+- 2026-09-30: Phase 7 checks (local, database and Blob shared with
+  production). Failure test 1, render forced to throw with a USD edit:
+  RateBoard 2 → 2, RateBoardImage 2 → 2, ForexRate 13 → 13, blobs 2 → 2,
+  message shown, retry possible. Failure test 2, transaction forced to
+  fail after the inserts: rows unchanged, the uploaded PNG was deleted
+  (HEAD 404 afterwards). Both switches removed (0 matches). Download:
+  signed out 401; own board 200 `image/png`; a second org's real board
+  (created by script, then removed), a made-up UUID and a malformed id
+  all 404. Double submit ignored (one board). Timings from this Mac on a
+  phone hotspot: render 0.5–0.7 s forex, 0.8–1.3 s POF with six logos;
+  upload ~1.9 s, save ~1.1 s; generate ~4.7 s end to end on a production
+  build; Make another 1.8 s (dev: up to 14 s). Vercel timings still to
+  record after the push. Dev data: 11 boards / 11 blobs (no orphans);
+  USD back at 1365 / 1378 and Providus back at 3.4% (both the seeded
+  values; the history rows stay). `?from` is parsed on the page and
+  ignored (Phase 8 prefills from it); a board's newest image is
+  `images: { orderBy: { createdAt: "desc" }, take: 1 }` as in the
+  download route.
 - 2026-09-30: Phase 6 complete, tagged `phase-6-complete` and pushed
   (deployed; the live login page serves the sample board). Render times (local, warm): seed boards ~510–530 ms,
   worst cases ~550–570 ms; first render in a process ~700–800 ms (font

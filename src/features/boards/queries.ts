@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { SnapshotOrg } from "@/features/boards/build-snapshot";
+import {
+  type SnapshotOrg,
+  toSnapshotOrg,
+} from "@/features/boards/build-snapshot";
 import type { BoardType } from "@/features/boards/defaults";
 import {
   listTemplates,
@@ -94,17 +97,7 @@ export async function getGeneratorData(
   ]);
 
   return {
-    org: {
-      name: org.name,
-      timezone: org.timezone,
-      quoteCurrency: org.quoteCurrency,
-      logoUrl: org.logoUrl,
-      backgroundColor: org.backgroundColor,
-      primaryColor: org.primaryColor,
-      accentColor: org.accentColor,
-      contactLine: org.contactLine,
-      defaultFinePrint: org.defaultFinePrint,
-    },
+    org: toSnapshotOrg(org),
     defaultTemplates: {
       FOREX: resolveTemplateKey("FOREX", org),
       POF: resolveTemplateKey("POF", org),

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { del, put } from "@vercel/blob";
+import { BlobError, del, head, put } from "@vercel/blob";
 
 import {
   checkImageBytes,
@@ -42,6 +42,38 @@ export async function uploadImage(
     contentType: image.contentType,
   });
   return { url: blob.url, pathname: blob.pathname };
+}
+
+// A generated board PNG at boards/{orgId}/{boardId}/{imageId}.png. The ids
+// are fresh UUIDs, so the path is already unique: no random suffix, and
+// put() refuses to overwrite an existing blob (Invariant 12).
+//
+// put() retries after a network error. If the first attempt did store the
+// file, the retry is refused with "already exists" (seen on a slow phone
+// hotspot). Only this call writes this path, so a blob there with our size
+// is our own upload: use it rather than fail the board.
+export async function uploadBoardPng(
+  png: Uint8Array,
+  pathname: string,
+): Promise<{ url: string; pathname: string }> {
+  try {
+    const blob = await put(pathname, Buffer.from(png), {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: "image/png",
+    });
+    return { url: blob.url, pathname: blob.pathname };
+  } catch (error) {
+    if (!(error instanceof BlobError) || !/already exists/i.test(error.message))
+      throw error;
+    const existing = await head(pathname);
+    if (existing.size !== png.byteLength) throw error;
+    console.warn(
+      "[uploadBoardPng] a retried upload had already landed",
+      pathname,
+    );
+    return { url: existing.url, pathname: existing.pathname };
+  }
 }
 
 // Best effort: a leftover blob is harmless, a thrown error here is not.

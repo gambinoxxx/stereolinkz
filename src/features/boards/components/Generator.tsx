@@ -39,7 +39,7 @@ export function Generator({
   // Bumped by "Make another" so the form starts again from fresh rates.
   const [round, setRound] = useState(0);
   const [pendingType, setPendingType] = useState<BoardType | null>(null);
-  const [, startTransition] = useTransition();
+  const [startingOver, startTransition] = useTransition();
 
   function syncUrl(nextType: BoardType, nextKey: string) {
     const params = new URLSearchParams({ type: nextType, template: nextKey });
@@ -59,8 +59,8 @@ export function Generator({
     syncUrl(type, key);
   }
 
-  // Refetch current rates, then remount the form on them (one transition,
-  // so the new form appears with the refreshed data).
+  // A fresh form on current rates: refetch, then remount on the new data.
+  // Both updates sit in one transition, so the new form appears with it.
   function startOver() {
     startTransition(() => {
       router.refresh();
@@ -83,6 +83,7 @@ export function Generator({
         }}
         onTemplateChange={changeTemplate}
         onStartOver={startOver}
+        startingOver={startingOver}
       />
       <Dialog
         open={pendingType !== null}
