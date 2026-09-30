@@ -1,16 +1,16 @@
-import { ForexBoard } from "@/features/templates/layout";
+import { PofBoard } from "@/features/templates/layout";
 import { boardTheme } from "@/features/templates/theme";
 import type { BoardTemplate } from "@/features/templates/types";
 
-export const forexPurpleSignal: BoardTemplate<"FOREX"> = {
-  key: "forex/purple-signal",
+export const pofPurpleSignal: BoardTemplate<"POF"> = {
+  key: "pof/purple-signal",
   version: 1,
-  type: "FOREX",
+  type: "POF",
   name: "Purple Signal",
-  description: "Deep purple, gold sell prices. Built for WhatsApp Status.",
-  maxRows: 4,
+  description: "Deep purple, gold notes. Built for WhatsApp Status.",
+  maxRows: 6,
   render: (snapshot) => (
-    <ForexBoard
+    <PofBoard
       snapshot={snapshot}
       theme={boardTheme("purple-signal", snapshot.content.brand)}
     />

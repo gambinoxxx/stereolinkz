@@ -9,10 +9,23 @@ change.
 
 ## Current Goal
 
-- Phase 6: registry and renderer (types, registry, theme, embedImages, renderBoardPng, shadow fix)
+- Phase 6: ⏸ PNG review by the owner, then the preview components
 
 ## Completed
 
+- 2026-09-30: Phase 6, registry, renderer and the four templates. Registry
+  (`forex/purple-signal`, `forex/daylight`, `pof/purple-signal`,
+  `pof/daylight`, v1, maxRows 4 / 6; `getTemplate` throws
+  `UnknownTemplateError`; `resolveTemplateKey` falls back to the first of
+  the type); `theme.ts` (both token sets + brand merge + `shade`);
+  `renderBoardPng` (type check, `embedImages` copy, SVG, PNG);
+  one shared `layout.tsx` for all four; `npm run render:fixtures` →
+  `tmp/boards/` (with safe-area guide copies). Render smoke test:
+  1080 × 1920 IHDR and identical SHA-256 on two renders. Warm renders
+  ~530–640 ms locally (was ~2.1 s with the Satori shadow region). Key
+  files: `src/features/templates/{types,registry,theme,text-rules,layout}.ts(x)`,
+  `src/features/templates/{forex,pof}/*.tsx`, `src/lib/render/{assets,shadow,render-svg,render-board}.ts`,
+  `scripts/render-fixtures.ts`. The Phase 1 spike route and fixture are deleted.
 - 2026-09-30: Phase 6, snapshots. `buildSnapshot({ org, type, rows,
   content?, now })` (pure; dates in the org zone; brand copied; content
   over the design defaults; `defaultFinePrint` over the design's small
@@ -610,6 +623,36 @@ change.
 - 2026-09-30: Sample board data lives in `src/test/board-fixtures.ts` only
   (tests, the render-fixtures script and the dev kit comparison import
   it); templates never name a bank or currency.
+- 2026-09-30: Card shadow (Phase 1 decision, option 2) is applied in
+  `lib/render/shadow.ts`, run once by `renderSvg`: Satori 0.33 reserves
+  blur²/4 px around a box-shadow (900px for the card's 60px blur); the
+  rewrite recovers the element size from Satori's percentages and sets a
+  3σ margin (σ = blur/2), the Gaussian's real reach. Zero-blur shadows
+  (the flags' white ring) are left alone. A test runs raw Satori and
+  fails if the filter shape changes after an upgrade.
+- 2026-09-30: Brand colour mapping (`theme.ts`): primaryColor → buy and
+  rate pills, note dot, equalizer bars, the band's 3/4; accentColor →
+  sell pills, note pills, logo bars, contact dot, the band's 1/4;
+  backgroundColor → Purple Signal's gradient middle stop, with top/bottom
+  from `shade()` (×1.4 / ×0.67, the design's own ratios), or the design's
+  exact stops when it is the design colour; Daylight ignores it. Monogram
+  colours use `BANK_MARK_HEX` (tested equal to `--bank-mark-1…6`) and the
+  slug derived from the row name, so boards match the admin `BankMark`.
+- 2026-09-30: Long-text rules (`text-rules.ts`, fixed character counts,
+  never measured): price pill 68px ≤ 5 chars, then 56/48/42/37/34/30 for
+  6/7/8/9/10/11+; POF rate pill 56px ≤ 5 chars, else 46px; a POF note moves
+  under the name when name + note > 22 chars; a long currency or bank
+  name ends in an ellipsis; the headline shows at most 2 lines.
+- 2026-09-30: Safe area over the design: POF rows use 12px vertical
+  padding instead of 16px. With 6 banks the design's own contact panel
+  ends at 1618px (inside the bottom 320px); ours ends at ~1583px. Forex is
+  unchanged (its small print ends at ~1590px).
+- 2026-09-30: Satori lays a React fragment out as a row: layout pieces
+  that return several siblings wrap them in a column div instead.
+- 2026-09-30: Images for rendering: `embedImages` returns a copy of the
+  snapshot with every logo (brand, POF rows) as a data URI (3 s timeout,
+  1 MB cap, PNG/JPEG/SVG/WebP), or null on any failure so the template
+  draws the monogram or wordmark. The stored snapshot is never changed.
 
 ## Session Notes
 

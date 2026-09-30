@@ -6,9 +6,11 @@ const nextConfig: NextConfig = {
   // hb.wasm from its own folder (bundling rewrites that path and breaks it).
   serverExternalPackages: ["@resvg/resvg-js", "satori"],
   // Satori reads the Archivo WOFF files from disk, so they must ship with
-  // every route that renders a board.
+  // every route that renders a board: server actions on admin pages
+  // (generate, regenerate: Phase 7 and 8) and the PNG download route.
   outputFileTracingIncludes: {
-    "/api/dev/render-spike": ["./assets/fonts/**/*"],
+    "/admin/**": ["./assets/fonts/**/*"],
+    "/api/boards/**": ["./assets/fonts/**/*"],
   },
   experimental: {
     serverActions: {
