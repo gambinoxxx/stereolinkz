@@ -9,10 +9,25 @@ change.
 
 ## Current Goal
 
-- Phase 5: edit and add (`pofRateInput`, `savePofRate`, `PofRateDrawer`)
+- Phase 5: visibility switch (`setPofActive`, optimistic)
 
 ## Completed
 
+- 2026-09-30: Phase 5, edit and add. `PofRateDrawer` (add: active banks
+  only with "(now 3.4%)", hint and Banks link, optional preselected bank;
+  edit: bank locked, recent changes) saves through `savePofRate(input,
+  mode)`: a changed rate or note inserts a PofRate, a changed switch
+  updates `Bank.pofActive`, both in one transaction, neither writes
+  nothing. Verified: PofRate rows 8 → 9 on Providus 3.4 → "3.5%" (old
+  row untouched, new row with `createdById`; ↑0.1 pts, "Providus rate
+  saved. The previous rate is in history."); "No changes to save";
+  visibility-only save → "Globus updated" and no new rate row; a new
+  active bank in the callout → "Add one" preselects it → first rate saved,
+  callout empty, row added (rows → 10); add mode lists only active banks,
+  and with the list temporarily widened the server refused Zenith ("This
+  bank is inactive. Activate it on the Banks page first."). Key files:
+  `src/features/pof-rates/{schema,actions}.ts` (+ tests),
+  `src/features/pof-rates/components/PofRateDrawer.tsx`.
 - 2026-09-30: Phase 5, POF list. `/admin/pof` lists non-archived banks with
   a rate (latest 4 rates in one query): BankMark, "Shown as “Wema”" or
   "Bank is inactive", rate with change in pts, gold note chip, Updated in
@@ -246,7 +261,6 @@ change.
 
 ## Next Up
 
-- Phase 5: visibility switch (`setPofActive`, optimistic)
 - Phase 4 on production: owner edits one rate on the live site (asked,
   not yet confirmed)
 - Phase 6: rewrite Satori's box-shadow filter region in
@@ -553,6 +567,22 @@ change.
 - 2026-09-30: A filter that hides every row shows its own empty state
   ("No inactive POF rates. Every bank's rate is showing on new boards.")
   instead of "No POF rates yet"; same for forex.
+- 2026-09-30: POF input: a trailing `%` is stripped ("3.4%" → "3.4"), then
+  `^\d{1,3}(\.\d{1,2})?$` and 0–100 by decimal compare. Notes are
+  trimmed, ≤ 24, and an empty note is stored as `null` (so "no note"
+  compares equal to "no note"). Schemas with transforms must accept their
+  own output: the form's resolver re-validated an already-transformed
+  empty note (`null`) and failed, so `noteInput` accepts `null` too, and
+  refinements check the format before comparing (Zod 4 runs them after a
+  failed format check, and `compareDecimalStrings` throws on non-numbers).
+- 2026-09-30: POF on inactive banks: editing an existing rate is allowed
+  (history stays right), but adding a rate or switching visibility on is
+  refused on the server. The drawer's switch is disabled for an inactive
+  bank with "Activate the bank on the Banks page first. You can still
+  update its rate."
+- 2026-09-30: Toasts: a bank's first rate → "Qa rate added" (not "The
+  previous rate is in history.", since there is none); later changes use
+  the design's wording; visibility only → "Globus updated".
 
 ## Session Notes
 
@@ -564,7 +594,8 @@ change.
   them once the owner confirms they're not needed.
 - 2026-09-30: Dev database now has test rates from Phase 4 checks (USD
   1370/1385 at 00:46 Lagos on 30 Sept, CNY 189/195) and test currencies
-  QAA and QAB (to be archived when Phase 4's checks are done); rates are
+  QAA and QAB, and bank "Qa Pof Bank" (2.5%, from Phase 5), all to be
+  archived once the owner agrees; rates are
   insert-only, so they stay. Checking timestamps with raw `pg` gives
   wrong times on this Mac: Prisma's `timestamp(3)` columns hold UTC
   without a zone and `pg` reads them as local (Pacific) time. Read them

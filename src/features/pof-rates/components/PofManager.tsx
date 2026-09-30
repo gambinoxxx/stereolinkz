@@ -2,12 +2,17 @@
 
 import { Filter, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Callout } from "@/components/callout";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusFilterBar } from "@/components/status-filter-bar";
 import { Button } from "@/components/ui/button";
+import {
+  type PofDrawerState,
+  PofRateDrawer,
+} from "@/features/pof-rates/components/PofRateDrawer";
 import { PofTable } from "@/features/pof-rates/components/PofTable";
 import type {
   BankOption,
@@ -30,14 +35,16 @@ export function PofManager({
   timeZone,
   filter,
   now,
+  bankOptions,
   banksWithoutRate,
 }: PofManagerProps) {
-  // Wired in the Edit and add part.
+  const [drawer, setDrawer] = useState<PofDrawerState | null>(null);
+
   function openAdd(bankId?: string) {
-    void bankId;
+    setDrawer({ mode: "add", bankId });
   }
   function openEdit(bank: PofBankItem) {
-    void bank;
+    setDrawer({ mode: "edit", bank });
   }
 
   return (
@@ -113,6 +120,16 @@ export function PofManager({
           </ul>
         </Callout>
       )}
+
+      <PofRateDrawer
+        state={drawer}
+        onOpenChange={(open) => {
+          if (!open) setDrawer(null);
+        }}
+        bankOptions={bankOptions}
+        timeZone={timeZone}
+        now={now}
+      />
     </>
   );
 }
