@@ -1,14 +1,14 @@
 "use client";
 
-import { Plus, Sparkles } from "lucide-react";
+import { Filter, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
+import { StatusFilterBar } from "@/components/status-filter-bar";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   reorderCurrencies,
   setCurrencyStatus,
@@ -19,7 +19,7 @@ import type {
   CurrencyList,
   CurrencyListItem,
 } from "@/features/currencies/queries";
-import type { StatusFilter } from "@/features/currencies/status-filter";
+import type { StatusFilter } from "@/lib/status-filter";
 import { ForexRateDrawer } from "@/features/forex-rates/components/ForexRateDrawer";
 
 type ForexManagerProps = CurrencyList & {
@@ -53,7 +53,6 @@ export function ForexManager({
   filter,
   now,
 }: ForexManagerProps) {
-  const router = useRouter();
   const [editing, setEditing] = useState<CurrencyListItem | null>(null);
   const [adding, setAdding] = useState(false);
   const [shown, applyOptimistic] = useOptimistic(currencies, applyChange);
@@ -70,13 +69,6 @@ export function ForexManager({
         );
       else toast.error(result.error);
     });
-  }
-
-  function setFilter(next: StatusFilter) {
-    router.replace(
-      next === "all" ? "/admin/forex" : `/admin/forex?status=${next}`,
-      { scroll: false },
-    );
   }
 
   function openAdd() {
@@ -113,19 +105,7 @@ export function ForexManager({
         }
       />
 
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
-        <ToggleGroup
-          type="single"
-          variant="segmented"
-          size="segmented"
-          value={filter}
-          onValueChange={(next) => next && setFilter(next as StatusFilter)}
-          aria-label="Filter by status"
-        >
-          <ToggleGroupItem value="all">All</ToggleGroupItem>
-          <ToggleGroupItem value="active">Active</ToggleGroupItem>
-          <ToggleGroupItem value="inactive">Inactive</ToggleGroupItem>
-        </ToggleGroup>
+      <StatusFilterBar filter={filter}>
         {filter === "all" ? (
           <span className="hidden text-[13.5px] text-text-muted sheet:inline">
             Drag rows to set their order on boards
@@ -135,18 +115,35 @@ export function ForexManager({
             Switch to All to change the order
           </span>
         )}
-      </div>
+      </StatusFilterBar>
 
-      <ForexTable
-        currencies={shown}
-        timeZone={timeZone}
-        now={now}
-        onAdd={openAdd}
-        onToggleStatus={toggleStatus}
-        reorderable={filter === "all"}
-        onReorder={reorder}
-        onEdit={setEditing}
-      />
+      {shown.length === 0 && filter !== "all" ? (
+        // The filter hides every row: say so, rather than "No currencies yet".
+        <EmptyState
+          icon={Filter}
+          title={
+            filter === "active"
+              ? "No active currencies"
+              : "No inactive currencies"
+          }
+          description={
+            filter === "active"
+              ? "No currency is showing on new boards. Switch one on under All."
+              : "Every currency is showing on new boards."
+          }
+        />
+      ) : (
+        <ForexTable
+          currencies={shown}
+          timeZone={timeZone}
+          now={now}
+          onAdd={openAdd}
+          onToggleStatus={toggleStatus}
+          reorderable={filter === "all"}
+          onReorder={reorder}
+          onEdit={setEditing}
+        />
+      )}
 
       <ForexRateDrawer
         currency={editing}

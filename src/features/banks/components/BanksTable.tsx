@@ -1,11 +1,11 @@
 "use client";
 
 import { Landmark, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { BankMark } from "@/components/bank-mark";
 import { EmptyState } from "@/components/empty-state";
 import { StatusChip } from "@/components/status-chip";
+import { CellLabel } from "@/components/table-cells";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -34,14 +34,6 @@ const ROW = cn(
   "sheet:items-center sheet:gap-4 sheet:px-5 sheet:py-[13px]",
   "sheet:grid-cols-[minmax(200px,1.6fr)_.9fr_1fr_1fr_190px] sheet:[grid-template-areas:'main_st_a_b_act']",
 );
-
-function CellLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="mb-px block text-[11.5px] font-semibold text-text-muted sheet:sr-only">
-      {children}
-    </span>
-  );
-}
 
 export function BanksTable({
   banks,

@@ -5,14 +5,25 @@ change.
 
 ## Current Phase
 
-- Phase 4: Forex, complete
+- Phase 5: POF, in progress
 
 ## Current Goal
 
-- None. Phase 5 has not started.
+- Phase 5: edit and add (`pofRateInput`, `savePofRate`, `PofRateDrawer`)
 
 ## Completed
 
+- 2026-09-30: Phase 5, POF list. `/admin/pof` lists non-archived banks with
+  a rate (latest 4 rates in one query): BankMark, "Shown as “Wema”" or
+  "Bank is inactive", rate with change in pts, gold note chip, Updated in
+  Lagos time, switch (disabled with a tooltip for inactive banks), Edit;
+  cards under 760px; filter on `?status=`; "Manage banks" link; callout
+  for active banks without a rate, each with "Add one". Verified against
+  the seed and `pof.html` at 1440px and 390px (Wema and Parallex ↑0.1 pts,
+  "New account" chips; Zenith inactive, so no callout). Key files:
+  `src/features/pof-rates/{queries,visibility}.ts`,
+  `src/features/pof-rates/components/{PofTable,PofManager}.tsx`,
+  `src/app/admin/pof/page.tsx`.
 - 2026-09-30: Phase 4 complete. All Done-when items checked, tagged
   phase-4-complete.
 - 2026-09-30: Phase 4, reorder. `reorderCurrencies(ids)` checks the list is
@@ -235,11 +246,9 @@ change.
 
 ## Next Up
 
-- Phase 4 on production (after the push): owner edits one rate on the
-  live site and checks the toast, the delta and the history
-- Phase 5: POF list (`features/pof-rates/queries.ts` `listPofRates`,
-  `PofTable`, callout for active banks with no rate)
-- Phase 5: edit and add (`pofRateInput`, `savePofRate`, `PofRateDrawer`)
+- Phase 5: visibility switch (`setPofActive`, optimistic)
+- Phase 4 on production: owner edits one rate on the live site (asked,
+  not yet confirmed)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -529,6 +538,21 @@ change.
   top or bottom; they are hidden with `pointer-fine:sr-only` until focused.
 - 2026-09-30: Status and order changes share one `useOptimistic` reducer
   in `ForexManager`; a failed save reverts when the transition ends.
+- 2026-09-30: Generalised from Phase 4 instead of copying for POF:
+  `lib/status-filter.ts` (the `?status=` Zod parser; each feature maps
+  Active its own way), `components/status-filter-bar.tsx` (segmented
+  filter bound to the URL, with a slot for a hint or link),
+  `components/table-cells.tsx` (`CellLabel`, `isRowControl`, now used by
+  banks, forex and POF) and `components/recent-changes.tsx` (the drawers'
+  history table, used by forex and POF). Forex re-checked after the move.
+- 2026-09-30: POF "Active" (filter, dimming, the switch) means the bank is
+  ACTIVE and `pofActive` is on (`isPofShown`); Inactive is everything
+  else. The list shows only banks that have a rate; active banks without
+  one are in the callout (derived from the add drawer's bank options, so
+  no extra query).
+- 2026-09-30: A filter that hides every row shows its own empty state
+  ("No inactive POF rates. Every bank's rate is showing on new boards.")
+  instead of "No POF rates yet"; same for forex.
 
 ## Session Notes
 

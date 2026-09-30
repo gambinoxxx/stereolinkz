@@ -1,10 +1,6 @@
-import { z } from "zod";
+import type { StatusFilter } from "@/lib/status-filter";
 
-// ?status= on /admin/forex. Anything else (or nothing) means All.
-export const statusFilter = z.enum(["all", "active", "inactive"]).catch("all");
-
-export type StatusFilter = z.infer<typeof statusFilter>;
-
+// Forex: Active / Inactive is Currency.status.
 export function filterToStatus(
   filter: StatusFilter,
 ): "ACTIVE" | "INACTIVE" | undefined {

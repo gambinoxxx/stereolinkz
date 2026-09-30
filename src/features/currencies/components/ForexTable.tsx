@@ -1,13 +1,14 @@
 "use client";
 
 import { ArrowDown, ArrowLeftRight, ArrowUp, GripVertical } from "lucide-react";
-import { type MouseEvent, type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import { CurrencyFlag } from "@/components/currency-flag";
 import { EmptyState } from "@/components/empty-state";
 import { RateDelta } from "@/components/rate-delta";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { CellLabel, isRowControl } from "@/components/table-cells";
 import { dropOrder, moveItem } from "@/features/currencies/order";
 import type { CurrencyListItem } from "@/features/currencies/queries";
 import { PHONE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
@@ -39,23 +40,6 @@ const ROW = cn(
   "sheet:grid-cols-[18px_minmax(150px,1.5fr)_.9fr_.9fr_1fr_1fr_minmax(64px,auto)] sheet:[grid-template-areas:'grip_main_a_b_upd_st_act']",
   "min-[1100px]:grid-cols-[18px_minmax(170px,1.5fr)_.9fr_.9fr_.7fr_1fr_1fr_minmax(64px,auto)] min-[1100px]:[grid-template-areas:'grip_main_a_b_sp_upd_st_act']",
 );
-
-function CellLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="mb-px block text-[11.5px] font-semibold text-text-muted sheet:sr-only">
-      {children}
-    </span>
-  );
-}
-
-// Taps on the card open the drawer on phones, but not taps on its controls.
-function isControl(event: MouseEvent) {
-  return Boolean(
-    (event.target as HTMLElement).closest(
-      "button, a, input, label, [role=switch]",
-    ),
-  );
-}
 
 export function ForexTable({
   currencies,
@@ -171,7 +155,7 @@ export function ForexTable({
                   "shadow-[inset_0_-3px_0_var(--accent-primary)]",
               )}
               onClick={(event) => {
-                if (isPhone && !isControl(event)) onEdit?.(currency);
+                if (isPhone && !isRowControl(event)) onEdit?.(currency);
               }}
             >
               {reorderable ? (

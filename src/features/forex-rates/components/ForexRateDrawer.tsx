@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { CurrencyFlag } from "@/components/currency-flag";
 import { EntityDrawer } from "@/components/entity-drawer";
 import { InputAddon } from "@/components/input-addon";
+import { RecentChanges } from "@/components/recent-changes";
 import { StatusChip } from "@/components/status-chip";
 import { Label } from "@/components/ui/label";
 import type { CurrencyListItem } from "@/features/currencies/queries";
@@ -159,43 +160,18 @@ export function ForexRateDrawer({
             </p>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[13.5px] font-semibold">Recent changes</span>
-            <div className="overflow-hidden rounded-[12px] border border-border-default">
-              <div className="flex justify-between border-b border-border-subtle bg-bg-subtle px-3.5 py-2.5 text-[12.5px] font-semibold text-text-muted">
-                <span>When</span>
-                <span>Buy / Sell</span>
-              </div>
-              {currency.rates.length === 0 ? (
-                <p className="px-3.5 py-2.5 text-[14px] text-text-muted">
-                  No rates yet.
-                </p>
-              ) : (
-                <ul>
-                  {currency.rates.map((rate) => (
-                    <li
-                      key={rate.id}
-                      className="flex justify-between gap-3 border-b border-border-subtle px-3.5 py-2.5 text-[14px] last:border-b-0"
-                    >
-                      <span className="text-text-secondary">
-                        {formatShortDateTime(
-                          new Date(rate.createdAt),
-                          nowDate,
-                          timeZone,
-                        )}
-                      </span>
-                      <span className="tabular-nums">
-                        {formatRate(rate.buy)} / {formatRate(rate.sell)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <span className="text-[13px] text-text-muted">
-              Saving adds a new entry. Nothing is overwritten.
-            </span>
-          </div>
+          <RecentChanges
+            heading="Buy / Sell"
+            rows={currency.rates.map((rate) => ({
+              id: rate.id,
+              when: formatShortDateTime(
+                new Date(rate.createdAt),
+                nowDate,
+                timeZone,
+              ),
+              value: `${formatRate(rate.buy)} / ${formatRate(rate.sell)}`,
+            }))}
+          />
         </>
       )}
     </EntityDrawer>

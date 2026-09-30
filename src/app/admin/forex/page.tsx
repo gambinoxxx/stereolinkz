@@ -1,10 +1,8 @@
 import { ForexManager } from "@/features/currencies/components/ForexManager";
 import { listCurrenciesWithRates } from "@/features/currencies/queries";
-import {
-  filterToStatus,
-  statusFilter,
-} from "@/features/currencies/status-filter";
+import { filterToStatus } from "@/features/currencies/status-filter";
 import { requireMember } from "@/lib/server/auth";
+import { statusFilter } from "@/lib/status-filter";
 
 export default async function ForexPage({
   searchParams,
