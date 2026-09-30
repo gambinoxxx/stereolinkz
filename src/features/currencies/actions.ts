@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { currencyInput } from "@/features/currencies/schema";
 import { RATE_ERRORS } from "@/features/forex-rates/schema";
@@ -83,7 +84,40 @@ const create = safeAction(
   },
 );
 
+const NOT_FOUND = "This currency no longer exists. Refresh the page.";
+
+const statusInput = z.enum(["ACTIVE", "INACTIVE"]);
+
+// Status lives on the Currency (never on rate rows).
+const setStatus = safeAction(
+  async (
+    { organizationId },
+    id: unknown,
+    status: unknown,
+  ): Promise<ActionResult<{ code: string; status: "ACTIVE" | "INACTIVE" }>> => {
+    const parsed = statusInput.safeParse(status);
+    if (typeof id !== "string" || !parsed.success)
+      return { ok: false, error: NOT_FOUND };
+    try {
+      const currency = await db.currency.update({
+        where: { id, organizationId },
+        data: { status: parsed.data },
+        select: { code: true },
+      });
+      revalidateForexPages();
+      return { ok: true, data: { code: currency.code, status: parsed.data } };
+    } catch (error) {
+      if (isPrismaError(error, "P2025")) return { ok: false, error: NOT_FOUND };
+      throw error;
+    }
+  },
+);
+
 // A "use server" file may only export async functions.
 export async function createCurrency(input: unknown) {
   return create(input);
+}
+
+export async function setCurrencyStatus(id: string, status: string) {
+  return setStatus(id, status);
 }

@@ -9,10 +9,17 @@ change.
 
 ## Current Goal
 
-- Phase 4: status (optimistic switch), then reorder
+- Phase 4: reorder (drag on desktop, up/down on touch and keyboard)
 
 ## Completed
 
+- 2026-09-30: Phase 4, status. `setCurrencyStatus` (ACTIVE / INACTIVE only,
+  scoped update). The table switch is optimistic (`useOptimistic` +
+  `useTransition`): verified it flips and dims in 4 ms while the server
+  answers in ~600 ms ("QAA deactivated" / "activated"); the state
+  survives a reload and the Active / Inactive filters list the right
+  currencies; with a temporarily forced failure the switch reverted and
+  showed an error toast (patch removed, file restored byte for byte).
 - 2026-09-30: Phase 4, add currency. `CurrencyDrawer` (code auto-uppercase,
   symbol, name, flag picker with previews and "No flag", ₦ rates with the
   spread hint, active switch) creates the Currency and its first

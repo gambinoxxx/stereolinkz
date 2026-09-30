@@ -3,11 +3,13 @@
 import { Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { setCurrencyStatus } from "@/features/currencies/actions";
 import { CurrencyDrawer } from "@/features/currencies/components/CurrencyDrawer";
 import { ForexTable } from "@/features/currencies/components/ForexTable";
 import type {
@@ -22,8 +24,25 @@ type ForexManagerProps = CurrencyList & {
   now: string;
 };
 
+type OptimisticChange = {
+  type: "status";
+  id: string;
+  status: "ACTIVE" | "INACTIVE";
+};
+
+function applyChange(
+  list: CurrencyListItem[],
+  change: OptimisticChange,
+): CurrencyListItem[] {
+  return list.map((c) =>
+    c.id === change.id ? { ...c, status: change.status } : c,
+  );
+}
+
 // Client state for /admin/forex. The list comes from the server (filtered
-// by ?status=) and refreshes after each action.
+// by ?status=) and refreshes after each action. Status (and order) changes
+// show at once through useOptimistic; when the transition ends React drops
+// the optimistic state, so a failed save reverts to the server's list.
 export function ForexManager({
   currencies,
   timeZone,
@@ -33,6 +52,21 @@ export function ForexManager({
   const router = useRouter();
   const [editing, setEditing] = useState<CurrencyListItem | null>(null);
   const [adding, setAdding] = useState(false);
+  const [shown, applyOptimistic] = useOptimistic(currencies, applyChange);
+  const [, startTransition] = useTransition();
+
+  function toggleStatus(currency: CurrencyListItem, active: boolean) {
+    const status = active ? "ACTIVE" : "INACTIVE";
+    startTransition(async () => {
+      applyOptimistic({ type: "status", id: currency.id, status });
+      const result = await setCurrencyStatus(currency.id, status);
+      if (result.ok)
+        toast.success(
+          `${result.data.code} ${active ? "activated" : "deactivated"}`,
+        );
+      else toast.error(result.error);
+    });
+  }
 
   function setFilter(next: StatusFilter) {
     router.replace(
@@ -87,10 +121,11 @@ export function ForexManager({
       </div>
 
       <ForexTable
-        currencies={currencies}
+        currencies={shown}
         timeZone={timeZone}
         now={now}
         onAdd={openAdd}
+        onToggleStatus={toggleStatus}
         onEdit={setEditing}
       />
 
