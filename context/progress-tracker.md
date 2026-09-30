@@ -5,14 +5,20 @@ change.
 
 ## Current Phase
 
-- Phase 5: POF, in progress
+- Phase 5: POF, complete
 
 ## Current Goal
 
-- Phase 5: end-of-phase checks, Done-when list, tag
+- None. Phase 6 has not started.
 
 ## Completed
 
+- 2026-09-30: Phase 5 complete. All Done-when items checked, tagged
+  phase-5-complete.
+- 2026-09-30: Phase 5, end-of-phase visual check: `/admin/pof` and the edit
+  and add drawers match `pof.html`, `pof-edit.html` and `pof-add.html` at
+  1440px and 390px (the locked bank select in edit mode is grey without a
+  chevron, styled through className; no `components/ui` change).
 - 2026-09-30: Phase 5, visibility switch. `setPofActive(bankId, active)`
   (scoped; refuses to turn on an inactive bank's rate). The table switch
   is optimistic: Wema off flipped in 3 ms (save ~800 ms), "Wema rate
@@ -270,11 +276,16 @@ change.
 
 ## Next Up
 
-- Phase 4 on production: owner edits one rate on the live site (asked,
-  not yet confirmed)
-- Phase 6: rewrite Satori's box-shadow filter region in
-  `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
-  render test that fails if a Satori upgrade changes the filter output
+- Phase 5 on production (after the push): owner edits one POF rate and
+  toggles one switch on the live site
+- Phase 4 on production: owner edits one forex rate (asked, not yet
+  confirmed)
+- Phase 6: snapshots (`build-snapshot.ts`, `defaults.ts`, tests), then the
+  template registry and `renderBoardPng`; delete the Phase 1 spike route
+- Phase 6: rewrite Satori's box-shadow filter region after render (the
+  card shadow choice from Phase 1's close-out: keep the shadow, tighten
+  the region; ~0.6 s locally vs ~2.1 s), with a render test that fails if
+  a Satori upgrade changes the filter output
 
 ## Open Questions
 
@@ -595,6 +606,13 @@ change.
 
 ## Session Notes
 
+- 2026-09-30: Phase 5 complete and tagged `phase-5-complete` locally.
+  Committed but not pushed: POF list, edit and add, visibility switch and
+  this close-out. Dev data from the checks: Providus 3.5% (a new rate
+  row), bank "Qa Pof Bank" (2.5%, now inactive), and QAA / QAB from
+  Phase 4, all waiting for the owner's OK to archive. Someone uploaded
+  real logos for the six seeded banks (shown in the tables; production
+  shares this database).
 - 2026-09-30: Phase 4 complete and tagged `phase-4-complete` locally.
   Committed but not pushed: list, edit rate, add currency, status,
   reorder and this close-out. Test currencies QAA and QAB are still

@@ -10,7 +10,7 @@ import { db } from "@/lib/server/db";
 import { isCheckViolation, isPrismaError } from "@/lib/server/prisma-errors";
 
 export type SavedPofRate = {
-  label: string; // "Providus": the bank's short name, else its name
+  label: string; // "Acme": the bank's short name, else its name
   rateChanged: boolean;
   firstRate: boolean; // the bank had no rate before (nothing in history yet)
   visibilityChanged: boolean;

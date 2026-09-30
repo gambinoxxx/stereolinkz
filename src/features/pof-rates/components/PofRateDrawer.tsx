@@ -162,6 +162,8 @@ export function PofRateDrawer({
         >
           <SelectTrigger
             id={`${id}-bank`}
+            // Locked when editing, as pof-edit.html: grey, no chevron.
+            className="disabled:bg-bg-subtle disabled:text-text-secondary disabled:opacity-100 disabled:[&>svg]:hidden"
             aria-invalid={errors.bankId ? true : undefined}
             aria-describedby={errors.bankId ? err("bankId") : undefined}
           >

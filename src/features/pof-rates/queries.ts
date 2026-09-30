@@ -92,7 +92,7 @@ export type BankOption = {
 };
 
 // ACTIVE banks for the add drawer's select, each with its current rate
-// ("Wema Bank (now 3.4%)"); those without one also feed the callout.
+// ("Acme Bank (now 3.4%)"); those without one also feed the callout.
 export async function listActiveBankOptions(
   organizationId: string,
 ): Promise<BankOption[]> {
