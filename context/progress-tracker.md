@@ -5,14 +5,21 @@ change.
 
 ## Current Phase
 
-- Phase 5: POF, complete
+- Phase 6: Templates and rendering, in progress
 
 ## Current Goal
 
-- None. Phase 6 has not started.
+- Phase 6: registry and renderer (types, registry, theme, embedImages, renderBoardPng, shadow fix)
 
 ## Completed
 
+- 2026-09-30: Phase 6, snapshots. `buildSnapshot({ org, type, rows,
+  content?, now })` (pure; dates in the org zone; brand copied; content
+  over the design defaults; `defaultFinePrint` over the design's small
+  print; Zod-validated, throws `SnapshotError`); `defaults.ts` with the
+  design copy per type; shared sample fixtures incl. worst cases. 7 tests.
+  Key files: `src/features/boards/{build-snapshot,defaults}.ts`,
+  `src/test/board-fixtures.ts`.
 - 2026-09-30: Phase 5 complete. All Done-when items checked, tagged
   phase-5-complete.
 - 2026-09-30: Phase 5, end-of-phase visual check: `/admin/pof` and the edit
@@ -276,16 +283,9 @@ change.
 
 ## Next Up
 
-- Phase 5 on production (after the push): owner edits one POF rate and
-  toggles one switch on the live site
-- Phase 4 on production: owner edits one forex rate (asked, not yet
-  confirmed)
-- Phase 6: snapshots (`build-snapshot.ts`, `defaults.ts`, tests), then the
-  template registry and `renderBoardPng`; delete the Phase 1 spike route
-- Phase 6: rewrite Satori's box-shadow filter region after render (the
-  card shadow choice from Phase 1's close-out: keep the shadow, tighten
-  the region; ~0.6 s locally vs ~2.1 s), with a render test that fails if
-  a Satori upgrade changes the filter output
+- Phase 6: Purple Signal (Forex, then POF) with `scripts/render-fixtures.ts`,
+  then Daylight, then ⏸ PNG review
+- Phase 4 and 5 on production: owner's live edits (asked, not yet confirmed)
 
 ## Open Questions
 
@@ -603,6 +603,13 @@ change.
 - 2026-09-30: Toasts: a bank's first rate → "Qa rate added" (not "The
   previous rate is in history.", since there is none); later changes use
   the design's wording; visibility only → "Globus updated".
+- 2026-09-30: Snapshot schema (owner allowed this one): `forexRow` in
+  `boardSnapshotV1` gained `.refine(sell ≥ buy)` (decimal compare, path
+  `sell`), matching the DB CHECK. The shape is unchanged; V1 is still
+  unfrozen (no boards are saved until Phase 7).
+- 2026-09-30: Sample board data lives in `src/test/board-fixtures.ts` only
+  (tests, the render-fixtures script and the dev kit comparison import
+  it); templates never name a bank or currency.
 
 ## Session Notes
 

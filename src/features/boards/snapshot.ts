@@ -3,6 +3,8 @@
 // never Prisma models — which is what makes old boards reproducible.
 import { z } from "zod";
 
+import { compareDecimalStrings } from "@/lib/decimal";
+
 // Decimals travel as strings ("1365.0000", "3.40") to avoid float drift
 // and because Prisma Decimal can't cross the server/client boundary.
 const decimalString = z.string().regex(/^\d+(\.\d+)?$/);
@@ -35,6 +37,10 @@ const forexRow = z.object({
   flagCode: z.string().nullable(),
   buy: decimalString,
   sell: decimalString,
+}).refine((row) => compareDecimalStrings(row.sell, row.buy) >= 0, {
+  // Same rule as the DB CHECK forex_sell_gte_buy (added in Phase 6).
+  message: "Sell must be the same as or higher than buy.",
+  path: ["sell"],
 });
 
 const pofRow = z.object({
