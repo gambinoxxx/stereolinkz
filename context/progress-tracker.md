@@ -5,14 +5,16 @@ change.
 
 ## Current Phase
 
-- Phase 4: Forex, in progress
+- Phase 4: Forex, complete
 
 ## Current Goal
 
-- Phase 4: end-of-phase checks, Done-when list, tag
+- None. Phase 5 has not started.
 
 ## Completed
 
+- 2026-09-30: Phase 4 complete. All Done-when items checked, tagged
+  phase-4-complete.
 - 2026-09-30: Phase 4, reorder. `reorderCurrencies(ids)` checks the list is
   exactly the org's non-archived currencies (no missing, extra, foreign
   or duplicate ids; else "The list changed. Refresh and try again.") and
@@ -233,6 +235,11 @@ change.
 
 ## Next Up
 
+- Phase 4 on production (after the push): owner edits one rate on the
+  live site and checks the toast, the delta and the history
+- Phase 5: POF list (`features/pof-rates/queries.ts` `listPofRates`,
+  `PofTable`, callout for active banks with no rate)
+- Phase 5: edit and add (`pofRateInput`, `savePofRate`, `PofRateDrawer`)
 - Phase 6: rewrite Satori's box-shadow filter region in
   `lib/render/render-svg.ts` (card shadow decision, 2026-09-29), with a
   render test that fails if a Satori upgrade changes the filter output
@@ -525,6 +532,12 @@ change.
 
 ## Session Notes
 
+- 2026-09-30: Phase 4 complete and tagged `phase-4-complete` locally.
+  Committed but not pushed: list, edit rate, add currency, status,
+  reorder and this close-out. Test currencies QAA and QAB are still
+  active/inactive in the dev database (QAA's rate was changed to 90/97 at
+  1:00 AM Lagos by someone using the app, not by the checks); archive
+  them once the owner confirms they're not needed.
 - 2026-09-30: Dev database now has test rates from Phase 4 checks (USD
   1370/1385 at 00:46 Lagos on 30 Sept, CNY 189/195) and test currencies
   QAA and QAB (to be archived when Phase 4's checks are done); rates are
