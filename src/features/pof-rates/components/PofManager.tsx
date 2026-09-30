@@ -2,13 +2,15 @@
 
 import { Filter, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Callout } from "@/components/callout";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusFilterBar } from "@/components/status-filter-bar";
 import { Button } from "@/components/ui/button";
+import { setPofActive } from "@/features/pof-rates/actions";
 import {
   type PofDrawerState,
   PofRateDrawer,
@@ -39,6 +41,28 @@ export function PofManager({
   banksWithoutRate,
 }: PofManagerProps) {
   const [drawer, setDrawer] = useState<PofDrawerState | null>(null);
+  // The switch shows at once; when the transition ends React drops the
+  // optimistic state, so a failed save reverts to the server's list.
+  const [shownBanks, applyOptimistic] = useOptimistic(
+    banks,
+    (list, change: { id: string; pofActive: boolean }) =>
+      list.map((bank) =>
+        bank.id === change.id ? { ...bank, pofActive: change.pofActive } : bank,
+      ),
+  );
+  const [, startTransition] = useTransition();
+
+  function togglePof(bank: PofBankItem, active: boolean) {
+    startTransition(async () => {
+      applyOptimistic({ id: bank.id, pofActive: active });
+      const result = await setPofActive(bank.id, active);
+      if (result.ok)
+        toast.success(
+          `${result.data.label} rate ${active ? "activated" : "deactivated"}`,
+        );
+      else toast.error(result.error);
+    });
+  }
 
   function openAdd(bankId?: string) {
     setDrawer({ mode: "add", bankId });
@@ -94,11 +118,12 @@ export function PofManager({
         />
       ) : (
         <PofTable
-          banks={banks}
+          banks={shownBanks}
           timeZone={timeZone}
           now={now}
           onAdd={() => openAdd()}
           onEdit={openEdit}
+          onTogglePof={togglePof}
         />
       )}
 

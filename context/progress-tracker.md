@@ -9,10 +9,19 @@ change.
 
 ## Current Goal
 
-- Phase 5: visibility switch (`setPofActive`, optimistic)
+- Phase 5: end-of-phase checks, Done-when list, tag
 
 ## Completed
 
+- 2026-09-30: Phase 5, visibility switch. `setPofActive(bankId, active)`
+  (scoped; refuses to turn on an inactive bank's rate). The table switch
+  is optimistic: Wema off flipped in 3 ms (save ~800 ms), "Wema rate
+  deactivated", survived a reload, and the Inactive filter listed it; back
+  on → "activated". An inactive bank's switch is disabled with the
+  tooltip (checked with a real hover and Tab; the Banks page delete
+  tooltip too); with the switch temporarily enabled, a real click was
+  refused by the server with "Activate the bank on the Banks page first"
+  and the switch stayed off (patch removed, file restored byte for byte).
 - 2026-09-30: Phase 5, edit and add. `PofRateDrawer` (add: active banks
   only with "(now 3.4%)", hint and Banks link, optional preselected bank;
   edit: bank locked, recent changes) saves through `savePofRate(input,

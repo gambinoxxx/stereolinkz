@@ -152,3 +152,34 @@ const save = safeAction(
 export async function savePofRate(input: unknown, mode: "add" | "edit") {
   return save(input, mode);
 }
+
+// The table switch: whether this bank's rate shows on new POF boards.
+// Refused for an inactive bank (it wouldn't show anyway).
+const setVisibility = safeAction(
+  async (
+    { organizationId },
+    bankId: unknown,
+    active: unknown,
+  ): Promise<ActionResult<{ label: string; active: boolean }>> => {
+    if (typeof bankId !== "string" || typeof active !== "boolean")
+      return { ok: false, error: NOT_FOUND };
+    const bank = await db.bank.findFirst({
+      where: { id: bankId, organizationId, status: { not: "ARCHIVED" } },
+      select: { id: true, name: true, shortName: true, status: true },
+    });
+    if (!bank) return { ok: false, error: NOT_FOUND };
+    if (active && bank.status !== "ACTIVE")
+      return { ok: false, error: ACTIVATE_BANK_FIRST };
+
+    await db.bank.update({
+      where: { id: bank.id, organizationId },
+      data: { pofActive: active },
+    });
+    revalidatePofPages();
+    return { ok: true, data: { label: bank.shortName ?? bank.name, active } };
+  },
+);
+
+export async function setPofActive(bankId: string, active: boolean) {
+  return setVisibility(bankId, active);
+}
