@@ -5,13 +5,15 @@ import { join } from "node:path";
 
 // Keep in sync with scripts/copy-fonts.mjs.
 const WEIGHTS = [400, 500, 600, 700, 800, 900] as const;
-// Templates ask for "Archivo". The latin file covers everything except ₦,
-// which only latin-ext has. Satori falls back per glyph only between fonts
-// with different names (two files both named "Archivo" never fall back;
-// verified in the Phase 1 spike), so latin-ext is registered separately.
+// Templates ask for "Archivo Board". The latin file covers everything
+// except ₦, which only latin-ext has. Satori falls back per glyph only
+// between fonts with different names (verified in the Phase 1 spike), so
+// latin-ext is registered separately. The names are unique ("Board"): the
+// admin's next/font also declares a family called "Archivo" in the
+// browser, and BoardFrame must use these exact files, not that one.
 const SUBSETS = [
-  { file: "latin", name: "Archivo" },
-  { file: "latin-ext", name: "Archivo latin-ext" },
+  { file: "latin", name: "Archivo Board" },
+  { file: "latin-ext", name: "Archivo Board latin-ext" },
 ] as const;
 
 type FontWeight = (typeof WEIGHTS)[number];

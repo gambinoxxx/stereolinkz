@@ -36,6 +36,8 @@ export type BoardTheme = {
   contactLabel: string;
   contactText: string;
   fine: string;
+  markText: string; // monogram letter
+  logoBackdrop: string; // behind bank logos
 };
 
 // The design's Purple Signal gradient stops (stereolinkz-rate-boards.html).
@@ -69,6 +71,8 @@ const BASE: Record<ThemeName, BoardTheme> = {
     contactLabel: "#C4B6E3",
     contactText: "#FFFFFF",
     fine: "#A294C4",
+    markText: "#FFFFFF",
+    logoBackdrop: "#FFFFFF",
   },
   daylight: {
     background: gradient(170, ["#FFFFFF", "#F3EEFB", "#E9E1F7"], [0, 60, 100]),
@@ -97,6 +101,8 @@ const BASE: Record<ThemeName, BoardTheme> = {
     contactLabel: "#D4C8EE",
     contactText: "#FFFFFF",
     fine: "#7D7196",
+    markText: "#FFFFFF",
+    logoBackdrop: "#FFFFFF",
   },
 };
 

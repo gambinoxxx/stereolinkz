@@ -9,10 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 6: ⏸ PNG review by the owner, then the preview components
+- Phase 6: Templates page (`getTemplateSamples`, `setDefaultTemplate`, `/admin/templates`) and the login sample board
 
 ## Completed
 
+- 2026-09-30: Phase 6, preview components. Owner OK'd the PNGs (wordmark
+  stays one colour, option 1). `BoardFrame` (client; template key +
+  snapshot; 1080 × 1920 scaled by a ResizeObserver; hidden until
+  measured; `role="img"` with a label; optional overlay) and
+  `WhatsAppOverlay` (board pixels). Dev kit "Boards: preview vs PNG"
+  shows all four side by side: same layout, line breaks, weights and
+  colours (checked at 2× in headless Chrome). Key files:
+  `src/components/board/{BoardFrame,WhatsAppOverlay}.tsx`,
+  `src/components/board/board-fonts.css` (generated),
+  `scripts/copy-fonts.mjs`, `public/fonts/`, `src/app/admin/dev-kit/board-comparison.tsx`.
 - 2026-09-30: Phase 6, registry, renderer and the four templates. Registry
   (`forex/purple-signal`, `forex/daylight`, `pof/purple-signal`,
   `pof/daylight`, v1, maxRows 4 / 6; `getTemplate` throws
@@ -653,6 +663,17 @@ change.
   snapshot with every logo (brand, POF rows) as a data URI (3 s timeout,
   1 MB cap, PNG/JPEG/SVG/WebP), or null on any failure so the template
   draws the monogram or wordmark. The stored snapshot is never changed.
+- 2026-09-30: Board fonts, preview = PNG: the same Archivo WOFF files
+  under the same two family names in both places, "Archivo Board" (latin)
+  and "Archivo Board latin-ext" (₦). `scripts/copy-fonts.mjs` copies them
+  to `assets/fonts/` (Satori) and `public/fonts/` (browser) and generates
+  `components/board/board-fonts.css` (@font-face, weights 400–900,
+  fontsource's unicode ranges), imported only by `BoardFrame`. The names
+  can't be plain "Archivo": next/font declares that family for the admin
+  (a variable font), and the browser used it instead of the board files.
+- 2026-09-30: Wordmark without a logo: `brand.name` in lowercase, one
+  colour (owner chose to keep it; the design's gold "linkz" returns with
+  an uploaded logo, Phase 9).
 
 ## Session Notes
 

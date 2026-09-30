@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { flagDataUri } from "@/features/templates/assets/flags";
 import { requireMember } from "@/lib/server/auth";
 
+import { BoardComparison } from "./board-comparison";
 import {
   DialogDemo,
   DrawerDemo,
@@ -51,6 +52,10 @@ export default async function DevKitPage() {
         title="Dev kit"
         description="Every component in every state. Development only."
       />
+
+      <Section title="Boards: preview vs PNG">
+        <BoardComparison />
+      </Section>
 
       <Section title="Buttons">
         <Row label="Variants">

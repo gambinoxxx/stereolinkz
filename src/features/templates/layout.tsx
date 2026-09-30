@@ -27,7 +27,7 @@ export const BOARD_H = 1920;
 
 // The same two font names Satori registers (lib/render/fonts.ts) and the
 // browser declares (components/board/board-fonts.css).
-export const BOARD_FONT = "Archivo, 'Archivo latin-ext'";
+export const BOARD_FONT = "'Archivo Board', 'Archivo Board latin-ext'";
 
 const LOGO_BARS = [30, 52, 64, 40];
 const EQ_BARS = [120, 200, 150, 260, 180, 230, 110, 170];
@@ -565,7 +565,13 @@ export function ForexBoard({
 
 // ── POF ──────────────────────────────────────────────────────────────
 
-function BankMonogram({ row }: { row: PofSnapshot["rows"][number] }) {
+function BankMonogram({
+  row,
+  theme,
+}: {
+  row: PofSnapshot["rows"][number];
+  theme: BoardTheme;
+}) {
   // Same colour as the admin BankMark: the slug is always bankSlug(name).
   const color = BANK_MARK_HEX[bankMarkIndex(bankSlug(row.name))];
   return (
@@ -579,8 +585,8 @@ function BankMonogram({ row }: { row: PofSnapshot["rows"][number] }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: row.logoUrl ? "#FFFFFF" : color,
-        color: "#FFFFFF",
+        backgroundColor: row.logoUrl ? theme.logoBackdrop : color,
+        color: theme.markText,
         fontSize: 34,
         fontWeight: 800,
       }}
@@ -663,7 +669,7 @@ export function PofBoard({
                 borderTop: divider(theme),
               }}
             >
-              <BankMonogram row={row} />
+              <BankMonogram row={row} theme={theme} />
               <div
                 style={{
                   display: "flex",
