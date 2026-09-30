@@ -5,13 +5,23 @@ change.
 
 ## Current Phase
 
-- Phase 6: Templates and rendering, in progress
+- Phase 6: Templates and rendering, complete
 
 ## Current Goal
 
-- Phase 6: clean-up (Phase 7 render notes, `ui-context.md`, `architecture.md`), then the end-of-phase checks
+- None. Waiting for the owner's go to push Phase 6.
 
 ## Completed
+
+- 2026-09-30: Phase 6 complete. All Done-when items checked, tagged
+  phase-6-complete.
+- 2026-09-30: Phase 6, clean-up. Spike route gone (`src/app/api/dev/`
+  no longer exists). `architecture.md`: the render boundary
+  (`renderBoardPng`, `embedImages`, `tightenShadowFilters`,
+  `BoardFrame`) and "Render config for server routes" for Phase 7.
+  `ui-context.md`: board font loading ("Archivo Board" names,
+  `copy-fonts.mjs`), brand colour mapping, long-text rules, template
+  styling rules, `--board-stage`, the login sample board.
 
 - 2026-09-30: Phase 6, Templates page and login sample board.
   `getTemplateSamples(orgId, now)` builds a live sample per template
@@ -322,8 +332,12 @@ change.
 
 ## Next Up
 
-- Phase 6: Purple Signal (Forex, then POF) with `scripts/render-fixtures.ts`,
-  then Daylight, then ⏸ PNG review
+- Phase 7: Generator (`/admin/generator` with `?type=` and `?template=`
+  from the Templates page; the `generateBoard` action; the download
+  route under `/api/boards/**`). See architecture.md → "Render config
+  for server routes".
+- Phase 6 on production: owner opens `/admin/templates`, sets Daylight
+  as the forex default and back, checks thumbnails and the login board
 - Phase 4 and 5 on production: owner's live edits (asked, not yet confirmed)
 
 ## Open Questions
@@ -693,6 +707,17 @@ change.
 
 ## Session Notes
 
+- 2026-09-30: Phase 6 complete and tagged `phase-6-complete` locally,
+  not pushed. Render times (local, warm): seed boards ~510–530 ms,
+  worst cases ~550–570 ms; first render in a process ~700–800 ms (font
+  load). For Phase 7: render only through `renderBoardPng(snapshot,
+  key)`; set `runtime = "nodejs"` on render routes; fonts are traced for
+  `/admin/**` and `/api/boards/**` only; the generator should preselect
+  `resolveTemplateKey(type, org)` and honour `?template=` only when
+  `isTemplateKey(key, type)`. Satori quirks: fragments lay out as rows,
+  `font-stretch` is ignored, and box-shadow regions need the
+  `shadow.ts` fix. Dev data: the forex default was set to Daylight and
+  back to Purple Signal during the checks.
 - 2026-09-30: Phase 5 complete and tagged `phase-5-complete` locally.
   Committed but not pushed: POF list, edit and add, visibility switch and
   this close-out. Dev data from the checks: Providus 3.5% (a new rate

@@ -69,6 +69,12 @@ Login brand panel (reuses the Purple Signal board colours):
 `--brand-panel-start` `#3B1675`, `--brand-panel-mid` `#2A0F58`,
 `--brand-panel-end` `#1C0A3D` (165° gradient, utility `bg-brand-panel`)
 and `--brand-panel-text` `#D4C8EE` for the panel's subtext.
+Its tilted sample board is a static PNG (`public/login-sample-board.png`,
+fixture data, regenerate with `npm run render:login-sample`), hidden
+under 900px.
+
+Template thumbnail stage (Templates page, behind each preview):
+`--board-stage` `#ECE7F4` (utility `bg-board-stage`).
 
 Control colours, taken from the design files' component styles:
 
@@ -103,9 +109,41 @@ so the colour is picked from the bank slug over a fixed palette:
 | Contact panel | `rgba(255,255,255,.08)` + border `rgba(255,255,255,.14)` | `#2A0F58`, white text |
 | Bottom band | 3:1 split `#6A35D9` / `#E9B949`, 22px | same |
 
-Organization brand colours from Settings (background, buy/rates,
-sell/highlights) override these at render time. They are copied into
-the snapshot.
+Organization brand colours from Settings are copied into the snapshot
+and mapped by `boardTheme(name, brand)` at render time:
+
+- **Primary** (buy / rates) → buy and POF rate pills, the equaliser bars.
+- **Accent** (sell / highlights) → sell pills, notes, the wordmark bars.
+- **Background** → Purple Signal only: the 165° gradient is rebuilt
+  around it (`purpleGradient`: ×1.4 lighter at 0%, the colour at 45%,
+  ×0.67 at 100%; the default `#2A0F58` keeps the design's exact stops).
+  Daylight keeps its own light background.
+
+A colour that isn't a 6-digit hex falls back to the template's own.
+The org logo (400 × 64 box) replaces the wordmark when it loads;
+otherwise the wordmark shows the org name in lowercase.
+
+Hex values live only in `globals.css`, `theme.ts` and the flag assets,
+never in a `.tsx` (templates included).
+
+### Long text on boards (`features/templates/text-rules.ts`)
+
+- **Price pills** (forex buy/sell) step down by character count:
+  ≤5 → 68px, 6 → 56, 7 → 48, 8 → 42, 9 → 37, 10 → 34, longer → 30.
+- **POF rate pills:** 56px up to 5 characters, then 46px.
+- **POF notes** sit inline beside the bank name while name + note ≤ 22
+  characters (`POF_INLINE_LIMIT`); longer, the note moves below.
+- **Currency and bank names** clip (`overflow: hidden`) rather than push
+  the pills out; the headline is clipped to two lines.
+- Worst cases are in `src/test/board-fixtures.ts` (`WORST_CASES`) and
+  render with `npm run render:fixtures` (add `--guides` for safe-area
+  lines).
+
+### Template styling rules
+
+Templates use inline styles only, flexbox only (no Tailwind, grid, CSS
+variables or `font-stretch`), and colours from `theme.ts`. Satori lays
+out a fragment as a row, so grouped siblings go in a column `div`.
 
 ## Typography
 
@@ -119,8 +157,16 @@ No monospace font. Archivo has the ₦ glyph only in its `latin-ext`
 subset, so `next/font` must load `subsets: ["latin", "latin-ext"]` and
 Satori must load the `latin-ext` files too. Satori only falls back per
 glyph between fonts with different names, so `lib/render/fonts.ts`
-registers the `latin` files as "Archivo" and the `latin-ext` files as
-"Archivo latin-ext". Templates still set `fontFamily: "Archivo"`.
+registers the `latin` files as "Archivo Board" and the `latin-ext`
+files as "Archivo Board latin-ext". Templates set `BOARD_FONT`
+(`'Archivo Board', 'Archivo Board latin-ext'`). The names differ from
+"Archivo" because `next/font` declares that family in the browser, and
+the preview must use the same WOFFs as the PNG.
+
+Board font loading: `node scripts/copy-fonts.mjs` (run by hand; the output is committed) copies
+the WOFFs to `assets/fonts/` (read by `lib/render/fonts.ts` for Satori)
+and `public/fonts/`, and generates `components/board/board-fonts.css`
+with the matching `@font-face` rules, which `BoardFrame` imports.
 
 Satori ignores `font-stretch`. The board headline uses Archivo's normal
 width in the PNG; the preview must match, so templates do not set
@@ -145,9 +191,9 @@ Board type scale (at 1080 × 1920):
 | Headline | 124px / 800, tracking −4px, line-height 0.92, two lines |
 | Wordmark | 60px / 800 |
 | Currency code | 66px / 900 |
-| Buy/sell price | 68px / 800 |
+| Buy/sell price | 68px / 800 (steps down, see Long text) |
 | Bank name | 48px / 800 |
-| POF rate | 56px / 800 |
+| POF rate | 56px / 800 (46px past 5 characters) |
 | Subheading | 36px / 500 |
 | Small print | 23px |
 

@@ -31,13 +31,17 @@ src/
                                   (server-only reads), actions.ts (server
                                   actions), components/ (feature UI)
     boards/snapshot.ts            Zod schema + types for RateBoard.snapshot (the template contract)
-    templates/                    registry.ts, types.ts, theme.ts, forex/*, pof/*,
-                                  assets/flags/* (bundled flag SVGs)
+    templates/                    registry.ts, types.ts, theme.ts, text-rules.ts,
+                                  layout.tsx (shared board layout), forex/*, pof/*,
+                                  queries.ts + actions.ts (Templates page, default
+                                  template), assets/flags/* (bundled flag SVGs)
   lib/
     server/                       db.ts (Prisma client), auth.ts (requireMember),
                                   blob.ts (Vercel Blob helpers). server-only.
     render/                       fonts.ts, assets.ts (logos/flags → data URIs),
-                                  render-svg.ts, render-png.ts. server-only.
+                                  shadow.ts (Satori shadow-filter fix), render-svg.ts,
+                                  render-png.ts, render-board.ts (renderBoardPng:
+                                  snapshot + template key → PNG). server-only.
     format.ts                     Money, percent and date formatting (Africa/Lagos)
   components/
     ui/                           shadcn/ui generated components (protected)
@@ -57,6 +61,29 @@ docs/design/                      Page design HTML files (visual spec, read-only
 - `lib/render/*` is the only code that turns template JSX into SVG/PNG.
   The generator preview and the server render use the same template
   component.
+- The render boundary is `renderBoardPng(snapshot, templateKey)` in
+  `lib/render/render-board.ts`: it checks the template's type matches
+  the snapshot (`TemplateMismatchError`), copies the snapshot with
+  logos and flags embedded as data URIs (`embedImages`: 3 s timeout,
+  1 MB cap, a failed image becomes `null` and the template falls back),
+  renders the SVG (Satori, then `tightenShadowFilters`) and the PNG
+  (resvg, `loadSystemFonts: false`). It returns `{ png, width, height,
+  ms }`. Same snapshot and key → byte-identical PNG (tested).
+- In the browser, `components/board/BoardFrame` renders the same
+  template at 1080 × 1920 with the same WOFFs and scales it to fit.
+
+### Render config for server routes
+
+- `satori` and `@resvg/resvg-js` are in `serverExternalPackages`.
+- `outputFileTracingIncludes` ships `assets/fonts/**` with
+  `/admin/**` (server actions such as `generateBoard`) and
+  `/api/boards/**` (the download route). A new render entry point
+  outside those paths needs its own entry.
+- Route handlers that render set `export const runtime = "nodejs"`
+  (resvg is a native module; no Edge).
+- Timings: warm renders ~530–640 ms locally; the first render in a
+  process also loads the fonts (cached after). The worst-case fixtures
+  render in ~550–570 ms warm.
 
 ## Storage Model
 
