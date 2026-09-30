@@ -9,10 +9,25 @@ change.
 
 ## Current Goal
 
-- Phase 7: live preview (`buildPreviewSnapshot` tests, 390px typing, no network)
+- Phase 7: Generate (`generateBoard`, upload, transaction, failure test)
 
 ## Completed
 
+- 2026-09-30: Phase 7, live preview. `buildPreviewSnapshot(org, type,
+  form, entities, now)`: never throws (half-typed values print "—",
+  content clipped to its limits, empty text dropped); built on the new
+  `assembleSnapshot` (buildSnapshot minus the Zod check). The layout
+  prints a non-decimal value as given and shows "Tick at least one rate"
+  for zero rows; valid snapshots render as before (hash test unchanged,
+  no version bump). `useWatch` → `useDeferredValue` → `BoardFrame`; the
+  board's time ticks on the minute from the server's render time.
+  "WhatsApp view" toggles the overlay. Checked at 390px: typing "1392"
+  showed on the board in ~300 ms including the CDP round trips, with no
+  request to the app (the only one was Clerk's own session touch); the
+  preview sits on top at 220px and the Generate bar sticks above the tab
+  bar (bottom 782 of 844px) with the error line and callout. 5 tests.
+  Key files: `src/features/boards/preview-snapshot.ts` (+ test),
+  `src/features/templates/layout.tsx`.
 - 2026-09-30: Phase 7, rates and content. `generateInput` (shared Zod,
   discriminated on type; ids + values + text only; Phase 4/5 value rules;
   1 to `maxRows` rows; template registered for the type; headline ≤ 2
