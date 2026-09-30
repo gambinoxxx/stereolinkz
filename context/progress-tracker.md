@@ -9,10 +9,24 @@ change.
 
 ## Current Goal
 
-- Phase 4: reorder (drag on desktop, up/down on touch and keyboard)
+- Phase 4: end-of-phase checks, Done-when list, tag
 
 ## Completed
 
+- 2026-09-30: Phase 4, reorder. `reorderCurrencies(ids)` checks the list is
+  exactly the org's non-archived currencies (no missing, extra, foreign
+  or duplicate ids; else "The list changed. Refresh and try again.") and
+  writes `sortOrder` = index in one transaction. Desktop: native HTML5
+  drag armed from the grip, 3px violet drop line, dragged row at 40%;
+  optimistic, toast "Order saved. New boards use it." Up/down buttons
+  ("Move USD up") show on touch screens and, for mouse users, when
+  focused, so the keyboard can reorder. Verified: keyboard move GBP above
+  USD and drag USD back both persist after reload; touch buttons at
+  390px work; the Active filter hides grips and buttons and shows "Switch
+  to All to change the order". Order restored to the seed's. Key files:
+  `src/features/currencies/order.ts` (+ tests),
+  `src/features/currencies/actions.ts`,
+  `src/features/currencies/components/{ForexTable,ForexManager}.tsx`.
 - 2026-09-30: Phase 4, status. `setCurrencyStatus` (ACTIVE / INACTIVE only,
   scoped update). The table switch is optimistic (`useOptimistic` +
   `useTransition`): verified it flips and dims in 4 ms while the server
@@ -496,6 +510,18 @@ change.
   "CAD", "$" and "Canadian dollar" (Invariant 1).
 - 2026-09-30: New currencies get `sortOrder` = max + 1 (last on boards
   until reordered), inside the same transaction as the insert.
+- 2026-09-30: Reordering only under the All filter: with Active or
+  Inactive, the grips and up/down buttons are not rendered and a hint says
+  "Switch to All to change the order", so a partial list is never saved;
+  the server also rejects any list that isn't exactly the org's
+  non-archived currencies.
+- 2026-09-30: Drag is armed on pointer down on the grip (the row is only
+  `draggable` then), so text selection and clicks elsewhere in the row
+  still work. Up/down buttons use `aria-disabled` at the ends instead of
+  `disabled`, so keyboard focus stays on the button after a move to the
+  top or bottom; they are hidden with `pointer-fine:sr-only` until focused.
+- 2026-09-30: Status and order changes share one `useOptimistic` reducer
+  in `ForexManager`; a failed save reverts when the transition ends.
 
 ## Session Notes
 

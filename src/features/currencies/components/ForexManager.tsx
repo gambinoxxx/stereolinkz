@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { setCurrencyStatus } from "@/features/currencies/actions";
+import {
+  reorderCurrencies,
+  setCurrencyStatus,
+} from "@/features/currencies/actions";
 import { CurrencyDrawer } from "@/features/currencies/components/CurrencyDrawer";
 import { ForexTable } from "@/features/currencies/components/ForexTable";
 import type {
@@ -24,19 +27,20 @@ type ForexManagerProps = CurrencyList & {
   now: string;
 };
 
-type OptimisticChange = {
-  type: "status";
-  id: string;
-  status: "ACTIVE" | "INACTIVE";
-};
+type OptimisticChange =
+  | { type: "status"; id: string; status: "ACTIVE" | "INACTIVE" }
+  | { type: "order"; ids: string[] };
 
 function applyChange(
   list: CurrencyListItem[],
   change: OptimisticChange,
 ): CurrencyListItem[] {
-  return list.map((c) =>
-    c.id === change.id ? { ...c, status: change.status } : c,
-  );
+  if (change.type === "status")
+    return list.map((c) =>
+      c.id === change.id ? { ...c, status: change.status } : c,
+    );
+  const byId = new Map(list.map((c) => [c.id, c]));
+  return change.ids.flatMap((id) => byId.get(id) ?? []);
 }
 
 // Client state for /admin/forex. The list comes from the server (filtered
@@ -79,6 +83,15 @@ export function ForexManager({
     setAdding(true);
   }
 
+  function reorder(ids: string[]) {
+    startTransition(async () => {
+      applyOptimistic({ type: "order", ids });
+      const result = await reorderCurrencies(ids);
+      if (result.ok) toast.success("Order saved. New boards use it.");
+      else toast.error(result.error);
+    });
+  }
+
   return (
     <>
       <PageHeader
@@ -113,11 +126,15 @@ export function ForexManager({
           <ToggleGroupItem value="active">Active</ToggleGroupItem>
           <ToggleGroupItem value="inactive">Inactive</ToggleGroupItem>
         </ToggleGroup>
-        <span className="hidden text-[13.5px] text-text-muted sheet:inline">
-          {filter === "all"
-            ? "Drag rows to set their order on boards"
-            : "Switch to All to change the order"}
-        </span>
+        {filter === "all" ? (
+          <span className="hidden text-[13.5px] text-text-muted sheet:inline">
+            Drag rows to set their order on boards
+          </span>
+        ) : (
+          <span className="text-[13.5px] text-text-muted">
+            Switch to All to change the order
+          </span>
+        )}
       </div>
 
       <ForexTable
@@ -126,6 +143,8 @@ export function ForexManager({
         now={now}
         onAdd={openAdd}
         onToggleStatus={toggleStatus}
+        reorderable={filter === "all"}
+        onReorder={reorder}
         onEdit={setEditing}
       />
 

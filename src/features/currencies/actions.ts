@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { isSameIdSet } from "@/features/currencies/order";
 import { currencyInput } from "@/features/currencies/schema";
 import { RATE_ERRORS } from "@/features/forex-rates/schema";
 import { type ActionResult, safeAction } from "@/lib/server/action";
@@ -113,6 +114,43 @@ const setStatus = safeAction(
   },
 );
 
+const STALE_ORDER = "The list changed. Refresh and try again.";
+
+// Board order: sortOrder = position, for every non-archived currency at
+// once, so a partial (filtered) list can never be saved.
+const reorder = safeAction(
+  async ({ organizationId }, raw: unknown): Promise<ActionResult<null>> => {
+    const parsed = z.array(z.string().min(1)).max(500).safeParse(raw);
+    if (!parsed.success) return { ok: false, error: STALE_ORDER };
+    const ordered = parsed.data;
+
+    const saved = await db.$transaction(async (tx) => {
+      const existing = await tx.currency.findMany({
+        where: { organizationId, status: { not: "ARCHIVED" } },
+        select: { id: true },
+      });
+      if (
+        !isSameIdSet(
+          ordered,
+          existing.map((c) => c.id),
+        )
+      )
+        return false;
+      for (const [index, id] of ordered.entries()) {
+        await tx.currency.update({
+          where: { id, organizationId },
+          data: { sortOrder: index },
+        });
+      }
+      return true;
+    });
+    if (!saved) return { ok: false, error: STALE_ORDER };
+
+    revalidateForexPages();
+    return { ok: true, data: null };
+  },
+);
+
 // A "use server" file may only export async functions.
 export async function createCurrency(input: unknown) {
   return create(input);
@@ -120,4 +158,8 @@ export async function createCurrency(input: unknown) {
 
 export async function setCurrencyStatus(id: string, status: string) {
   return setStatus(id, status);
+}
+
+export async function reorderCurrencies(orderedIds: string[]) {
+  return reorder(orderedIds);
 }
