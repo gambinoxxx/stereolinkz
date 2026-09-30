@@ -419,6 +419,40 @@ change.
 
 ## Architecture Decisions
 
+- 2026-09-30: Phase 7 generator decisions.
+  - **Input is ids + values + text** (`generateInput`). The server loads
+    names, flags, logos, brand and status itself and stamps server time,
+    so a tampered client can't put another org's row, an inactive bank
+    or a fake date on a board.
+  - **The preview snapshot is lenient** (`buildPreviewSnapshot`, built on
+    `assembleSnapshot`): half-typed values show "—" and text is clipped,
+    so typing never breaks the board; `buildSnapshot` stays strict for
+    saved boards. The layout's two preview-only paths (a non-decimal value
+    printed as given, zero rows) don't change valid boards, so no template
+    version bump.
+  - **Headline: 13 characters a line**, measured with Satori at
+    124px / 800 against the 936px column (ordinary text fits; wide
+    capitals may still clip, and the preview shows it).
+  - **Rows past the template's capacity start unticked**, so a fresh form
+    can be generated straight away.
+  - **Pre-generated UUIDs with `addRandomSuffix: false`**: the path is
+    unique, and put() still refuses to overwrite (Invariant 12). A retry
+    whose first attempt landed is accepted only if the blob there has our
+    size.
+  - **`maxDuration = 30`** on `/admin/generator` (the action runs there):
+    ~0.5–1.3 s render plus upload and save, with room for a cold start.
+  - **404 for another org's board** in the download route, never 403,
+    which would confirm the id exists.
+  - **Share and Download on phones**: Download sends
+    `Content-Disposition: attachment` (iPhone files it under Files);
+    Share (shown only when `navigator.canShare({ files })`) opens the
+    share sheet for WhatsApp Status or Save Image. The PNG is fetched
+    first so Safari's share() runs inside the tap.
+  - **Filename** `<brand-slug>-<type>-<time>.png` from the snapshot's
+    brand name and time label (`boardFilename`).
+  - **Templates name their colour set** (`BoardTemplate.theme`) so the
+    template step's swatches use `boardTheme` with the org's brand, and
+    no hex appears in `.tsx`.
 - 2026-09-28: Prettier added (owner approved), default options, with
   `format` / `format:check` scripts. `context/`, `docs/`, generated code,
   `components/ui/` and the kit's `snapshot.ts` are excluded so specs
