@@ -9,10 +9,21 @@ change.
 
 ## Current Goal
 
-- Phase 7: rates and content (`generateInput` tests, `diffRates` tests, error line, gold callout)
+- Phase 7: live preview (`buildPreviewSnapshot` tests, 390px typing, no network)
 
 ## Completed
 
+- 2026-09-30: Phase 7, rates and content. `generateInput` (shared Zod,
+  discriminated on type; ids + values + text only; Phase 4/5 value rules;
+  1 to `maxRows` rows; template registered for the type; headline ≤ 2
+  lines, ≤ 13 characters a line, ≤ 60; subheading 80, note 90, small
+  print 120; empty text → null). `describeIssues` names the row ("USD:
+  sell must be…") and keys field errors by row id. `diffRates` (by value:
+  "1,365" = "1365.0000"; notes trimmed) drives the gold state and the
+  "2 edited rates will be saved" callout. Browser-checked: two edits turn
+  gold with the callout; sell < buy, "15." and no ticked rows each show
+  their message and disable Generate. 16 tests. Key files:
+  `src/features/boards/{schema,diff}.ts` (+ tests).
 - 2026-09-30: Phase 7, page and state. `/admin/generator` reads `?type`
   (default FOREX), `?template` (must be registered for the type, else
   the org default via `resolveTemplateKey`) and `?from` (ignored until
