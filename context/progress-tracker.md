@@ -9,9 +9,25 @@ change.
 
 ## Current Goal
 
-- Phase 6: Templates page (`getTemplateSamples`, `setDefaultTemplate`, `/admin/templates`) and the login sample board
+- Phase 6: clean-up (Phase 7 render notes, `ui-context.md`, `architecture.md`), then the end-of-phase checks
 
 ## Completed
+
+- 2026-09-30: Phase 6, Templates page and login sample board.
+  `getTemplateSamples(orgId, now)` builds a live sample per template
+  from active currencies / POF-active banks with a rate (sliced to
+  `maxRows`; `null` shows "Add a rate to see a preview").
+  `setDefaultTemplate(type, key)` (`safeAction`, `isTemplateKey` check,
+  revalidates `/admin/templates` and `/admin/generator`).
+  `TemplateGallery`: Forex / POF / Custom tabs, thumbnails on the new
+  `--board-stage` token, Default badge, "Use in generator" and "Set as
+  default". Browser-checked: switching the forex default to Daylight
+  and back survives a reload; 390px has no horizontal scroll. Login:
+  static `public/login-sample-board.png` from `npm run
+  render:login-sample` (fixture data; the page stays DB-free), tilted
+  6°, hidden under 900px. Key files: `src/features/templates/{queries,actions}.ts`,
+  `src/features/templates/components/TemplateGallery.tsx`,
+  `src/app/admin/templates/page.tsx`, `scripts/render-login-sample.ts`.
 
 - 2026-09-30: Phase 6, preview components. Owner OK'd the PNGs (wordmark
   stays one colour, option 1). `BoardFrame` (client; template key +

@@ -1,6 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { Lock } from "lucide-react";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { Wordmark } from "@/components/wordmark";
@@ -13,12 +14,20 @@ export default async function LoginPage() {
     <div className="grid min-h-screen flex-1 grid-cols-1 bg-bg-surface min-[900px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       <div className="relative flex flex-col overflow-hidden bg-brand-panel px-6 pt-7 pb-[30px] text-white min-[900px]:px-[52px] min-[900px]:py-11">
         <Wordmark />
-        {/* The tilted sample board from login.html is added in Phase 6 (6.3),
-            once the template components exist. */}
-        <h2 className="relative mt-7 max-w-[12ch] text-[32px] leading-none font-extrabold tracking-[-1.6px] font-stretch-[112%] min-[900px]:mt-auto min-[900px]:text-[clamp(34px,3.6vw,52px)]">
+        {/* login.html .lboard: a static PNG rendered from a fixture by
+            `npm run render:login-sample` (this page is public, so no data). */}
+        <Image
+          src="/login-sample-board.png"
+          alt=""
+          width={250}
+          height={444}
+          priority
+          className="pointer-events-none absolute top-[90px] -right-[30px] hidden rotate-6 rounded-2xl opacity-90 shadow-[0_30px_70px_rgb(0_0_0/0.45)] min-[900px]:block"
+        />
+        <h2 className="relative z-[1] mt-7 max-w-[12ch] text-[32px] leading-none font-extrabold tracking-[-1.6px] font-stretch-[112%] min-[900px]:mt-auto min-[900px]:text-[clamp(34px,3.6vw,52px)]">
           Update the rates. Post in seconds.
         </h2>
-        <p className="relative mt-4 max-w-[38ch] text-base text-brand-panel-text">
+        <p className="relative z-[1] mt-4 max-w-[38ch] text-base text-brand-panel-text">
           Manage forex and POF rates, then turn them into a WhatsApp Status
           board in one tap.
         </p>

@@ -18,7 +18,8 @@
     "db:seed": "prisma db seed",
     "test": "vitest run",
     "test:watch": "vitest",
-    "render:fixtures": "tsx --conditions=react-server scripts/render-fixtures.ts"
+    "render:fixtures": "tsx --conditions=react-server scripts/render-fixtures.ts",
+    "render:login-sample": "tsx --conditions=react-server scripts/render-login-sample.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.7",

@@ -82,6 +82,7 @@
   --border-hover: #d3cbe3; /* outline button hover */
   --overlay: rgb(20 8 40 / 0.45); /* scrim behind drawers and modals */
   --sidebar-avatar: #4b2a86;
+  --board-stage: #ece7f4; /* behind board thumbnails and previews (.tthumb, .stage) */
 
   /* Toasts clear the phone tab bar (Toaster in components/ui/sonner.tsx) */
   --toast-offset: 24px;
@@ -149,6 +150,7 @@
   --color-border-hover: var(--border-hover);
   --color-overlay: var(--overlay);
   --color-sidebar-avatar: var(--sidebar-avatar);
+  --color-board-stage: var(--board-stage);
   --color-bank-mark-1: var(--bank-mark-1);
   --color-bank-mark-2: var(--bank-mark-2);
   --color-bank-mark-3: var(--bank-mark-3);
