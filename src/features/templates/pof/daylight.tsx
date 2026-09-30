@@ -9,6 +9,7 @@ export const pofDaylight: BoardTemplate<"POF"> = {
   name: "Daylight",
   description: "Light lavender background with purple type.",
   maxRows: 6,
+  theme: "daylight",
   render: (snapshot) => (
     <PofBoard
       snapshot={snapshot}

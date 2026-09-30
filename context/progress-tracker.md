@@ -5,14 +5,28 @@ change.
 
 ## Current Phase
 
-- Phase 6: Templates and rendering, complete
+- Phase 7: Generator, in progress
 
 ## Current Goal
 
-- None. Waiting for the owner's go to push Phase 6.
+- Phase 7: rates and content (`generateInput` tests, `diffRates` tests, error line, gold callout)
 
 ## Completed
 
+- 2026-09-30: Phase 7, page and state. `/admin/generator` reads `?type`
+  (default FOREX), `?template` (must be registered for the type, else
+  the org default via `resolveTemplateKey`) and `?from` (ignored until
+  Phase 8); `maxDuration = 30`. `getGeneratorData(orgId)` (org, default
+  keys, active currencies with a rate, active + `pofActive` banks with a
+  rate, templates) now also feeds the Templates page. `Generator` owns
+  the type (a switch remounts the form with that type's rows, default
+  template and copy; unsaved edits ask first) and syncs `?type` /
+  `?template` with `router.replace`. Browser-checked: Forex prefills
+  USD, GBP, EUR ("3 of 4 rows used"), POF the six visible banks ("6 of
+  6"); the inactive QA rows and Qa Pof Bank are absent. Templates now
+  name their colour set (`theme`) for the option swatches. Key files:
+  `src/app/admin/generator/page.tsx`, `src/features/boards/{queries,generator-form}.ts`,
+  `src/features/boards/components/{Generator,GeneratorForm,TemplateOptions,RateRows,ContentFields,PreviewPanel}.tsx`.
 - 2026-09-30: Phase 6 complete. All Done-when items checked, tagged
   phase-6-complete.
 - 2026-09-30: Phase 6, clean-up. Spike route gone (`src/app/api/dev/`
@@ -332,13 +346,9 @@ change.
 
 ## Next Up
 
-- Phase 7: Generator (`/admin/generator` with `?type=` and `?template=`
-  from the Templates page; the `generateBoard` action; the download
-  route under `/api/boards/**`). See architecture.md → "Render config
-  for server routes".
-- Phase 6 on production: owner opens `/admin/templates`, sets Daylight
-  as the forex default and back, checks thumbnails and the login board
-- Phase 4 and 5 on production: owner's live edits (asked, not yet confirmed)
+- Phase 7: rates and content (`generateInput`, `diffRates`, capacity bar, errors)
+- Phase 7: live preview (`buildPreviewSnapshot`), then Generate, then success and download
+- Phase 4, 5 and 6 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
 
@@ -707,8 +717,8 @@ change.
 
 ## Session Notes
 
-- 2026-09-30: Phase 6 complete and tagged `phase-6-complete` locally,
-  not pushed. Render times (local, warm): seed boards ~510–530 ms,
+- 2026-09-30: Phase 6 complete, tagged `phase-6-complete` and pushed
+  (deployed; the live login page serves the sample board). Render times (local, warm): seed boards ~510–530 ms,
   worst cases ~550–570 ms; first render in a process ~700–800 ms (font
   load). For Phase 7: render only through `renderBoardPng(snapshot,
   key)`; set `runtime = "nodejs"` on render routes; fonts are traced for

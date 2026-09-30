@@ -9,6 +9,7 @@ export const pofPurpleSignal: BoardTemplate<"POF"> = {
   name: "Purple Signal",
   description: "Deep purple, gold notes. Built for WhatsApp Status.",
   maxRows: 6,
+  theme: "purple-signal",
   render: (snapshot) => (
     <PofBoard
       snapshot={snapshot}

@@ -54,47 +54,58 @@ type BuildInput<T extends BoardType> = {
   now: Date;
 };
 
+// The snapshot's shape without the Zod check. buildSnapshot validates it;
+// the generator's live preview (buildPreviewSnapshot) uses it directly so
+// half-typed values can still be shown.
+export function assembleSnapshot(
+  input: BuildInput<"FOREX"> | BuildInput<"POF">,
+): BoardSnapshot {
+  const { org, content = {}, now } = input;
+  const defaults = CONTENT_DEFAULTS[input.type];
+
+  const shared = {
+    headline: content.headline ?? defaults.headline,
+    subheading:
+      content.subheading !== undefined
+        ? content.subheading
+        : defaults.subheading,
+    note: content.note !== undefined ? content.note : defaults.note,
+    reach: content.reach !== undefined ? content.reach : defaults.reach,
+    ctaLabel: content.ctaLabel ?? defaults.ctaLabel,
+    finePrint:
+      content.finePrint !== undefined
+        ? content.finePrint
+        : (org.defaultFinePrint ?? defaults.finePrint),
+    dateLabel: formatBoardDate(now, org.timezone),
+    timeLabel: formatBoardTime(now, org.timezone),
+    // Copied, so a later logo, colour or number change leaves old boards alone.
+    brand: {
+      name: org.name,
+      logoUrl: org.logoUrl,
+      backgroundColor: org.backgroundColor,
+      primaryColor: org.primaryColor,
+      accentColor: org.accentColor,
+      contactLine: org.contactLine,
+    },
+  };
+
+  return input.type === "FOREX"
+    ? {
+        v: 1,
+        type: "FOREX",
+        quoteCurrency: org.quoteCurrency,
+        content: shared,
+        rows: input.rows,
+      }
+    : { v: 1, type: "POF", content: shared, rows: input.rows };
+}
+
 export function buildSnapshot(input: BuildInput<"FOREX">): ForexSnapshot;
 export function buildSnapshot(input: BuildInput<"POF">): PofSnapshot;
 export function buildSnapshot(
   input: BuildInput<"FOREX"> | BuildInput<"POF">,
 ): BoardSnapshot {
-  const { org, type, rows, content = {}, now } = input;
-  const defaults = CONTENT_DEFAULTS[type];
-
-  const candidate = {
-    v: 1,
-    type,
-    ...(type === "FOREX" ? { quoteCurrency: org.quoteCurrency } : {}),
-    content: {
-      headline: content.headline ?? defaults.headline,
-      subheading:
-        content.subheading !== undefined
-          ? content.subheading
-          : defaults.subheading,
-      note: content.note !== undefined ? content.note : defaults.note,
-      reach: content.reach !== undefined ? content.reach : defaults.reach,
-      ctaLabel: content.ctaLabel ?? defaults.ctaLabel,
-      finePrint:
-        content.finePrint !== undefined
-          ? content.finePrint
-          : (org.defaultFinePrint ?? defaults.finePrint),
-      dateLabel: formatBoardDate(now, org.timezone),
-      timeLabel: formatBoardTime(now, org.timezone),
-      // Copied, so a later logo, colour or number change leaves old boards alone.
-      brand: {
-        name: org.name,
-        logoUrl: org.logoUrl,
-        backgroundColor: org.backgroundColor,
-        primaryColor: org.primaryColor,
-        accentColor: org.accentColor,
-        contactLine: org.contactLine,
-      },
-    },
-    rows,
-  };
-
-  const parsed = boardSnapshotV1.safeParse(candidate);
+  const parsed = boardSnapshotV1.safeParse(assembleSnapshot(input));
   if (!parsed.success) throw new SnapshotError(parsed.error.issues);
   return parsed.data;
 }

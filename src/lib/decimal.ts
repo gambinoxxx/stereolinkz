@@ -8,6 +8,12 @@ type DecimalLike = { toFixed(): string };
 
 const DECIMAL_PATTERN = /^-?\d+(\.\d+)?$/;
 
+// True for plain decimals such as "1365" or "3.40" (what toDecimalString
+// accepts); false for half-typed input such as "13." or "—".
+export function isDecimalString(value: string): boolean {
+  return DECIMAL_PATTERN.test(value);
+}
+
 export function toDecimalString(value: DecimalLike | string): string {
   const text = typeof value === "string" ? value.trim() : value.toFixed();
   if (!DECIMAL_PATTERN.test(text)) {

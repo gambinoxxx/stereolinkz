@@ -9,6 +9,7 @@ export const forexPurpleSignal: BoardTemplate<"FOREX"> = {
   name: "Purple Signal",
   description: "Deep purple, gold sell prices. Built for WhatsApp Status.",
   maxRows: 4,
+  theme: "purple-signal",
   render: (snapshot) => (
     <ForexBoard
       snapshot={snapshot}

@@ -9,6 +9,7 @@ export const forexDaylight: BoardTemplate<"FOREX"> = {
   name: "Daylight",
   description: "Light lavender background with purple type.",
   maxRows: 4,
+  theme: "daylight",
   render: (snapshot) => (
     <ForexBoard
       snapshot={snapshot}

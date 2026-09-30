@@ -4,6 +4,7 @@ import type {
   ForexSnapshot,
   PofSnapshot,
 } from "@/features/boards/build-snapshot";
+import type { ThemeName } from "@/features/templates/theme";
 
 export type TemplateType = "FOREX" | "POF";
 
@@ -21,5 +22,6 @@ export type BoardTemplate<T extends TemplateType = TemplateType> = {
   name: string;
   description: string;
   maxRows: number;
+  theme: ThemeName; // its colour set, for swatches (the generator's template step)
   render: (snapshot: SnapshotOf<T>) => ReactElement;
 };

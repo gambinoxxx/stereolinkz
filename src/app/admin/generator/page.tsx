@@ -1,12 +1,36 @@
-import { Sparkles } from "lucide-react";
+import { z } from "zod";
 
-import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
+import { Generator } from "@/features/boards/components/Generator";
+import { getGeneratorData } from "@/features/boards/queries";
+import { isTemplateKey } from "@/features/templates/registry";
 import { requireMember } from "@/lib/server/auth";
 
-// Placeholder until Phase 7.
-export default async function GeneratorPage() {
-  await requireMember();
+// generateBoard runs in this page's function: rendering takes ~0.5 s warm
+// and the upload a little more, so 30 s leaves room for a cold start.
+export const maxDuration = 30;
+
+const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+
+const searchSchema = z.object({
+  type: z.preprocess(first, z.enum(["FOREX", "POF"]).catch("FOREX")),
+  template: z.preprocess(first, z.string().optional().catch(undefined)),
+  // "Use these rates again" (Phase 8) links here with ?from=<boardId>. Read
+  // now, prefilled in Phase 8.
+  from: z.preprocess(first, z.string().optional().catch(undefined)),
+});
+
+export default async function GeneratorPage({
+  searchParams,
+}: PageProps<"/admin/generator">) {
+  const { organizationId } = await requireMember();
+  const { type, template } = searchSchema.parse(await searchParams);
+  const data = await getGeneratorData(organizationId);
+  // A key from the URL must be registered and of this type.
+  const templateKey =
+    template && isTemplateKey(template, type)
+      ? template
+      : data.defaultTemplates[type];
 
   return (
     <>
@@ -14,10 +38,11 @@ export default async function GeneratorPage() {
         title="Generator"
         description="Choose a board, check the preview, then generate a 1080 × 1920 image for WhatsApp Status."
       />
-      <EmptyState
-        icon={Sparkles}
-        title="Coming in Phase 7"
-        description="Pick rates and a template, preview the board and generate it here."
+      <Generator
+        data={data}
+        initialType={type}
+        initialTemplateKey={templateKey}
+        renderedAt={new Date().toISOString()}
       />
     </>
   );

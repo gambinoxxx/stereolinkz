@@ -20,6 +20,7 @@ import {
 } from "@/features/templates/text-rules";
 import { BANK_MARK_HEX, type BoardTheme } from "@/features/templates/theme";
 import { bankMarkIndex, bankMonogram } from "@/lib/bank-mark";
+import { isDecimalString } from "@/lib/decimal";
 import { formatBoardPrice, formatPercent } from "@/lib/format";
 
 export const BOARD_W = 1080;
@@ -393,6 +394,36 @@ function Flag({
   );
 }
 
+// Saved boards always hold decimals. The generator's live preview may pass
+// a value that isn't one yet ("—" for "13."), which is printed as given.
+function boardPrice(value: string): string {
+  return isDecimalString(value) ? formatBoardPrice(value) : value;
+}
+
+function boardPercent(value: string): string {
+  return isDecimalString(value) ? formatPercent(value) : value;
+}
+
+// Preview only: a snapshot never has zero rows (boardSnapshotV1), but the
+// generator's preview does while every row is unticked.
+function NoRows({ theme }: { theme: BoardTheme }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        padding: "56px 0",
+        borderTop: divider(theme),
+        fontSize: 36,
+        fontWeight: 600,
+        color: theme.cardMuted,
+      }}
+    >
+      Tick at least one rate
+    </div>
+  );
+}
+
 function PricePill({
   value,
   bg,
@@ -402,7 +433,7 @@ function PricePill({
   bg: string;
   fg: string;
 }) {
-  const text = formatBoardPrice(value);
+  const text = boardPrice(value);
   return (
     <div
       style={{
@@ -460,6 +491,7 @@ export function ForexBoard({
             </div>
           ))}
         </div>
+        {rows.length === 0 ? <NoRows theme={theme} /> : null}
         {rows.map((row) => (
           <div
             key={row.currencyId}
@@ -653,6 +685,7 @@ export function PofBoard({
             Per month
           </div>
         </div>
+        {rows.length === 0 ? <NoRows theme={theme} /> : null}
         {rows.map((row) => {
           const label = row.shortName ?? row.name;
           const below = pofNoteBelow(label, row.note);
@@ -705,12 +738,12 @@ export function PofBoard({
                   justifyContent: "center",
                   backgroundColor: theme.primary,
                   color: theme.primaryText,
-                  fontSize: percentPillFontSize(formatPercent(row.rate)),
+                  fontSize: percentPillFontSize(boardPercent(row.rate)),
                   fontWeight: 800,
                   letterSpacing: -1,
                 }}
               >
-                {formatPercent(row.rate)}
+                {boardPercent(row.rate)}
               </div>
             </div>
           );
