@@ -4,6 +4,7 @@ import {
   formatBoardDate,
   formatBoardPrice,
   formatBoardTime,
+  formatBoardDay,
   formatDayHeading,
   formatShortDateTime,
   formatUpdatedAt,
@@ -154,5 +155,20 @@ describe("formatShortDateTime", () => {
         "Africa/Lagos",
       ),
     ).toBe("26 Sept, 8:55 AM");
+  });
+});
+
+describe("formatBoardDay", () => {
+  const now = new Date("2026-09-27T09:00:00Z");
+  it("says Today in the org zone, else a short weekday date", () => {
+    expect(formatBoardDay(new Date("2026-09-26T23:30:00Z"), now, LAGOS)).toBe(
+      "Today",
+    );
+    expect(formatBoardDay(new Date("2026-09-25T10:40:00Z"), now, LAGOS)).toBe(
+      "Fri 25 Sept",
+    );
+    expect(formatBoardDay(new Date("2025-09-25T10:40:00Z"), now, LAGOS)).toBe(
+      "Thu 25 Sept 2025",
+    );
   });
 });

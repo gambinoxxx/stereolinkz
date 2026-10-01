@@ -3,18 +3,25 @@
 import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { buildSnapshot, toSnapshotOrg } from "@/features/boards/build-snapshot";
 import { diffRates } from "@/features/boards/diff";
+import {
+  type BoardListItem,
+  decodeCursor,
+  historyType,
+  readSnapshot,
+} from "@/features/boards/history";
+import { listBoards } from "@/features/boards/queries";
+import { imageRow, renderAndStore } from "@/features/boards/render-and-store";
 import { describeIssues, generateInput } from "@/features/boards/schema";
 import type { BoardSnapshot } from "@/features/boards/snapshot";
 import { RATE_ERRORS } from "@/features/forex-rates/schema";
 import { PERCENT_ERRORS } from "@/features/pof-rates/schema";
-import { getTemplate } from "@/features/templates/registry";
+import { getTemplate, isTemplateKey } from "@/features/templates/registry";
 import { toDecimalString } from "@/lib/decimal";
-import { renderBoardPng } from "@/lib/render/render-board";
 import { type ActionResult, safeAction } from "@/lib/server/action";
-import { deleteBlob, uploadBoardPng } from "@/lib/server/blob";
 import { db } from "@/lib/server/db";
 import { isCheckViolation } from "@/lib/server/prisma-errors";
 
@@ -129,37 +136,17 @@ const generate = safeAction(
             now: new Date(),
           });
 
-    // 5. Render. Nothing has been written yet.
-    let rendered;
-    try {
-      rendered = await renderBoardPng(snapshot, template.key);
-    } catch (error) {
-      console.error("[generateBoard] render failed", error);
-      return { ok: false, error: FAILED };
-    }
-
-    // 6. Upload. Still nothing written.
-    const uploadStarted = performance.now();
+    // 5–8. Render, upload, then one transaction: the edited rates
+    // (Invariant 2: inserts only), the board with its snapshot, and the
+    // image. Nothing is written until the PNG is stored, and a failed
+    // transaction removes it again (renderAndStore).
     const boardId = randomUUID();
-    const imageId = randomUUID();
-    const pathname = `boards/${organizationId}/${boardId}/${imageId}.png`;
-    let blob;
-    try {
-      blob = await uploadBoardPng(rendered.png, pathname);
-    } catch (error) {
-      console.error("[generateBoard] upload failed", error);
-      // A timed-out upload may still have landed; the path is ours alone.
-      await deleteBlob(pathname);
-      return { ok: false, error: FAILED };
-    }
-
-    const uploadMs = Math.round(performance.now() - uploadStarted);
-
-    // 7. One transaction: the edited rates (Invariant 2: inserts only),
-    // the board with its snapshot, and the image.
-    const saveStarted = performance.now();
-    try {
-      await db.$transaction([
+    const stored = await renderAndStore({
+      snapshot,
+      template,
+      organizationId,
+      boardId,
+      writes: (image) => [
         ...prepared.rateInserts,
         db.rateBoard.create({
           data: {
@@ -173,53 +160,120 @@ const generate = safeAction(
             createdById: userId,
           },
         }),
-        db.rateBoardImage.create({
-          data: {
-            id: imageId,
-            rateBoardId: boardId,
-            format: "story",
-            width: rendered.width,
-            height: rendered.height,
-            templateKey: template.key,
-            templateVersion: template.version,
-            blobUrl: blob.url,
-            blobPathname: blob.pathname,
-            byteSize: rendered.png.byteLength,
-            createdById: userId,
-          },
-        }),
-      ]);
-    } catch (error) {
-      // 8. Nothing was saved, so the image goes too.
-      await deleteBlob(blob.url);
-      if (isCheckViolation(error, "forex_sell_gte_buy"))
+        imageRow(image, boardId, template, userId),
+      ],
+    });
+    if (!stored.ok) {
+      if (isCheckViolation(stored.error, "forex_sell_gte_buy"))
         return { ok: false, error: RATE_ERRORS.sellBelowBuy };
-      if (isCheckViolation(error, "pof_rate_range"))
+      if (isCheckViolation(stored.error, "pof_rate_range"))
         return { ok: false, error: PERCENT_ERRORS.range };
-      console.error("[generateBoard] transaction failed", error);
+      console.error(`[generateBoard] ${stored.stage} failed`, stored.error);
       return { ok: false, error: FAILED };
     }
 
-    const saveMs = Math.round(performance.now() - saveStarted);
-
     // 9–10.
     revalidateBoardPages();
+    const { renderMs, uploadMs, saveMs } = stored.timings;
     console.info(
-      `[generateBoard] ${template.key}: render ${rendered.ms} ms, upload ${uploadMs} ms, save ${saveMs} ms (${rendered.png.byteLength} bytes, ${prepared.rateInserts.length} rates)`,
+      `[generateBoard] ${template.key}: render ${renderMs} ms, upload ${uploadMs} ms, save ${saveMs} ms (${stored.image.byteSize} bytes, ${prepared.rateInserts.length} rates)`,
     );
     return {
       ok: true,
       data: {
         boardId,
-        imageUrl: blob.url,
+        imageUrl: stored.image.url,
         savedRates: prepared.rateInserts.length,
         generatedAtLabel: snapshot.content.timeLabel,
-        renderMs: rendered.ms,
+        renderMs,
         snapshot,
       },
     };
   },
 );
+
+// Regenerate (history-regenerate.html): the stored snapshot, exactly as it
+// is, drawn again with a template of the same type. Only a RateBoardImage
+// is added: the RateBoard row, its templateKey and snapshot stay as they
+// were (Invariant 3), no rates are written, and the original image stays.
+// The download route serves the newest image.
+const regenerateInput = z.object({
+  boardId: z.string().min(1).max(64),
+  templateKey: z.string().min(1).max(100),
+});
+
+const REGENERATE_FAILED = "The image couldn't be generated. Try again.";
+
+const regenerate = safeAction(
+  async (
+    { organizationId, userId },
+    raw: unknown,
+  ): Promise<
+    ActionResult<{ imageId: string; imageUrl: string; renderMs: number }>
+  > => {
+    const parsed = regenerateInput.safeParse(raw);
+    if (!parsed.success)
+      return { ok: false, error: "That board couldn't be found." };
+    const { boardId, templateKey } = parsed.data;
+
+    const board = await db.rateBoard.findFirst({
+      where: { id: boardId, organizationId },
+      select: { id: true, type: true, snapshot: true, snapshotVersion: true },
+    });
+    if (!board) return { ok: false, error: "That board couldn't be found." };
+
+    // Validated before rendering (Invariant 4).
+    const snapshot = readSnapshot(board.snapshotVersion, board.snapshot);
+    if (!snapshot)
+      return { ok: false, error: "This board can't be regenerated." };
+    if (
+      board.type === "CUSTOM" ||
+      snapshot.type !== board.type ||
+      !isTemplateKey(templateKey, board.type)
+    )
+      return {
+        ok: false,
+        error:
+          "That template isn't available for this board. Pick another one.",
+      };
+    const template = getTemplate(templateKey);
+
+    // No buildSnapshot, no clock, no current rates or brand: the snapshot
+    // as stored. Its logo URLs still work because blobs are never replaced.
+    const stored = await renderAndStore({
+      snapshot,
+      template,
+      organizationId,
+      boardId: board.id,
+      writes: (image) => [imageRow(image, board.id, template, userId)],
+    });
+    if (!stored.ok) {
+      console.error(`[regenerateBoard] ${stored.stage} failed`, stored.error);
+      return { ok: false, error: REGENERATE_FAILED };
+    }
+
+    revalidatePath("/admin/history");
+    const { renderMs, uploadMs, saveMs } = stored.timings;
+    console.info(
+      `[regenerateBoard] ${template.key}: render ${renderMs} ms, upload ${uploadMs} ms, save ${saveMs} ms (${stored.image.byteSize} bytes)`,
+    );
+    return {
+      ok: true,
+      data: {
+        imageId: stored.image.imageId,
+        imageUrl: stored.image.url,
+        renderMs,
+      },
+    };
+  },
+);
+
+export async function regenerateBoard(input: {
+  boardId: string;
+  templateKey: string;
+}) {
+  return regenerate(input);
+}
 
 async function prepareForex(
   organizationId: string,
@@ -382,4 +436,31 @@ async function rowLabels(
 // A "use server" file may only export async functions.
 export async function generateBoard(input: unknown) {
   return generate(input);
+}
+
+// History "Load more": the next page after a cursor, org-scoped.
+const loadMore = safeAction(
+  async (
+    { organizationId },
+    rawType: unknown,
+    rawCursor: unknown,
+  ): Promise<
+    ActionResult<{ boards: BoardListItem[]; nextCursor: string | null }>
+  > => {
+    const cursor = decodeCursor(rawCursor);
+    if (!cursor)
+      return {
+        ok: false,
+        error: "Couldn't load more boards. Refresh the page.",
+      };
+    const page = await listBoards(organizationId, {
+      type: historyType.parse(rawType),
+      cursor,
+    });
+    return { ok: true, data: page };
+  },
+);
+
+export async function loadMoreBoards(type: unknown, cursor: unknown) {
+  return loadMore(type, cursor);
 }

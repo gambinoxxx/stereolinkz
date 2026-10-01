@@ -172,6 +172,19 @@ export function formatDayHeading(
     : formatLongDate(date, timeZone);
 }
 
+// Board detail subtitles: "Today", otherwise "Fri 25 Sept" (with the year
+// when it isn't this year in the org zone). Callers add " at <time>".
+export function formatBoardDay(
+  date: Date,
+  now: Date,
+  timeZone: string,
+): string {
+  if (isSameOrgDay(date, now, timeZone)) return "Today";
+  const p = zonedParts(date, timeZone);
+  const year = zonedParts(now, timeZone).year === p.year ? "" : ` ${p.year}`;
+  return `${WEEKDAYS_SHORT[p.weekday]} ${p.day} ${MONTHS_SHORT[p.month - 1]}${year}`;
+}
+
 // Short date: "22 Sept", with the year when it isn't the current year in
 // the org zone ("22 Sept 2025"), so an old rate never reads as recent.
 function formatShortDate(date: Date, now: Date, timeZone: string): string {
