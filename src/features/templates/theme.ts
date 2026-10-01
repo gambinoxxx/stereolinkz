@@ -178,3 +178,18 @@ export function boardTheme(
         : base.background,
   };
 }
+
+// Settings: the colours a new organization starts with (Purple Signal's
+// own), and the text each brand colour sits under on boards (for the
+// contrast warning).
+export const BRAND_DEFAULTS = {
+  backgroundColor: PURPLE_STOPS[1],
+  primaryColor: BASE["purple-signal"].primary,
+  accentColor: BASE["purple-signal"].accent,
+} as const;
+
+export const BRAND_TEXT = {
+  onBackground: BASE["purple-signal"].text, // white headline
+  onPrimary: BASE["purple-signal"].primaryText, // white on buy pills
+  onAccent: BASE["purple-signal"].accentText, // dark on sell pills
+} as const;

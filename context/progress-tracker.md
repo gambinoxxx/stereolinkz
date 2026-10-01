@@ -9,10 +9,31 @@ change.
 
 ## Current Goal
 
-- Phase 9: Settings (`orgSettingsInput`, `updateOrgSettings`, logo, contrast warning)
+- Phase 9: brand on boards (board A / board B check, then put settings back)
 
 ## Completed
 
+- 2026-10-01: Phase 9, Settings. `orgSettingsInput` (shared; 14 tests with
+  the contrast helper): name 2–40, WhatsApp number via
+  `normalizeWhatsAppNumber` (`08031234567`, `+2348031234567`, dashes,
+  `00…` → `+234 803 123 4567`; other countries + and digits), optional
+  email, `#RRGGBB` / `#RGB` colours uppercased, IANA time zone, small
+  print ≤ 120 (empty → null). `contrastRatio` (WCAG) and a warning under
+  each swatch below 4.5:1 (rounded down; saving still allowed).
+  `updateOrgSettings` updates only the Organization ("No changes to save"
+  when equal) and revalidates `/admin`, settings, generator, templates.
+  `uploadOrgLogo` / `removeOrgLogo` save at once to
+  `orgs/{org}/logo-{uuid}.{ext}` and never delete a file. `SettingsForm`
+  (RHF + zodResolver; hex input + native picker in sync; native time-zone
+  select, common zones first; read-only image size; disabled Team section;
+  Save disabled when clean; leaving with changes asks). Checked: invalid
+  number and colour show their errors; email and buy colour saved,
+  survived a reload, then were put back (identical to before); the leave
+  prompt fired; two test logos uploaded to two paths, both still in Blob
+  after "Remove logo" (logo back to none, wordmark on new boards); both
+  widths match `settings.html`. Key files: `src/features/settings/{schema,contrast,actions}.ts`,
+  `src/features/settings/components/{SettingsForm,OrgLogoField}.tsx`,
+  `src/app/admin/settings/page.tsx`.
 - 2026-10-01: Phase 9, dashboard. `getDashboard(orgId, now)`: the org's
   time zone, then 10 queries in one `Promise.all` (currency `groupBy`,
   two bank counts, boards today + the last one since

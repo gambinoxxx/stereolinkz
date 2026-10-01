@@ -31,14 +31,17 @@ export async function validateImage(
 }
 
 // Public, and never overwritten: the random suffix gives every upload a
-// new URL (Invariant 12), so boards that reference an old logo keep it.
+// new URL (Invariant 12), so boards that reference an old logo keep it. A
+// caller whose path is already unique (a fresh UUID) can skip the suffix;
+// put() still refuses to overwrite.
 export async function uploadImage(
   image: ValidImage,
   pathname: string,
+  { randomSuffix = true }: { randomSuffix?: boolean } = {},
 ): Promise<{ url: string; pathname: string }> {
   const blob = await put(pathname, Buffer.from(image.bytes), {
     access: "public",
-    addRandomSuffix: true,
+    addRandomSuffix: randomSuffix,
     contentType: image.contentType,
   });
   return { url: blob.url, pathname: blob.pathname };
