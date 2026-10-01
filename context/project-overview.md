@@ -3,7 +3,7 @@
 ## Overview
 
 RateBoard is an internal web app for Stereolinkz that turns the day's
-forex and proof-of-funds (POF) rates into branded 1080 × 1920 images
+forex, proof-of-funds (POF) and crypto rates into branded 1080 × 1920 images
 for WhatsApp Status. Today an admin checks the rates, edits the numbers
 in a design tool, exports the graphic and posts it. RateBoard replaces
 that manual design step. The admin updates rates in a table, sees a
@@ -18,8 +18,8 @@ rate calculator.
 
 1. From sign-in, an admin can update a rate and download a finished
    board in under 60 seconds, on a phone or a laptop.
-2. Banks and currencies are database records. Adding "Access Bank" or
-   "CAD" never needs a code or schema change.
+2. Banks, currencies and coins are database records. Adding "Access
+   Bank", "CAD" or "TON" never needs a code or schema change.
 3. Every rate change is kept as history, and every generated board keeps
    an immutable snapshot of the exact data it showed.
 4. Rate data and visual design are separate. The same data can be
@@ -31,10 +31,10 @@ rate calculator.
 
 1. Admin signs in with Clerk (`/login`) and lands on the dashboard (`/admin`).
 2. Admin updates a rate, either from the dashboard's pencil buttons or
-   from `/admin/forex` or `/admin/pof`, in a side drawer. Saving adds a
+   from `/admin/forex`, `/admin/pof` or `/admin/crypto`, in a side drawer. Saving adds a
    new rate record; the old one stays in history.
 3. Admin opens the generator (`/admin/generator`) and picks a board type
-   (Forex or POF).
+   (Forex, POF or Crypto).
 4. Admin picks a template. The organization default is preselected.
 5. The current active rates are prefilled. Admin can untick rows or make
    last-minute edits, which are highlighted in gold.
@@ -75,6 +75,24 @@ rate calculator.
 - Edit and add in a side drawer. Validation: 0 ≤ rate ≤ 100.
 - Callout for active banks that have no rate yet.
 
+### Crypto rates (`/admin/crypto`)
+
+- Table of coins (BTC, USDT, ETH and alt coins) with buy, sell, spread,
+  change since the previous rate, networks (for example TRC20, BEP20),
+  last updated, and an active switch.
+- Rates are **naira per $1 of coin value**. For stablecoins (USDT,
+  USDC) that is the same as naira per coin. Example: a customer selling
+  $500 of BTC at ₦1,580 receives ₦790,000.
+- Edit and add in a side drawer with recent history. Add takes a
+  ticker, name, networks, an optional icon (otherwise a letter badge)
+  and the first rates. Edit changes the rates, the networks and the
+  icon; the ticker is fixed once the coin is added.
+- Activate/deactivate coins; drag rows to set their order on boards.
+- Validation: buy > 0, sell > 0, sell ≥ buy; the ticker is 2–6
+  uppercase letters or digits and unique.
+- A crypto board fits 6 coins. A note in the card covers coins that
+  are not on the board ("Also trading TRX, LTC and TON. Ask for a rate.").
+
 ### Banks (`/admin/banks`)
 
 - Add, edit, activate and deactivate banks. Upload a logo; set a short
@@ -85,7 +103,7 @@ rate calculator.
 
 ### Templates (`/admin/templates`)
 
-- Browse templates by type (Forex, POF, Custom placeholder) with live
+- Browse templates by type (Forex, POF, Crypto, Custom placeholder) with live
   thumbnails drawn from current rates.
 - Set the default template per board type; open a template in the generator.
 - MVP ships two templates per type: "Purple Signal" (dark) and "Daylight" (light).
@@ -112,7 +130,7 @@ rate calculator.
 
 - Four stats: active currencies, active POF banks, boards today, last rate change.
 - Today's forex and POF rates with inline edit, the 3 most recent
-  boards and the 5 most recent rate changes.
+  boards and the 5 most recent rate changes (forex, POF and crypto).
 
 ### Settings (`/admin/settings`)
 
@@ -129,7 +147,8 @@ rate calculator.
 - Admin sign-in and server-side membership checks
 - Currency and forex rate management with history
 - Bank management with logos, and POF rate management with history
-- Two Forex templates and two POF templates, defined in code
+- Coin and crypto rate management with history, and crypto boards
+- Two templates each for Forex, POF and Crypto, defined in code
 - Generator with live preview, 1080 × 1920 PNG generation, and download
 - Board history with immutable snapshots, view, download and regenerate
 - Settings for company details and brand colours
@@ -141,7 +160,9 @@ rate calculator.
 - Multiple companies / SaaS sign-up (the schema allows it later)
 - Roles beyond a single admin level (Owner/Admin/Editor/Viewer come later)
 - Automatic rate feeds or external rate APIs
-- Crypto, gift card, wire transfer or custom board types (enum room only)
+- Gift card, wire transfer or custom board types (enum room only)
+- Live crypto prices or exchange feeds; crypto rates are set by hand
+- Per-network or per-amount crypto rates (one buy/sell per coin)
 - Visual template editor; templates are code
 - Posting directly to WhatsApp (the admin downloads and posts)
 - Board drafts (a board exists only once generated)
@@ -170,3 +191,6 @@ rate calculator.
 9. The full flow (update rate → generate → download) works on a
    390px-wide phone screen.
 10. `npm run build` passes with TypeScript strict mode and no `any`.
+11. A coin (for example TON) can be added with its rate and shown on a
+    new crypto board without touching code or the Prisma schema, and a
+    crypto board made before a rate change still shows the old rate.

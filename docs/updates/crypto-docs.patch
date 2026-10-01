@@ -1,0 +1,477 @@
+--- a/context/architecture.md
++++ b/context/architecture.md
+@@ -9,7 +9,7 @@
+ | Forms            | React Hook Form + Zod                         | Client forms; the same Zod schemas validate on the server |
+ | Auth             | Clerk                                         | Sign-in and session. Authorization comes from our own `Membership` table |
+ | Database         | PostgreSQL + Prisma ORM                       | All records, rate history, board snapshots |
+-| File storage     | Vercel Blob                                   | Bank logos, organization logo, generated PNGs |
++| File storage     | Vercel Blob                                   | Bank logos, coin icons, organization logo, generated PNGs |
+ | Image rendering  | Satori (JSX → SVG) + `@resvg/resvg-js` (SVG → PNG) | Server-side board rendering at 1080 × 1920 |
+ | Hosting          | Vercel (Node.js runtime for rendering)        | App, server actions, render route |
+ 
+@@ -22,16 +22,17 @@
+ src/
+   app/
+     (auth)/login/[[...login]]/    Clerk sign-in page
+-    admin/                        Protected pages: page, forex, pof, banks,
++    admin/                        Protected pages: page, forex, pof, crypto, banks,
+                                   templates, generator, history, settings
+     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
+   features/
+-    currencies/  forex-rates/  banks/  pof-rates/  boards/  settings/
++    currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
++    boards/  settings/
+                                   Each has: schema.ts (Zod), queries.ts
+                                   (server-only reads), actions.ts (server
+                                   actions), components/ (feature UI)
+     boards/snapshot.ts            Zod schema + types for RateBoard.snapshot (the template contract)
+-    templates/                    registry.ts, types.ts, theme.ts, forex/*, pof/*,
++    templates/                    registry.ts, types.ts, theme.ts, forex/*, pof/*, crypto/*,
+                                   assets/flags/* (bundled flag SVGs)
+   lib/
+     server/                       db.ts (Prisma client), auth.ts (requireMember),
+@@ -61,11 +62,11 @@
+ ## Storage Model
+ 
+ - **PostgreSQL (via Prisma)**: organizations, memberships, currencies,
+-  banks, every forex and POF rate ever saved, rate boards with their
++  banks, coins, every forex, POF and crypto rate ever saved, rate boards with their
+   JSON snapshot, and image metadata (Blob URL, pathname, size, format,
+   template key and version).
+-- **Vercel Blob**: bank logos, the organization logo and generated
+-  PNGs. A blob is never overwritten; a new upload gets a new URL, so
++- **Vercel Blob**: bank logos, coin icons, the organization logo and
++  generated PNGs. A blob is never overwritten; a new upload gets a new URL, so
+   old snapshots keep pointing at the file they used. Board PNGs live at
+   `boards/{organizationId}/{rateBoardId}/{imageId}.png`.
+ - **Code (git)**: templates, flag SVGs and fonts. The database stores
+@@ -77,6 +78,7 @@
+ Organization ─┬─ Membership (clerkUserId, role)
+               ├─ Currency ── ForexRate[]      (append-only)
+               ├─ Bank ────── PofRate[]        (append-only)
++              ├─ Coin ────── CryptoRate[]     (append-only)
+               └─ RateBoard ── RateBoardImage[]
+ ```
+ 
+@@ -84,7 +86,8 @@
+   currency (`NGN`), brand fields (logoUrl, backgroundColor,
+   primaryColor for buy/rates, accentColor for sell/highlights,
+   contactLine = WhatsApp number, email) and board defaults
+-  (defaultFinePrint, defaultForexTemplateKey, defaultPofTemplateKey).
++  (defaultFinePrint, defaultForexTemplateKey, defaultPofTemplateKey,
++  defaultCryptoTemplateKey).
+   The MVP has exactly one, created by the seed.
+ - **Membership**: `(organizationId, clerkUserId)` unique, `role` enum
+   (OWNER, ADMIN, EDITOR, VIEWER). The MVP treats every member as a full
+@@ -94,7 +97,11 @@
+ - **Bank**: name, shortName, `slug` (normalized name, unique per org),
+   logoUrl, sortOrder, `status`, `pofActive` (whether the bank's POF
+   rate appears on new POF boards).
+-- **RecordStatus** enum on Currency and Bank: `ACTIVE` (shown and
++- **Coin**: `ticker` (2–6 uppercase letters or digits, unique per
++  org), name, `networks` (string list, display only, e.g.
++  `["TRC20", "BEP20"]`), `iconUrl`, `badgeColor` (hex for the letter
++  badge when there is no icon), `sortOrder`, `status`.
++- **RecordStatus** enum on Currency, Bank and Coin: `ACTIVE` (shown and
+   usable), `INACTIVE` (managed but hidden from new boards), `ARCHIVED`
+   (soft-deleted; kept for history).
+ - **ForexRate**: `buy`, `sell` as `Decimal(14,4)`, `createdById`,
+@@ -102,10 +109,14 @@
+   `CHECK (sell >= buy)` is added in the migration SQL.
+ - **PofRate**: `rate` as `Decimal(5,2)` (3.40 = 3.4%), optional `note`,
+   `createdById`, `createdAt`. Never updated.
+-- **Current rate** = the newest row per currency or bank (index on
+-  `[currencyId, createdAt desc]` / `[bankId, createdAt desc]`). There
++- **CryptoRate**: `buy`, `sell` as `Decimal(14,4)` in naira per $1 of
++  coin value, `createdById`, `createdAt`. Never updated.
++  `CHECK (sell >= buy)` is added in the migration SQL.
++- **Current rate** = the newest row per currency, bank or coin (index on
++  `[currencyId, createdAt desc]` / `[bankId, createdAt desc]` /
++  `[coinId, createdAt desc]`). There
+   is no "current" flag to keep in sync.
+-- **RateBoard**: `type` (FOREX, POF, CUSTOM), `templateKey`,
++- **RateBoard**: `type` (FOREX, POF, CRYPTO, CUSTOM), `templateKey`,
+   `templateVersion`, `snapshot` (JSON), `snapshotVersion`,
+   `createdById`, `createdAt`. Created only by Generate. Never updated.
+ - **RateBoardImage**: `format` (`story` = 1080 × 1920), width, height,
+@@ -124,16 +135,17 @@
+ - `rows`:
+   - FOREX: code, name, flagCode, buy, sell
+   - POF: name, shortName, logoUrl, rate, note
++  - CRYPTO: ticker, name, networks (at most 2), iconUrl, badgeColor, buy, sell
+   - CUSTOM: label, value, note
+ - Decimal values stored as strings (`"1365.0000"`, `"3.40"`)
+-- `currencyId` / `bankId` kept for traceability only. They are never
++- `currencyId` / `bankId` / `coinId` kept for traceability only. They are never
+   used to re-read live data when rendering.
+ 
+ ### Generate flow (server action `generateBoard`)
+ 
+ 1. `requireMember()`; parse input with Zod.
+ 2. For each included row whose value differs from the current rate,
+-   prepare a new ForexRate / PofRate.
++   prepare a new ForexRate / PofRate / CryptoRate.
+ 3. Build and validate the snapshot. Check the row count is within the
+    template's `maxRows`.
+ 4. Render PNG in memory (template → Satori SVG → resvg PNG).
+@@ -195,6 +207,16 @@
+   "New account") describes that single rate; there is no `PofOffer`
+   model. Why: confirmed by the owner.
+ - **POF rates are charged per month.** Boards show a "Per month" column.
++- **Crypto is a board type like Forex and POF:** its own tables (Coin,
++  CryptoRate), its own templates, and the same snapshot, generate,
++  history and regenerate flow. Adding CRYPTO to the snapshot union is
++  additive, so `snapshotVersion` stays 1 and old boards still parse.
++- **Crypto rates are naira per $1 of coin value** (per coin for
++  stablecoins), one buy and one sell per coin. Boards say "Naira per
++  $1 of coin". Why: it's how Stereolinkz's customers compare rates,
++  and the numbers stay short.
++- **Networks are display text on the Coin**, not part of rate history.
++  Boards show at most 2.
+ - **Boards store a Zod-validated JSON snapshot** and never reference
+   live rates. Images have their own table, so regenerating adds a row.
+ - **Templates are code**, a registry keyed by key and version; the
+@@ -212,17 +234,17 @@
+ 
+ ## Invariants
+ 
+-1. Banks and currencies are rows. No bank or currency name appears in
+-   the Prisma schema, in a type union, or as a hard-coded list in
++1. Banks, currencies and coins are rows. No bank, currency or coin name
++   (or ticker) appears in the Prisma schema, in a type union, or as a hard-coded list in
+    application code (seed data excepted).
+-2. ForexRate and PofRate rows are append-only: never `update`d, never
++2. ForexRate, PofRate and CryptoRate rows are append-only: never `update`d, never
+    `delete`d. Changing a rate means inserting a row.
+ 3. RateBoard rows and their `snapshot` are immutable after creation.
+ 4. Templates render only from a validated snapshot. They never import
+    Prisma, call `fetch`, or read `Date.now()`.
+ 5. History pages and regeneration read rates from the snapshot, never
+    from current rate tables.
+-6. Currencies and banks with any rate history are never hard-deleted
++6. Currencies, banks and coins with any rate history are never hard-deleted
+    (`onDelete: Restrict` on rate relations). Delete is offered only
+    when the history count is zero.
+ 7. Every server action and route handler calls `requireMember()` before
+--- a/context/code-standards.md
++++ b/context/code-standards.md
+@@ -103,6 +103,7 @@
+ - Snapshots are written once through `boardSnapshotV1.parse()` and read
+   back through the same schema. Bump `snapshotVersion` and add a new
+   schema version if the shape changes; keep old versions readable.
++  Adding a new board type to the union is additive and keeps the version.
+ - Validation rules (shared client/server Zod):
+   - Currency code `^[A-Z]{3}$`, unique per organization
+   - buy > 0, sell > 0, sell ≥ buy
+@@ -110,7 +111,9 @@
+   - POF note ≤ 24 characters
+   - Bank name required, and its slug unique per organization
+   - Short name ≤ 14 characters
+-  - Logos: PNG, SVG or JPEG, ≤ 1 MB
++  - Coin ticker `^[A-Z0-9]{2,6}$`, unique per organization; name ≤ 20
++    characters; up to 4 networks of ≤ 8 characters each
++  - Logos and coin icons: PNG, SVG or JPEG, ≤ 1 MB
+ 
+ ## Testing
+ 
+@@ -126,7 +129,7 @@
+ ## Git
+ 
+ - Work directly on `main`. No feature or phase branches until launch
+-  (revisit in Phase 10, once the site is in daily use).
++  (revisit in Phase 11, once the site is in daily use).
+ - Commit each working piece, imperative and naming the phase:
+   `phase 4: insert ForexRate on save`. Commit the tracker with the code.
+ - **Push only when the standard checks pass** (`build`, `lint`,
+--- a/context/implementation-plan.md
++++ b/context/implementation-plan.md
+@@ -1,6 +1,6 @@
+ # Implementation Plan
+ 
+-The build plan for RateBoard, from an empty repo to production, in 10
++The build plan for RateBoard, from an empty repo to production, in 11
+ phases. Each phase is one block of work: build everything it lists,
+ check it, then move to the next phase. Progress is recorded in
+ `progress-tracker.md` as the work happens.
+@@ -264,7 +264,7 @@
+   - `EmptyState`, `Callout`
+   - `EntityDrawer` (Enter submits)
+ - A dev-only `/admin/dev-kit` page showing every component in every
+-  state (removed in Phase 10)
++  state (removed in Phase 11)
+ 
+ **App shell**
+ - `src/components/shell/`:
+@@ -699,11 +699,85 @@
+ 
+ ---
+ 
+-## Phase 10: Hardening and launch
++## Phase 10: Crypto
++
++- **Goal:** Coins (BTC, USDT, ETH and alt coins) and their rates are
++  managed like currencies, and crypto boards go through the same
++  generate, history and regenerate flow as Forex and POF.
++- **Depends on:** Phases 4, 6, 7, 8 and 9
++- **Read:** `project-overview.md` → Crypto rates; `architecture.md` →
++  Data model (Coin, CryptoRate), Snapshot (CRYPTO rows), Settled
++  Decisions (crypto), Invariants 1, 2, 3, 5, 6, 7, 10, 12;
++  `ui-context.md` → Board Tokens (coin badge, network tag), Layout
++  Patterns (crypto board rows)
++- **Design:** `crypto.html`, `crypto-edit.html`, `crypto-add.html`,
++  `generator-crypto.html`, `stereolinkz-crypto-board.html`, and the
++  Crypto options in `generator*.html` and `history*.html`
++
++### Build
++
++**Schema and snapshot**
++- `Coin`, `CryptoRate`, `RateBoardType.CRYPTO` and
++  `Organization.defaultCryptoTemplateKey`; the migration adds
++  `CHECK (sell >= buy)` on CryptoRate; sample coins in the seed for
++  development
++- `cryptoRow` and the CRYPTO variant of `boardSnapshotV1` (additive;
++  `snapshotVersion` stays 1)
++
++**Crypto rates page**
++- `/admin/crypto`: list with networks, deltas, spread, filter, status
++  switch and reorder, reusing the Phase 4 patterns
++- `saveCryptoRate`, `createCoin` (with icon upload), `updateCoinDetails`
++  (networks, icon), `setCoinStatus`, `reorderCoins`
++- `CoinBadge`; the "Crypto rates" sidebar link
++
++**Templates**
++- `crypto/purple-signal.tsx` and `crypto/daylight.tsx` (maxRows 6);
++  crypto defaults in `defaults.ts`
++- Templates page Crypto tab and default crypto template
++
++**Generator, history and dashboard**
++- Generator type CRYPTO: rows, `generateInput`, and `generateBoard`
++  inserting CryptoRate rows
++- History Crypto filter, rate pills, "Now X", regenerate and `?from`
++- Dashboard: crypto in "Last rate change" and recent rate changes
++- Download filename `stereolinkz-crypto-1025am.png`
++
++### Stop points
++
++- The owner confirms the starting coin list, rates and icons for production
++- The owner posts a crypto board to WhatsApp Status from a real phone
++
++### Done when
++
++- [ ] A new coin (e.g. TON) can be added with or without an icon and
++  its rate edited; each changed save inserts one CryptoRate and an
++  unchanged save inserts nothing
++- [ ] A crypto board generates in both templates and matches
++  `stereolinkz-crypto-board.html`; nothing important sits in the top
++  150px or bottom 320px; a 6-character ticker with a 20-character name
++  and two network tags fits
++- [ ] After a crypto rate change, an older crypto board still shows and
++  regenerates the old values
++- [ ] Existing Forex and POF boards still open, download and regenerate unchanged
++- [ ] Crypto rate changes appear on the dashboard
++
++### Verify
++
++Standard checks; a worst-case render test; a real phone test.
++
++### Not in this phase
++
++Live crypto prices or exchange APIs, per-network or per-amount rates,
++a dashboard crypto panel, deleting coins.
++
++---
++
++## Phase 11: Hardening and launch
+ 
+ - **Goal:** Production-ready and live for Stereolinkz, with every
+   success criterion met.
+-- **Depends on:** Phase 9
++- **Depends on:** Phase 10
+ - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
+ 
+ ### Build
+@@ -762,7 +836,7 @@
+ - At the end of each phase: the owner reviews the Done-when list and
+   screenshots at 1440px and 390px of every page touched, then the phase
+   is tagged `phase-<n>-complete` and pushed.
+-- Before launch (Phase 10), decide whether to switch to short-lived
++- Before launch (Phase 11), decide whether to switch to short-lived
+   branches with Vercel Preview checks once the site is in daily use.
+ 
+ ## Coverage map
+@@ -771,11 +845,12 @@
+ | ----------- | ------ |
+ | Banks are dynamic records | 1 (seed), 3 |
+ | Currencies are dynamic records | 1 (seed), 4 |
+-| Rate history is preserved | 1 (schema), 4, 5, 7 |
+-| Snapshots are immutable | 6, 7, 8 |
++| Coins are dynamic records | 10 |
++| Rate history is preserved | 1 (schema), 4, 5, 7, 10 |
++| Snapshots are immutable | 6, 7, 8, 10 |
+ | Templates are separate from data | 6 |
+ | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
+ | Live preview | 6, 7 |
+-| Admin routes protected on the server | 1, 10 |
+-| Phone-first generator | 2, 7, 10 |
+-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9 |
++| Admin routes protected on the server | 1, 11 |
++| Phone-first generator | 2, 7, 11 |
++| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10 |
+--- a/context/project-overview.md
++++ b/context/project-overview.md
+@@ -3,7 +3,7 @@
+ ## Overview
+ 
+ RateBoard is an internal web app for Stereolinkz that turns the day's
+-forex and proof-of-funds (POF) rates into branded 1080 × 1920 images
++forex, proof-of-funds (POF) and crypto rates into branded 1080 × 1920 images
+ for WhatsApp Status. Today an admin checks the rates, edits the numbers
+ in a design tool, exports the graphic and posts it. RateBoard replaces
+ that manual design step. The admin updates rates in a table, sees a
+@@ -18,8 +18,8 @@
+ 
+ 1. From sign-in, an admin can update a rate and download a finished
+    board in under 60 seconds, on a phone or a laptop.
+-2. Banks and currencies are database records. Adding "Access Bank" or
+-   "CAD" never needs a code or schema change.
++2. Banks, currencies and coins are database records. Adding "Access
++   Bank", "CAD" or "TON" never needs a code or schema change.
+ 3. Every rate change is kept as history, and every generated board keeps
+    an immutable snapshot of the exact data it showed.
+ 4. Rate data and visual design are separate. The same data can be
+@@ -31,10 +31,10 @@
+ 
+ 1. Admin signs in with Clerk (`/login`) and lands on the dashboard (`/admin`).
+ 2. Admin updates a rate, either from the dashboard's pencil buttons or
+-   from `/admin/forex` or `/admin/pof`, in a side drawer. Saving adds a
++   from `/admin/forex`, `/admin/pof` or `/admin/crypto`, in a side drawer. Saving adds a
+    new rate record; the old one stays in history.
+ 3. Admin opens the generator (`/admin/generator`) and picks a board type
+-   (Forex or POF).
++   (Forex, POF or Crypto).
+ 4. Admin picks a template. The organization default is preselected.
+ 5. The current active rates are prefilled. Admin can untick rows or make
+    last-minute edits, which are highlighted in gold.
+@@ -75,6 +75,24 @@
+ - Edit and add in a side drawer. Validation: 0 ≤ rate ≤ 100.
+ - Callout for active banks that have no rate yet.
+ 
++### Crypto rates (`/admin/crypto`)
++
++- Table of coins (BTC, USDT, ETH and alt coins) with buy, sell, spread,
++  change since the previous rate, networks (for example TRC20, BEP20),
++  last updated, and an active switch.
++- Rates are **naira per $1 of coin value**. For stablecoins (USDT,
++  USDC) that is the same as naira per coin. Example: a customer selling
++  $500 of BTC at ₦1,580 receives ₦790,000.
++- Edit and add in a side drawer with recent history. Add takes a
++  ticker, name, networks, an optional icon (otherwise a letter badge)
++  and the first rates. Edit changes the rates, the networks and the
++  icon; the ticker is fixed once the coin is added.
++- Activate/deactivate coins; drag rows to set their order on boards.
++- Validation: buy > 0, sell > 0, sell ≥ buy; the ticker is 2–6
++  uppercase letters or digits and unique.
++- A crypto board fits 6 coins. A note in the card covers coins that
++  are not on the board ("Also trading TRX, LTC and TON. Ask for a rate.").
++
+ ### Banks (`/admin/banks`)
+ 
+ - Add, edit, activate and deactivate banks. Upload a logo; set a short
+@@ -85,7 +103,7 @@
+ 
+ ### Templates (`/admin/templates`)
+ 
+-- Browse templates by type (Forex, POF, Custom placeholder) with live
++- Browse templates by type (Forex, POF, Crypto, Custom placeholder) with live
+   thumbnails drawn from current rates.
+ - Set the default template per board type; open a template in the generator.
+ - MVP ships two templates per type: "Purple Signal" (dark) and "Daylight" (light).
+@@ -112,7 +130,7 @@
+ 
+ - Four stats: active currencies, active POF banks, boards today, last rate change.
+ - Today's forex and POF rates with inline edit, the 3 most recent
+-  boards and the 5 most recent rate changes.
++  boards and the 5 most recent rate changes (forex, POF and crypto).
+ 
+ ### Settings (`/admin/settings`)
+ 
+@@ -129,7 +147,8 @@
+ - Admin sign-in and server-side membership checks
+ - Currency and forex rate management with history
+ - Bank management with logos, and POF rate management with history
+-- Two Forex templates and two POF templates, defined in code
++- Coin and crypto rate management with history, and crypto boards
++- Two templates each for Forex, POF and Crypto, defined in code
+ - Generator with live preview, 1080 × 1920 PNG generation, and download
+ - Board history with immutable snapshots, view, download and regenerate
+ - Settings for company details and brand colours
+@@ -141,7 +160,9 @@
+ - Multiple companies / SaaS sign-up (the schema allows it later)
+ - Roles beyond a single admin level (Owner/Admin/Editor/Viewer come later)
+ - Automatic rate feeds or external rate APIs
+-- Crypto, gift card, wire transfer or custom board types (enum room only)
++- Gift card, wire transfer or custom board types (enum room only)
++- Live crypto prices or exchange feeds; crypto rates are set by hand
++- Per-network or per-amount crypto rates (one buy/sell per coin)
+ - Visual template editor; templates are code
+ - Posting directly to WhatsApp (the admin downloads and posts)
+ - Board drafts (a board exists only once generated)
+@@ -170,3 +191,6 @@
+ 9. The full flow (update rate → generate → download) works on a
+    390px-wide phone screen.
+ 10. `npm run build` passes with TypeScript strict mode and no `any`.
++11. A coin (for example TON) can be added with its rate and shown on a
++    new crypto board without touching code or the Prisma schema, and a
++    crypto board made before a rate change still shows the old rate.
+--- a/context/ui-context.md
++++ b/context/ui-context.md
+@@ -14,9 +14,11 @@
+ | Dashboard | `dashboard.html` |
+ | Forex rates | `forex.html`, `forex-edit.html`, `forex-add.html` |
+ | POF rates | `pof.html`, `pof-edit.html`, `pof-add.html` |
++| Crypto rates | `crypto.html`, `crypto-edit.html`, `crypto-add.html` |
+ | Banks | `banks.html`, `bank-add.html`, `bank-edit.html`, `bank-delete.html` |
+ | Templates | `templates.html` |
+-| Generator | `generator.html`, `generator-edited.html`, `generator-pof.html`, `generator-done.html` |
++| Generator | `generator.html`, `generator-edited.html`, `generator-pof.html`, `generator-crypto.html`, `generator-done.html` |
++| Boards (full size) | `stereolinkz-rate-boards.html` (Forex, POF), `stereolinkz-crypto-board.html` (Crypto, both templates) |
+ | History | `history.html`, `history-board.html`, `history-regenerate.html` |
+ | Settings | `settings.html` |
+ 
+@@ -77,6 +79,8 @@
+ | Sell pill, notes, logo bars | `#E9B949`, `#1F0B3F` text | same |
+ | Contact panel | `rgba(255,255,255,.08)` + border `rgba(255,255,255,.14)` | `#2A0F58`, white text |
+ | Bottom band | 3:1 split `#6A35D9` / `#E9B949`, 22px | same |
++| Coin badge | 80px circle with a 5px white ring: the coin icon, or the first letter of the name on the coin's `badgeColor` | same |
++| Network tag | `#ECE4FA`, `#4B21A6` text, 19px / 700 | `#F1EBFB`, same text |
+ 
+ Organization brand colours from Settings (background, buy/rates,
+ sell/highlights) override these at render time. They are copied into
+@@ -156,7 +160,7 @@
+ - `components/board/BoardFrame`: renders a template at 1080 × 1920 and scales it to its container
+ - `components/board/WhatsAppOverlay`: preview-only overlay (progress bars, name, caption, Reply bar); never part of the PNG
+ - `RateDelta`: up/down arrow with amount, green/red, "No change" in muted
+-- `StatusSwitch`, `BankMark` (logo or letter monogram), `CurrencyFlag` (bundled SVG by `flagCode`)
++- `StatusSwitch`, `BankMark` (logo or letter monogram), `CurrencyFlag` (bundled SVG by `flagCode`), `CoinBadge` (icon or letter on `badgeColor`)
+ 
+ ## Layout Patterns
+ 
+@@ -185,6 +189,10 @@
+   WhatsApp's progress bar and name, and roughly the bottom 320px sits
+   under the caption and Reply bar. Only decoration (the bottom band) or
+   small print may sit in those zones.
++- **Crypto board rows:** coin badge, ticker (50px / 900), then the
++  name with up to 2 network tags, and buy / sell boxes of 200 × 86.
++  Six rows plus the card note fit above the bottom zone; there is no
++  reach paragraph.
+ - **Motion:** only drawer/modal slide, toast entrance and the generate
+   spinner. Respect `prefers-reduced-motion`.
+ 
+@@ -201,6 +209,7 @@
+ | Dashboard | `LayoutGrid` |
+ | Forex | `ArrowLeftRight` |
+ | POF | `Percent` |
++| Crypto | `Coins` |
+ | Banks | `Landmark` |
+ | Generator / Generate | `Sparkles` |
+ | History | `History` |

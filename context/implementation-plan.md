@@ -1,6 +1,6 @@
 # Implementation Plan
 
-The build plan for RateBoard, from an empty repo to production, in 10
+The build plan for RateBoard, from an empty repo to production, in 11
 phases. Each phase is one block of work: build everything it lists,
 check it, then move to the next phase. Progress is recorded in
 `progress-tracker.md` as the work happens.
@@ -265,7 +265,7 @@ template, Blob uploads, saving boards.
   - `EmptyState`, `Callout`
   - `EntityDrawer` (Enter submits)
 - A dev-only `/admin/dev-kit` page showing every component in every
-  state (removed in Phase 10)
+  state (removed in Phase 11)
 
 **App shell**
 - `src/components/shell/`:
@@ -700,11 +700,85 @@ Team invites and roles.
 
 ---
 
-## Phase 10: Hardening and launch
+## Phase 10: Crypto
+
+- **Goal:** Coins (BTC, USDT, ETH and alt coins) and their rates are
+  managed like currencies, and crypto boards go through the same
+  generate, history and regenerate flow as Forex and POF.
+- **Depends on:** Phases 4, 6, 7, 8 and 9
+- **Read:** `project-overview.md` → Crypto rates; `architecture.md` →
+  Data model (Coin, CryptoRate), Snapshot (CRYPTO rows), Settled
+  Decisions (crypto), Invariants 1, 2, 3, 5, 6, 7, 10, 12;
+  `ui-context.md` → Board Tokens (coin badge, network tag), Layout
+  Patterns (crypto board rows)
+- **Design:** `crypto.html`, `crypto-edit.html`, `crypto-add.html`,
+  `generator-crypto.html`, `stereolinkz-crypto-board.html`, and the
+  Crypto options in `generator*.html` and `history*.html`
+
+### Build
+
+**Schema and snapshot**
+- `Coin`, `CryptoRate`, `RateBoardType.CRYPTO` and
+  `Organization.defaultCryptoTemplateKey`; the migration adds
+  `CHECK (sell >= buy)` on CryptoRate; sample coins in the seed for
+  development
+- `cryptoRow` and the CRYPTO variant of `boardSnapshotV1` (additive;
+  `snapshotVersion` stays 1)
+
+**Crypto rates page**
+- `/admin/crypto`: list with networks, deltas, spread, filter, status
+  switch and reorder, reusing the Phase 4 patterns
+- `saveCryptoRate`, `createCoin` (with icon upload), `updateCoinDetails`
+  (networks, icon), `setCoinStatus`, `reorderCoins`
+- `CoinBadge`; the "Crypto rates" sidebar link
+
+**Templates**
+- `crypto/purple-signal.tsx` and `crypto/daylight.tsx` (maxRows 6);
+  crypto defaults in `defaults.ts`
+- Templates page Crypto tab and default crypto template
+
+**Generator, history and dashboard**
+- Generator type CRYPTO: rows, `generateInput`, and `generateBoard`
+  inserting CryptoRate rows
+- History Crypto filter, rate pills, "Now X", regenerate and `?from`
+- Dashboard: crypto in "Last rate change" and recent rate changes
+- Download filename `stereolinkz-crypto-1025am.png`
+
+### Stop points
+
+- The owner confirms the starting coin list, rates and icons for production
+- The owner posts a crypto board to WhatsApp Status from a real phone
+
+### Done when
+
+- [ ] A new coin (e.g. TON) can be added with or without an icon and
+  its rate edited; each changed save inserts one CryptoRate and an
+  unchanged save inserts nothing
+- [ ] A crypto board generates in both templates and matches
+  `stereolinkz-crypto-board.html`; nothing important sits in the top
+  150px or bottom 320px; a 6-character ticker with a 20-character name
+  and two network tags fits
+- [ ] After a crypto rate change, an older crypto board still shows and
+  regenerates the old values
+- [ ] Existing Forex and POF boards still open, download and regenerate unchanged
+- [ ] Crypto rate changes appear on the dashboard
+
+### Verify
+
+Standard checks; a worst-case render test; a real phone test.
+
+### Not in this phase
+
+Live crypto prices or exchange APIs, per-network or per-amount rates,
+a dashboard crypto panel, deleting coins.
+
+---
+
+## Phase 11: Hardening and launch
 
 - **Goal:** Production-ready and live for Stereolinkz, with every
   success criterion met.
-- **Depends on:** Phase 9
+- **Depends on:** Phase 10
 - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
 
 ### Build
@@ -755,7 +829,7 @@ Completed in the tracker.
 ## Branching and review
 
 - No branches or pull requests until launch: all work happens on
-  `main` (revisit in Phase 10).
+  `main` (revisit in Phase 11).
 - Commit per logical piece, named for the phase:
   `phase 3: bank drawer with slug check`.
 - Push only after the standard checks pass locally, because every push
@@ -770,11 +844,12 @@ Completed in the tracker.
 | ----------- | ------ |
 | Banks are dynamic records | 1 (seed), 3 |
 | Currencies are dynamic records | 1 (seed), 4 |
-| Rate history is preserved | 1 (schema), 4, 5, 7 |
-| Snapshots are immutable | 6, 7, 8 |
+| Coins are dynamic records | 10 |
+| Rate history is preserved | 1 (schema), 4, 5, 7, 10 |
+| Snapshots are immutable | 6, 7, 8, 10 |
 | Templates are separate from data | 6 |
 | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
 | Live preview | 6, 7 |
-| Admin routes protected on the server | 1, 10 |
-| Phone-first generator | 2, 7, 10 |
-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9 |
+| Admin routes protected on the server | 1, 11 |
+| Phone-first generator | 2, 7, 11 |
+| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10 |

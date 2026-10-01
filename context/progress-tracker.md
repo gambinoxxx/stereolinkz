@@ -506,15 +506,14 @@ change.
 
 ## Next Up
 
+- Phase 10: Crypto (coins, crypto rates, crypto boards;
+  `prompts/phase-10-crypto.md`)
 - Phase 9 on production: owner opens the dashboard on a phone and edits a
   rate from a pencil, enters the real WhatsApp number (and logo, if
   ready) in Settings, generates one board and confirms it shows them
-- Phase 10: states (`loading.tsx` skeletons, `error.tsx` per route
-  group), then accessibility, then security (`scripts/check-actions.ts`,
-  org-scoping review), then mobile and performance, then launch (remove
-  `/admin/dev-kit`, production env, secrets rotation). Open: the Clerk
-  user IDs of the other launch users (needed for their memberships)
 - Phases 4–8 on production: owner's live checks (asked, not yet confirmed)
+- Then Phase 11: Hardening and launch (states, accessibility, security,
+  mobile and performance, launch). Open: the launch users' Clerk IDs
 
 ## Open Questions
 
@@ -523,17 +522,21 @@ change.
   https://stereolinkz-czj8.vercel.app/admin and see `/not-authorized`.
 - Secrets pasted in chat (Neon `neondb_owner` password, Clerk secret
   key): the owner chose to rotate them at the end of the project. Must
-  be done in Phase 10 before launch, in `.env.local` and in Vercel (no
+  be done in Phase 11 before launch, in `.env.local` and in Vercel (no
   quotes), then redeploy.
 
 - Stereolinkz logo file and the real WhatsApp number: still the wordmark
   and `+234 800 000 0000`. The owner can enter both in Settings on the
   live site (asked at the end of Phase 9).
 - Who else needs access at launch? Their Clerk user IDs are needed
-  for memberships. Needed by Phase 10.
+  for memberships. Needed by Phase 11.
+- Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-01: Crypto added as Phase 10 (coins, crypto rates, crypto
+  boards); Hardening and launch moved to Phase 11. Crypto rates are naira
+  per $1 of coin value.
 - 2026-10-01: Phase 9 decisions.
   - **Dashboard queries:** the org's time zone, then 10 queries in one
     `Promise.all` (11 round trips in all, plus the rate pages' own
@@ -744,7 +747,7 @@ change.
   `remotePatterns` entry is needed for Blob).
 - 2026-09-29: The dev kit uses sample props (USD/GBP/EUR flag codes,
   made-up bank names), like the spike fixture: dev only, removed in
-  Phase 10.
+  Phase 11.
 - 2026-09-29: Shell: the sidebar content is one server component used
   twice (the fixed desktop aside and the phone menu drawer). Only
   `NavLinks`, `MobileTopBar`, `BottomTabBar` and `MobileMenuProvider`
@@ -964,6 +967,20 @@ change.
 
 ## Session Notes
 
+- 2026-10-01: Docs update for crypto (no code). Applied
+  `docs/updates/crypto-docs.patch` (copied from the owner's
+  `phase-10-crypto-files` download) to the five context files.
+  `project-overview.md` applied cleanly; by hand, because earlier phases
+  had changed the surrounding text: `architecture.md` (the src tree and
+  the Storage Model), `code-standards.md` (the coin and icon upload rule,
+  next to the Phase 3 byte checks; "revisit branches in Phase 11"),
+  `implementation-plan.md` (the branching note, worded "revisit in Phase
+  11" in this repo), `ui-context.md` (the Board Tokens rows and
+  `CoinBadge` in the component list). Also renumbered to Phase 11: the
+  dev-kit notes in `ui-context.md`, the tracker and the dev-kit page
+  comment, the secrets rotation and the launch users question. The
+  updated designs (crypto pages, Crypto sidebar link and filters) are in
+  `docs/design/`, committed by the owner in `9da8782`.
 - 2026-10-01: Phase 9 complete and tagged `phase-9-complete` locally, not
   pushed. Board A / B / C check done on the shared database (boards
   `53563447…` A, `7b3045f2…` B, `7e9a0c08…` C; A has 2 images) and every
@@ -971,7 +988,7 @@ change.
   +234 800 000 0000, no email, no logo, "Rates can change without
   notice.". Two test logo files stay in Blob under `orgs/…/logo-*.png`
   (never deleted by design). USD sell went 1380 → 1381 → 1380 during the
-  dashboard check (two history rows). For Phase 10: the dev kit now
+  dashboard check (two history rows). For Phase 11 (hardening): the dev kit now
   holds the empty-dashboard check (remove with the dev kit, or keep it
   as a component test), and every page with a regenerate path sets
   `maxDuration = 30` (`/admin`, `/admin/generator`, `/admin/history`).

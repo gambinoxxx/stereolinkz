@@ -111,6 +111,7 @@
 - Snapshots are written once through `boardSnapshotV1.parse()` and read
   back through the same schema. Bump `snapshotVersion` and add a new
   schema version if the shape changes; keep old versions readable.
+  Adding a new board type to the union is additive and keeps the version.
 - Validation rules (shared client/server Zod):
   - Currency code `^[A-Z]{3}$`, unique per organization
   - buy > 0, sell > 0, sell ≥ buy
@@ -118,7 +119,9 @@
   - POF note ≤ 24 characters
   - Bank name required, and its slug unique per organization
   - Short name ≤ 14 characters
-  - Logos: PNG, SVG or JPEG, ≤ 1 MB, checked on the file's bytes
+  - Coin ticker `^[A-Z0-9]{2,6}$`, unique per organization; name ≤ 20
+    characters; up to 4 networks of ≤ 8 characters each
+  - Logos and coin icons: PNG, SVG or JPEG, ≤ 1 MB, checked on the file's bytes
     (`lib/image-check.ts`, shared by the drawer and the server): PNG and
     JPEG at least 256 px on the shortest side; SVG with no scripts, event
     attributes, `foreignObject`, DOCTYPE/entities or external references
@@ -137,7 +140,7 @@
 ## Git
 
 - Work directly on `main`; no branches or pull requests until launch
-  (revisit branches in Phase 10).
+  (revisit branches in Phase 11).
 - Commit each working piece with the tracker update, imperative and
   naming the phase: `phase 4: insert ForexRate on save`.
 - Push only when `npm run build`, `npm run lint`, `npx tsc --noEmit`,

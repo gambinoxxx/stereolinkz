@@ -14,9 +14,11 @@ actions and rules. Match their layout, copy, spacing and states. Open
 | Dashboard | `dashboard.html` |
 | Forex rates | `forex.html`, `forex-edit.html`, `forex-add.html` |
 | POF rates | `pof.html`, `pof-edit.html`, `pof-add.html` |
+| Crypto rates | `crypto.html`, `crypto-edit.html`, `crypto-add.html` |
 | Banks | `banks.html`, `bank-add.html`, `bank-edit.html`, `bank-delete.html` |
 | Templates | `templates.html` |
-| Generator | `generator.html`, `generator-edited.html`, `generator-pof.html`, `generator-done.html` |
+| Generator | `generator.html`, `generator-edited.html`, `generator-pof.html`, `generator-crypto.html`, `generator-done.html` |
+| Boards (full size) | `stereolinkz-rate-boards.html` (Forex, POF), `stereolinkz-crypto-board.html` (Crypto, both templates) |
 | History | `history.html`, `history-board.html`, `history-regenerate.html` |
 | Settings | `settings.html` |
 
@@ -108,6 +110,8 @@ so the colour is picked from the bank slug over a fixed palette:
 | Sell pill, notes, logo bars | `#E9B949`, `#1F0B3F` text | same |
 | Contact panel | `rgba(255,255,255,.08)` + border `rgba(255,255,255,.14)` | `#2A0F58`, white text |
 | Bottom band | 3:1 split `#6A35D9` / `#E9B949`, 22px | same |
+| Coin badge | 80px circle with a 5px white ring: the coin icon, or the first letter of the name on the coin's `badgeColor` | same |
+| Network tag | `#ECE4FA`, `#4B21A6` text, 19px / 700 | `#F1EBFB`, same text |
 
 Organization brand colours from Settings are copied into the snapshot
 and mapped by `boardTheme(name, brand)` at render time:
@@ -230,13 +234,13 @@ Project components (not shadcn):
 - `components/board/BoardFrame`: renders a template at 1080 × 1920 and scales it to its container
 - `components/board/WhatsAppOverlay`: preview-only overlay (progress bars, name, caption, Reply bar); never part of the PNG
 - `RateDelta`: up/down arrow with amount, green/red, "No change" in muted
-- `StatusSwitch`, `BankMark` (logo or letter monogram; falls back to the monogram if the logo fails to load), `CurrencyFlag` (bundled SVG by `flagCode`)
+- `StatusSwitch`, `BankMark` (logo or letter monogram; falls back to the monogram if the logo fails to load), `CurrencyFlag` (bundled SVG by `flagCode`), `CoinBadge` (icon or letter on `badgeColor`)
 - `InputAddon` (₦ / % add-ons; gold `changed` state), `StatusChip`
   (Active / Inactive / Archived), `Callout` (info, warn),
   `EmptyState` (the dashed "More designs" card from `templates.html`:
   icon, title, one line, optional action), `EntityDrawer` (Sheet with a
   `<form>` body, Cancel and a primary action)
-- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 10)
+- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 11)
 
 ## Layout Patterns
 
@@ -273,6 +277,10 @@ Project components (not shadcn):
   WhatsApp's progress bar and name, and roughly the bottom 320px sits
   under the caption and Reply bar. Only decoration (the bottom band) or
   small print may sit in those zones.
+- **Crypto board rows:** coin badge, ticker (50px / 900), then the
+  name with up to 2 network tags, and buy / sell boxes of 200 × 86.
+  Six rows plus the card note fit above the bottom zone; there is no
+  reach paragraph.
 - **Motion:** only drawer/modal slide, toast entrance and the generate
   spinner. Respect `prefers-reduced-motion`.
 
@@ -289,6 +297,7 @@ Mapping:
 | Dashboard | `LayoutGrid` |
 | Forex | `ArrowLeftRight` |
 | POF | `Percent` |
+| Crypto | `Coins` |
 | Banks | `Landmark` |
 | Generator / Generate | `Sparkles` |
 | History | `History` |

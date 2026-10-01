@@ -9,7 +9,7 @@
 | Forms            | React Hook Form + Zod                         | Client forms; the same Zod schemas validate on the server |
 | Auth             | Clerk                                         | Sign-in and session. Authorization comes from our own `Membership` table |
 | Database         | PostgreSQL + Prisma ORM                       | All records, rate history, board snapshots |
-| File storage     | Vercel Blob                                   | Bank logos, organization logo, generated PNGs |
+| File storage     | Vercel Blob                                   | Bank logos, coin icons, organization logo, generated PNGs |
 | Image rendering  | Satori (JSX → SVG) + `@resvg/resvg-js` (SVG → PNG) | Server-side board rendering at 1080 × 1920 |
 | Hosting          | Vercel (Node.js runtime for rendering)        | App, server actions, render route |
 
@@ -22,17 +22,18 @@ need appears, add it to `progress-tracker.md` → Open Questions first.
 src/
   app/
     (auth)/login/[[...login]]/    Clerk sign-in page
-    admin/                        Protected pages: page, forex, pof, banks,
+    admin/                        Protected pages: page, forex, pof, crypto, banks,
                                   templates, generator, history, settings
     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
   features/
-    currencies/  forex-rates/  banks/  pof-rates/  boards/  settings/
+    currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
+    boards/  settings/
                                   Each has: schema.ts (Zod), queries.ts
                                   (server-only reads), actions.ts (server
                                   actions), components/ (feature UI)
     boards/snapshot.ts            Zod schema + types for RateBoard.snapshot (the template contract)
     templates/                    registry.ts, types.ts, theme.ts, text-rules.ts,
-                                  layout.tsx (shared board layout), forex/*, pof/*,
+                                  layout.tsx (shared board layout), forex/*, pof/*, crypto/*,
                                   queries.ts + actions.ts (Templates page, default
                                   template), assets/flags/* (bundled flag SVGs)
   lib/
@@ -88,11 +89,11 @@ docs/design/                      Page design HTML files (visual spec, read-only
 ## Storage Model
 
 - **PostgreSQL (via Prisma)**: organizations, memberships, currencies,
-  banks, every forex and POF rate ever saved, rate boards with their
+  banks, coins, every forex, POF and crypto rate ever saved, rate boards with their
   JSON snapshot, and image metadata (Blob URL, pathname, size, format,
   template key and version).
-- **Vercel Blob**: bank logos, the organization logo and generated
-  PNGs. A blob is never overwritten; a new upload gets a new URL, so
+- **Vercel Blob**: bank logos, coin icons, the organization logo and
+  generated PNGs. A blob is never overwritten; a new upload gets a new URL, so
   old snapshots keep pointing at the file they used. Board PNGs live at
   `boards/{organizationId}/{rateBoardId}/{imageId}.png`; bank logos at
   `logos/{organizationId}/banks/{slug}.{ext}` (plus Blob's random
@@ -116,6 +117,7 @@ the app connects through the `@prisma/adapter-pg` driver adapter in
 Organization ─┬─ Membership (clerkUserId, role)
               ├─ Currency ── ForexRate[]      (append-only)
               ├─ Bank ────── PofRate[]        (append-only)
+              ├─ Coin ────── CryptoRate[]     (append-only)
               └─ RateBoard ── RateBoardImage[]
 ```
 
@@ -123,7 +125,8 @@ Organization ─┬─ Membership (clerkUserId, role)
   currency (`NGN`), brand fields (logoUrl, backgroundColor,
   primaryColor for buy/rates, accentColor for sell/highlights,
   contactLine = WhatsApp number, email) and board defaults
-  (defaultFinePrint, defaultForexTemplateKey, defaultPofTemplateKey).
+  (defaultFinePrint, defaultForexTemplateKey, defaultPofTemplateKey,
+  defaultCryptoTemplateKey).
   The MVP has exactly one, created by the seed.
 - **Membership**: `(organizationId, clerkUserId)` unique, `role` enum
   (OWNER, ADMIN, EDITOR, VIEWER). The MVP treats every member as a full
@@ -133,7 +136,11 @@ Organization ─┬─ Membership (clerkUserId, role)
 - **Bank**: name, shortName, `slug` (normalized name, unique per org),
   logoUrl, sortOrder, `status`, `pofActive` (whether the bank's POF
   rate appears on new POF boards).
-- **RecordStatus** enum on Currency and Bank: `ACTIVE` (shown and
+- **Coin**: `ticker` (2–6 uppercase letters or digits, unique per
+  org), name, `networks` (string list, display only, e.g.
+  `["TRC20", "BEP20"]`), `iconUrl`, `badgeColor` (hex for the letter
+  badge when there is no icon), `sortOrder`, `status`.
+- **RecordStatus** enum on Currency, Bank and Coin: `ACTIVE` (shown and
   usable), `INACTIVE` (managed but hidden from new boards), `ARCHIVED`
   (soft-deleted; kept for history).
 - **ForexRate**: `buy`, `sell` as `Decimal(14,4)`, `createdById`,
@@ -141,10 +148,14 @@ Organization ─┬─ Membership (clerkUserId, role)
   `CHECK (sell >= buy)` is added in the migration SQL.
 - **PofRate**: `rate` as `Decimal(5,2)` (3.40 = 3.4%), optional `note`,
   `createdById`, `createdAt`. Never updated.
-- **Current rate** = the newest row per currency or bank (index on
-  `[currencyId, createdAt desc]` / `[bankId, createdAt desc]`). There
+- **CryptoRate**: `buy`, `sell` as `Decimal(14,4)` in naira per $1 of
+  coin value, `createdById`, `createdAt`. Never updated.
+  `CHECK (sell >= buy)` is added in the migration SQL.
+- **Current rate** = the newest row per currency, bank or coin (index on
+  `[currencyId, createdAt desc]` / `[bankId, createdAt desc]` /
+  `[coinId, createdAt desc]`). There
   is no "current" flag to keep in sync.
-- **RateBoard**: `type` (FOREX, POF, CUSTOM), `templateKey`,
+- **RateBoard**: `type` (FOREX, POF, CRYPTO, CUSTOM), `templateKey`,
   `templateVersion`, `snapshot` (JSON), `snapshotVersion`,
   `createdById`, `createdAt`. Created only by Generate. Never updated.
 - **RateBoardImage**: `format` (`story` = 1080 × 1920), width, height,
@@ -163,16 +174,17 @@ needs, copied at generation time:
 - `rows`:
   - FOREX: code, name, flagCode, buy, sell
   - POF: name, shortName, logoUrl, rate, note
+  - CRYPTO: ticker, name, networks (at most 2), iconUrl, badgeColor, buy, sell
   - CUSTOM: label, value, note
 - Decimal values stored as strings (`"1365.0000"`, `"3.40"`)
-- `currencyId` / `bankId` kept for traceability only. They are never
+- `currencyId` / `bankId` / `coinId` kept for traceability only. They are never
   used to re-read live data when rendering.
 
 ### Generate flow (server action `generateBoard`)
 
 1. `requireMember()`; parse input with Zod.
 2. For each included row whose value differs from the current rate,
-   prepare a new ForexRate / PofRate.
+   prepare a new ForexRate / PofRate / CryptoRate.
 3. Build and validate the snapshot. Check the row count is within the
    template's `maxRows`.
 4. Render PNG in memory (template → Satori SVG → resvg PNG).
@@ -239,6 +251,16 @@ the rest of this file. Decisions made during the build are recorded in
   "New account") describes that single rate; there is no `PofOffer`
   model. Why: confirmed by the owner.
 - **POF rates are charged per month.** Boards show a "Per month" column.
+- **Crypto is a board type like Forex and POF:** its own tables (Coin,
+  CryptoRate), its own templates, and the same snapshot, generate,
+  history and regenerate flow. Adding CRYPTO to the snapshot union is
+  additive, so `snapshotVersion` stays 1 and old boards still parse.
+- **Crypto rates are naira per $1 of coin value** (per coin for
+  stablecoins), one buy and one sell per coin. Boards say "Naira per
+  $1 of coin". Why: it's how Stereolinkz's customers compare rates,
+  and the numbers stay short.
+- **Networks are display text on the Coin**, not part of rate history.
+  Boards show at most 2.
 - **Boards store a Zod-validated JSON snapshot** and never reference
   live rates. Images have their own table, so regenerating adds a row.
 - **Templates are code**, a registry keyed by key and version; the
@@ -256,17 +278,17 @@ the rest of this file. Decisions made during the build are recorded in
 
 ## Invariants
 
-1. Banks and currencies are rows. No bank or currency name appears in
-   the Prisma schema, in a type union, or as a hard-coded list in
+1. Banks, currencies and coins are rows. No bank, currency or coin name
+   (or ticker) appears in the Prisma schema, in a type union, or as a hard-coded list in
    application code (seed data excepted).
-2. ForexRate and PofRate rows are append-only: never `update`d, never
+2. ForexRate, PofRate and CryptoRate rows are append-only: never `update`d, never
    `delete`d. Changing a rate means inserting a row.
 3. RateBoard rows and their `snapshot` are immutable after creation.
 4. Templates render only from a validated snapshot. They never import
    Prisma, call `fetch`, or read `Date.now()`.
 5. History pages and regeneration read rates from the snapshot, never
    from current rate tables.
-6. Currencies and banks with any rate history are never hard-deleted
+6. Currencies, banks and coins with any rate history are never hard-deleted
    (`onDelete: Restrict` on rate relations). Delete is offered only
    when the history count is zero.
 7. Every server action and route handler calls `requireMember()` before
