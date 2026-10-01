@@ -5,14 +5,17 @@ change.
 
 ## Current Phase
 
-- Phase 7: Generator, in progress
+- Phase 7: Generator, complete
 
 ## Current Goal
 
-- Phase 7: ⏸ real phone test (owner), then the end-of-phase checks
+- None. Waiting for the owner's go to push Phase 7.
 
 ## Completed
 
+- 2026-10-01: Phase 7 complete. All Done-when items checked except
+  the real-phone download, which the owner runs on production after the
+  push (Share needs HTTPS); tagged phase-7-complete.
 - 2026-09-30: Phase 7, Generate, success panel and download (one commit:
   the form imports the panel). `generateBoard` (safeAction): validate →
   load the rows org-scoped (inactive / not `pofActive` → "Wema is no
@@ -398,8 +401,13 @@ change.
 
 ## Next Up
 
-- Phase 7: rates and content (`generateInput`, `diffRates`, capacity bar, errors)
-- Phase 7: live preview (`buildPreviewSnapshot`), then Generate, then success and download
+- Phase 7 on production: owner generates on a phone, shares or downloads
+  to WhatsApp Status (sharp, nothing under WhatsApp's bars, the edited
+  rate on `/admin/forex` with history); one Forex and one POF board on
+  the live site (generate time, PNGs in the Vercel Blob dashboard)
+- Phase 8: History list (`/admin/history`, boards grouped by day), then
+  board detail with "Now X" and Download, then Regenerate and "Use these
+  rates again" (`?from`)
 - Phase 4, 5 and 6 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
@@ -803,6 +811,14 @@ change.
 
 ## Session Notes
 
+- 2026-10-01: Phase 7 complete and tagged `phase-7-complete` locally,
+  not pushed. End-of-phase screenshots matched `generator*.html` at
+  1440px and 390px (Forex edited with WhatsApp view, POF, success
+  panel); no horizontal scroll, no console errors. Over-capacity is
+  covered by tests and the red bar code path; no live type has more rows
+  than its template fits, so it wasn't seen in the browser. Rates on the
+  shared database changed overnight (USD sell 1380, EUR 1555 / 1580, POF
+  3.5 / 3.5 / 3.6 / 2.5): the owner's edits on production, left as they are.
 - 2026-09-30: Phase 7 checks (local, database and Blob shared with
   production). Failure test 1, render forced to throw with a USD edit:
   RateBoard 2 → 2, RateBoardImage 2 → 2, ForexRate 13 → 13, blobs 2 → 2,
