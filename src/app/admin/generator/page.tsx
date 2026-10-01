@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Generator } from "@/features/boards/components/Generator";
-import { getGeneratorData } from "@/features/boards/queries";
+import { prefillFromSnapshot } from "@/features/boards/prefill";
+import { getBoardSource, getGeneratorData } from "@/features/boards/queries";
 import { isTemplateKey } from "@/features/templates/registry";
 import { requireMember } from "@/lib/server/auth";
 
@@ -15,8 +16,7 @@ const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 const searchSchema = z.object({
   type: z.preprocess(first, z.enum(["FOREX", "POF"]).catch("FOREX")),
   template: z.preprocess(first, z.string().optional().catch(undefined)),
-  // "Use these rates again" (Phase 8) links here with ?from=<boardId>. Read
-  // now, prefilled in Phase 8.
+  // "Use these rates again" (history) links here with ?from=<boardId>.
   from: z.preprocess(first, z.string().optional().catch(undefined)),
 });
 
@@ -24,13 +24,27 @@ export default async function GeneratorPage({
   searchParams,
 }: PageProps<"/admin/generator">) {
   const { organizationId } = await requireMember();
-  const { type, template } = searchSchema.parse(await searchParams);
-  const data = await getGeneratorData(organizationId);
+  const params = searchSchema.parse(await searchParams);
+  const [data, source] = await Promise.all([
+    getGeneratorData(organizationId),
+    params.from ? getBoardSource(organizationId, params.from) : null,
+  ]);
+
+  // ?from= prefills from the board's snapshot; its type wins over ?type=.
+  const prefill = source
+    ? prefillFromSnapshot(source.snapshot, source.templateKey, data)
+    : null;
+  const type = prefill?.type ?? params.type;
   // A key from the URL must be registered and of this type.
   const templateKey =
-    template && isTemplateKey(template, type)
-      ? template
-      : data.defaultTemplates[type];
+    prefill?.values.templateKey ??
+    (params.template && isTemplateKey(params.template, type)
+      ? params.template
+      : data.defaultTemplates[type]);
+  const notice =
+    params.from && !prefill
+      ? "That board couldn't be loaded. Showing current rates."
+      : (prefill?.skippedNotice ?? null);
 
   return (
     <>
@@ -43,6 +57,8 @@ export default async function GeneratorPage({
         initialType={type}
         initialTemplateKey={templateKey}
         renderedAt={new Date().toISOString()}
+        prefill={prefill}
+        notice={notice}
       />
     </>
   );

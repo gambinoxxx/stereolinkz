@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { GeneratorForm } from "@/features/boards/components/GeneratorForm";
 import type { BoardType } from "@/features/boards/defaults";
+import type { Prefill } from "@/features/boards/prefill";
 import type { GeneratorData } from "@/features/boards/queries";
 
 type GeneratorProps = {
@@ -20,6 +21,8 @@ type GeneratorProps = {
   initialType: BoardType;
   initialTemplateKey: string;
   renderedAt: string; // the server's render time, so hydration matches
+  prefill: Prefill | null; // ?from=: a saved board's rates and copy
+  notice: string | null; // skipped items, or a ?from= that couldn't load
 };
 
 const TYPE_LABEL: Record<BoardType, string> = { FOREX: "Forex", POF: "POF" };
@@ -31,6 +34,8 @@ export function Generator({
   initialType,
   initialTemplateKey,
   renderedAt,
+  prefill,
+  notice,
 }: GeneratorProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -39,6 +44,9 @@ export function Generator({
   // Bumped by "Make another" so the form starts again from fresh rates.
   const [round, setRound] = useState(0);
   const [pendingType, setPendingType] = useState<BoardType | null>(null);
+  // The ?from= prefill applies to the first form only: switching type or
+  // "Make another" starts from current rates, as usual.
+  const [usePrefill, setUsePrefill] = useState(prefill !== null);
   const [startingOver, startTransition] = useTransition();
 
   function syncUrl(nextType: BoardType, nextKey: string) {
@@ -49,6 +57,7 @@ export function Generator({
   function switchType(next: BoardType) {
     const key = data.defaultTemplates[next];
     setPendingType(null);
+    setUsePrefill(false);
     setType(next);
     setTemplateKey(key);
     syncUrl(next, key);
@@ -62,6 +71,7 @@ export function Generator({
   // A fresh form on current rates: refetch, then remount on the new data.
   // Both updates sit in one transition, so the new form appears with it.
   function startOver() {
+    setUsePrefill(false);
     startTransition(() => {
       router.refresh();
       setRound((n) => n + 1);
@@ -76,6 +86,8 @@ export function Generator({
         type={type}
         templateKey={templateKey}
         renderedAt={renderedAt}
+        prefill={usePrefill ? prefill : null}
+        notice={usePrefill || !prefill ? notice : null}
         onTypeRequest={(next, dirty) => {
           if (next === type) return;
           if (dirty) setPendingType(next);

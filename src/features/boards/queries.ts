@@ -354,3 +354,21 @@ async function currentRates(
   }
   return new Map();
 }
+
+// "Use these rates again" (?from=): a board's template and parsed snapshot,
+// org-scoped. Missing, another org's or unreadable → null.
+export async function getBoardSource(
+  organizationId: string,
+  boardId: string,
+): Promise<{ templateKey: string; snapshot: BoardSnapshot } | null> {
+  const board = await db.rateBoard.findFirst({
+    where: { id: boardId, organizationId },
+    select: { templateKey: true, snapshotVersion: true, snapshot: true },
+  });
+  const snapshot = board
+    ? readSnapshot(board.snapshotVersion, board.snapshot)
+    : null;
+  return board && snapshot
+    ? { templateKey: board.templateKey, snapshot }
+    : null;
+}

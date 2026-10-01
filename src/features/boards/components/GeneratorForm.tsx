@@ -32,6 +32,7 @@ import {
   toGenerateInput,
   validateGenerator,
 } from "@/features/boards/generator-form";
+import type { Prefill } from "@/features/boards/prefill";
 import { buildPreviewSnapshot } from "@/features/boards/preview-snapshot";
 import type { GeneratorData } from "@/features/boards/queries";
 import type { GeneratorErrors } from "@/features/boards/schema";
@@ -45,6 +46,8 @@ type GeneratorFormProps = {
   onTemplateChange: (key: string) => void;
   onStartOver: () => void;
   startingOver: boolean; // "Make another" is fetching current rates
+  prefill: Prefill | null;
+  notice: string | null;
 };
 
 function Step({
@@ -88,6 +91,8 @@ export function GeneratorForm({
   onTemplateChange,
   onStartOver,
   startingOver,
+  prefill,
+  notice,
 }: GeneratorFormProps) {
   const templates = data.templates.filter((t) => t.type === type);
   const template =
@@ -99,13 +104,17 @@ export function GeneratorForm({
 
   const { control, register, setValue, formState } =
     useForm<GeneratorFormValues>({
-      defaultValues: initialFormValues(
-        type,
-        entities,
-        data.org,
-        template.key,
-        template.maxRows,
-      ),
+      // Today's rows as the originals either way, so prefilled values
+      // that differ from today's show gold.
+      defaultValues:
+        prefill?.values ??
+        initialFormValues(
+          type,
+          entities,
+          data.org,
+          template.key,
+          template.maxRows,
+        ),
     });
   const watched = useWatch({ control }) as GeneratorFormValues;
   const values = useMemo(
@@ -204,127 +213,135 @@ export function GeneratorForm({
   }
 
   return (
-    <div className="grid items-start gap-6 shell:grid-cols-[minmax(0,1fr)_400px]">
-      <form
-        noValidate
-        onSubmit={generate}
-        aria-busy={pending}
-        className="rounded-panel border border-border-default bg-bg-surface"
-      >
-        {/* Locked while generating and once generated, so the form keeps
+    <>
+      {notice && (
+        <Callout tone="warn" className="mb-4">
+          {notice}
+        </Callout>
+      )}
+      <div className="grid items-start gap-6 shell:grid-cols-[minmax(0,1fr)_400px]">
+        <form
+          noValidate
+          onSubmit={generate}
+          aria-busy={pending}
+          className="rounded-panel border border-border-default bg-bg-surface"
+        >
+          {/* Locked while generating and once generated, so the form keeps
             showing what the image shows. */}
-        <fieldset disabled={locked} className="contents">
-          <Step n={1} title="Board type">
-            <ToggleGroup
-              type="single"
-              variant="segmented"
-              size="segmented"
-              value={type}
-              onValueChange={(next) =>
-                next && onTypeRequest(next as BoardType, formState.isDirty)
-              }
-              aria-label="Board type"
-            >
-              <ToggleGroupItem value="FOREX">Forex</ToggleGroupItem>
-              <ToggleGroupItem value="POF">POF</ToggleGroupItem>
-            </ToggleGroup>
-          </Step>
-
-          <Step n={2} title="Template">
-            <TemplateOptions
-              templates={templates}
-              value={template.key}
-              brand={snapshot.content.brand}
-              onChange={onTemplateChange}
-            />
-          </Step>
-
-          <Step n={3} title="Rates" aside="Edited values turn gold">
-            <RateRows
-              type={type}
-              rows={values.rows}
-              entities={entities}
-              control={control}
-              register={register}
-              changed={changed}
-              fieldErrors={errors.fieldErrors}
-              maxRows={template.maxRows}
-            />
-          </Step>
-
-          <Step
-            n={4}
-            title="Content"
-            aside={
-              <Button
-                type="button"
-                variant="link"
-                className="text-[13px]"
-                onClick={resetContent}
+          <fieldset disabled={locked} className="contents">
+            <Step n={1} title="Board type">
+              <ToggleGroup
+                type="single"
+                variant="segmented"
+                size="segmented"
+                value={type}
+                onValueChange={(next) =>
+                  next && onTypeRequest(next as BoardType, formState.isDirty)
+                }
+                aria-label="Board type"
               >
-                Use default text
-              </Button>
-            }
-          >
-            <ContentFields
-              type={type}
-              register={register}
-              fieldErrors={errors.fieldErrors}
-            />
-          </Step>
-        </fieldset>
+                <ToggleGroupItem value="FOREX">Forex</ToggleGroupItem>
+                <ToggleGroupItem value="POF">POF</ToggleGroupItem>
+              </ToggleGroup>
+            </Step>
 
-        <div className="sticky bottom-[calc(62px+env(safe-area-inset-bottom))] z-20 -mt-px flex flex-col gap-2.5 rounded-b-panel border-t border-border-default bg-bg-subtle px-4 py-3.5 shadow-[0_-8px_24px_rgb(31_11_63/0.08)] sheet:px-[22px] sheet:py-[18px] shell:static shell:border-t-0 shell:shadow-none">
-          {generated ? (
-            <GeneratedPanel
-              board={generated}
-              fileName={boardFilename(
-                snapshot.content.brand.name,
-                type,
-                generated.generatedAtLabel,
-              )}
-              onStartOver={onStartOver}
-              startingOver={startingOver}
-            />
-          ) : (
-            <>
-              {errors.first && (
-                <p
-                  role="alert"
-                  className="text-[13.5px] font-medium text-state-error"
+            <Step n={2} title="Template">
+              <TemplateOptions
+                templates={templates}
+                value={template.key}
+                brand={snapshot.content.brand}
+                onChange={onTemplateChange}
+              />
+            </Step>
+
+            <Step n={3} title="Rates" aside="Edited values turn gold">
+              <RateRows
+                type={type}
+                rows={values.rows}
+                entities={entities}
+                control={control}
+                register={register}
+                changed={changed}
+                fieldErrors={errors.fieldErrors}
+                maxRows={template.maxRows}
+              />
+            </Step>
+
+            <Step
+              n={4}
+              title="Content"
+              aside={
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-[13px]"
+                  onClick={resetContent}
                 >
-                  {errors.first}
-                </p>
-              )}
-              {editedCount > 0 && (
-                <Callout tone="warn">
-                  {editedCount} edited {editedCount === 1 ? "rate" : "rates"}{" "}
-                  will be saved as current. The previous value stays in history.
-                </Callout>
-              )}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={!!clientErrors.first}
-                aria-disabled={pending || undefined}
-              >
-                {pending ? (
-                  <Loader2 aria-hidden="true" className="animate-spin" />
-                ) : (
-                  <Sparkles aria-hidden="true" strokeWidth={1.9} />
-                )}
-                {pending ? "Generating image…" : "Generate image"}
-              </Button>
-            </>
-          )}
-        </div>
-      </form>
+                  Use default text
+                </Button>
+              }
+            >
+              <ContentFields
+                type={type}
+                register={register}
+                fieldErrors={errors.fieldErrors}
+              />
+            </Step>
+          </fieldset>
 
-      <PreviewPanel
-        templateKey={template.key}
-        snapshot={generated?.snapshot ?? snapshot}
-        className="order-first shell:sticky shell:top-6 shell:order-none"
-      />
-    </div>
+          <div className="sticky bottom-[calc(62px+env(safe-area-inset-bottom))] z-20 -mt-px flex flex-col gap-2.5 rounded-b-panel border-t border-border-default bg-bg-subtle px-4 py-3.5 shadow-[0_-8px_24px_rgb(31_11_63/0.08)] sheet:px-[22px] sheet:py-[18px] shell:static shell:border-t-0 shell:shadow-none">
+            {generated ? (
+              <GeneratedPanel
+                board={generated}
+                fileName={boardFilename(
+                  snapshot.content.brand.name,
+                  type,
+                  generated.generatedAtLabel,
+                )}
+                onStartOver={onStartOver}
+                startingOver={startingOver}
+              />
+            ) : (
+              <>
+                {errors.first && (
+                  <p
+                    role="alert"
+                    className="text-[13.5px] font-medium text-state-error"
+                  >
+                    {errors.first}
+                  </p>
+                )}
+                {editedCount > 0 && (
+                  <Callout tone="warn">
+                    {editedCount} edited {editedCount === 1 ? "rate" : "rates"}{" "}
+                    will be saved as current. The previous value stays in
+                    history.
+                  </Callout>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={!!clientErrors.first}
+                  aria-disabled={pending || undefined}
+                >
+                  {pending ? (
+                    <Loader2 aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <Sparkles aria-hidden="true" strokeWidth={1.9} />
+                  )}
+                  {pending ? "Generating image…" : "Generate image"}
+                </Button>
+              </>
+            )}
+          </div>
+        </form>
+
+        <PreviewPanel
+          templateKey={template.key}
+          snapshot={generated?.snapshot ?? snapshot}
+          className="order-first shell:sticky shell:top-6 shell:order-none"
+        />
+      </div>
+    </>
   );
 }
