@@ -19,7 +19,7 @@ import {
   type OrgSettingsForm,
   orgSettingsInput,
 } from "@/features/settings/schema";
-import { BRAND_TEXT } from "@/features/templates/theme";
+import { BRAND_DEFAULTS, BRAND_TEXT } from "@/features/templates/theme";
 import { cn } from "@/lib/utils";
 
 type SettingsFormProps = {
@@ -276,7 +276,9 @@ export function SettingsForm({ initial, logoUrl, member }: SettingsFormProps) {
                     <input
                       type="color"
                       aria-label={`${swatch.label} colour picker`}
-                      value={(hex ?? "#000000").toLowerCase()}
+                      value={(
+                        hex ?? BRAND_DEFAULTS[swatch.field]
+                      ).toLowerCase()}
                       onChange={(event) =>
                         setValue(
                           swatch.field,

@@ -5,14 +5,27 @@ change.
 
 ## Current Phase
 
-- Phase 9: Dashboard and settings, in progress
+- Phase 9: Dashboard and settings, complete
 
 ## Current Goal
 
-- Phase 9: brand on boards (board A / board B check, then put settings back)
+- None. Waiting for the owner's go to push Phase 9.
 
 ## Completed
 
+- 2026-10-01: Phase 9 complete. All Done-when items checked, tagged
+  phase-9-complete.
+- 2026-10-01: Phase 9, brand on boards (no code change needed: the
+  snapshot copies name, logo, colours and contact line; `boardTheme`
+  merges the colours; `embedImages` embeds the logo; the time zone
+  formats the date and time). Checked with real boards: A (gold sell,
+  +234 800 000 0000, Thu 1 Oct 11:32 PM); Settings → sell #2BB673,
+  +234 800 000 0001, Europe/London; B shows green pills, bars, dot and
+  band and the new number; A regenerated afterwards is unchanged. London
+  and Lagos share UTC+1 on 1 Oct, so B's time matched A's; a board C in
+  Pacific/Auckland read "Fri, 2 Oct 2026, 11:34 AM" (22:34 UTC), and the
+  generator preview and Templates page followed the saved values. All
+  settings put back (Africa/Lagos, #E9B949, +234 800 000 0000, no logo).
 - 2026-10-01: Phase 9, Settings. `orgSettingsInput` (shared; 14 tests with
   the contrast helper): name 2–40, WhatsApp number via
   `normalizeWhatsAppNumber` (`08031234567`, `+2348031234567`, dashes,
@@ -493,11 +506,15 @@ change.
 
 ## Next Up
 
-- Phase 9: Settings (`orgSettingsInput`, `updateOrgSettings`, logo upload,
-  contrast warning), then brand on boards (board A / board B check)
-- Phase 8 on production: owner's History check on a phone (asked after the push)
-- Phase 7 on production: owner's phone test and one Forex + one POF board
-- Phase 4, 5 and 6 on production: owner's live checks (asked, not yet confirmed)
+- Phase 9 on production: owner opens the dashboard on a phone and edits a
+  rate from a pencil, enters the real WhatsApp number (and logo, if
+  ready) in Settings, generates one board and confirms it shows them
+- Phase 10: states (`loading.tsx` skeletons, `error.tsx` per route
+  group), then accessibility, then security (`scripts/check-actions.ts`,
+  org-scoping review), then mobile and performance, then launch (remove
+  `/admin/dev-kit`, production env, secrets rotation). Open: the Clerk
+  user IDs of the other launch users (needed for their memberships)
+- Phases 4–8 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
 
@@ -509,13 +526,37 @@ change.
   be done in Phase 10 before launch, in `.env.local` and in Vercel (no
   quotes), then redeploy.
 
-- Stereolinkz logo file: until it is uploaded, boards use the
-  equalizer-bar wordmark. Needed by Phase 9.
+- Stereolinkz logo file and the real WhatsApp number: still the wordmark
+  and `+234 800 000 0000`. The owner can enter both in Settings on the
+  live site (asked at the end of Phase 9).
 - Who else needs access at launch? Their Clerk user IDs are needed
   for memberships. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-01: Phase 9 decisions.
+  - **Dashboard queries:** the org's time zone, then 10 queries in one
+    `Promise.all` (11 round trips in all, plus the rate pages' own
+    loaders' time-zone reads); "Last rate change" reuses the first recent
+    change. The panels use the same loaders as `/admin/forex` and
+    `/admin/pof`, so the numbers can't drift.
+  - **"From → to"** comes from `LAG` over each currency's or bank's
+    history in two scoped `$queryRaw` (newest 5 each), merged in a pure,
+    tested function. No previous value → "New rate".
+  - **Day boundary:** `startOfDayInTimeZone(now, tz)` uses the zone's own
+    offset at local midnight, checked twice for daylight-saving days.
+  - **WhatsApp number:** Nigerian numbers are stored `+234 803 123 4567`
+    (a leading 0 means +234, "00" means +); others as + and 8–15 digits,
+    since grouping differs by country.
+  - **Contrast is a warning, not a block** (WCAG, 4.5:1, ratio rounded
+    down so 4.46 never reads "4.5:1"): brand colours are the owner's call.
+  - **Logo uploads never delete or overwrite**: each is
+    `orgs/{org}/logo-{uuid}.{ext}`; "Remove logo" only clears `logoUrl`.
+    The logo saves on its own, straight away, apart from "Save settings".
+  - **Default small print** applies to both board types when set; empty
+    means each type's built-in default from `defaults.ts`.
+  - **Unsaved settings** ask before leaving (beforeunload, plus a click
+    guard on in-app links, since the App Router has no navigation guard).
 - 2026-10-01: Phase 8 history decisions.
   - **Cursor `"<createdAt ISO>~<id>"`** with `createdAt desc, id desc`:
     a strict order even for boards made in the same millisecond, so a
@@ -923,6 +964,17 @@ change.
 
 ## Session Notes
 
+- 2026-10-01: Phase 9 complete and tagged `phase-9-complete` locally, not
+  pushed. Board A / B / C check done on the shared database (boards
+  `53563447…` A, `7b3045f2…` B, `7e9a0c08…` C; A has 2 images) and every
+  setting put back: Africa/Lagos, #2A0F58 / #6A35D9 / #E9B949,
+  +234 800 000 0000, no email, no logo, "Rates can change without
+  notice.". Two test logo files stay in Blob under `orgs/…/logo-*.png`
+  (never deleted by design). USD sell went 1380 → 1381 → 1380 during the
+  dashboard check (two history rows). For Phase 10: the dev kit now
+  holds the empty-dashboard check (remove with the dev kit, or keep it
+  as a component test), and every page with a regenerate path sets
+  `maxDuration = 30` (`/admin`, `/admin/generator`, `/admin/history`).
 - 2026-10-01: Phase 8 complete, tagged `phase-8-complete` and pushed. Regenerate check (10:59 AM board, Daylight): RateBoard 26 → 26
   (row md5 `dfd91d16…` unchanged, templateKey still
   `forex/purple-signal`), RateBoardImage 26 → 27, ForexRate 18 → 18,
