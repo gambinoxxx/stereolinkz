@@ -29,6 +29,7 @@ import { flagDataUri } from "@/features/templates/assets/flags";
 import { requireMember } from "@/lib/server/auth";
 
 import { BoardComparison } from "./board-comparison";
+import { DashboardEmpty } from "./dashboard-empty";
 import {
   DialogDemo,
   DrawerDemo,
@@ -52,6 +53,12 @@ export default async function DevKitPage() {
         title="Dev kit"
         description="Every component in every state. Development only."
       />
+
+      <Section title="Dashboard: new organization">
+        <div className="p-5">
+          <DashboardEmpty />
+        </div>
+      </Section>
 
       <Section title="Boards: preview vs PNG">
         <BoardComparison />

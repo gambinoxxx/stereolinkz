@@ -5,14 +5,33 @@ change.
 
 ## Current Phase
 
-- Phase 8: History, complete
+- Phase 9: Dashboard and settings, in progress
 
 ## Current Goal
 
-- None. Waiting for the owner's go to push Phase 8.
+- Phase 9: Settings (`orgSettingsInput`, `updateOrgSettings`, logo, contrast warning)
 
 ## Completed
 
+- 2026-10-01: Phase 9, dashboard. `getDashboard(orgId, now)`: the org's
+  time zone, then 10 queries in one `Promise.all` (currency `groupBy`,
+  two bank counts, boards today + the last one since
+  `startOfDayInTimeZone`, recent forex and POF changes with `LAG` in two
+  scoped `$queryRaw`, today's forex and POF through the rate pages' own
+  loaders, the POF drawer's bank options, the latest 3 boards via
+  `listBoards({ limit: 3 })`). `mergeRateChanges` (pure, 3 tests) gives
+  "USD 1,360 / 1,374 → 1,365 / 1,378", "Wema POF 3.3% → 3.4%", "New rate"
+  for a first rate, direction from sell then buy. `DashboardView`: stat
+  strip, today's panels with pencils opening `ForexRateDrawer` /
+  `PofRateDrawer`, recent boards opening `BoardDetailDialog` via
+  `?board=`, recent changes, empty states. Checked: editing USD sell from
+  the pencil updated the panel (1,360 / 1,381 ↑1), "Last rate change"
+  (10:56 PM, USD) and the first change in place, no reload (then put back
+  to 1380); both widths match `dashboard.html`; the empty state is in the
+  dev kit ("Dashboard: new organization", from empty data). Key files:
+  `src/features/dashboard/{queries,changes}.ts` (+ test),
+  `src/features/dashboard/components/DashboardView.tsx`,
+  `src/app/admin/page.tsx`, `src/lib/format.ts` (`startOfDayInTimeZone`, 2 tests).
 - 2026-10-01: Phase 8 complete. All Done-when items checked, tagged
   phase-8-complete.
 - 2026-10-01: Phase 8, "Use these rates again". `/admin/generator?from=<id>`
@@ -453,16 +472,9 @@ change.
 
 ## Next Up
 
-- Phase 8 on production: owner opens History on a phone, opens a board,
-  regenerates it with the other template and downloads it, then uses
-  "Use these rates again" and generates (regenerate time, both images in
-  the Vercel Blob dashboard)
-- Phase 9: dashboard (`getDashboard`, stat strip, today's rates with the
-  existing drawers, `listRecentRateChanges`, the latest 3 boards via
-  `listBoards` and `BoardDetailDialog`), then Settings
-  (`updateOrgSettings`, brand colours with a contrast warning, time
-  zone, default small print, logo upload). Open: the Stereolinkz logo
-  file (boards use the wordmark until it is uploaded)
+- Phase 9: Settings (`orgSettingsInput`, `updateOrgSettings`, logo upload,
+  contrast warning), then brand on boards (board A / board B check)
+- Phase 8 on production: owner's History check on a phone (asked after the push)
 - Phase 7 on production: owner's phone test and one Forex + one POF board
 - Phase 4, 5 and 6 on production: owner's live checks (asked, not yet confirmed)
 
@@ -890,8 +902,7 @@ change.
 
 ## Session Notes
 
-- 2026-10-01: Phase 8 complete and tagged `phase-8-complete` locally, not
-  pushed. Regenerate check (10:59 AM board, Daylight): RateBoard 26 → 26
+- 2026-10-01: Phase 8 complete, tagged `phase-8-complete` and pushed. Regenerate check (10:59 AM board, Daylight): RateBoard 26 → 26
   (row md5 `dfd91d16…` unchanged, templateKey still
   `forex/purple-signal`), RateBoardImage 26 → 27, ForexRate 18 → 18,
   PofRate 15 → 15, both blobs 200, Download serves the new image (6.2 s

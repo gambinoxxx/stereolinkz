@@ -198,10 +198,15 @@ function toListItem(row: BoardListRow): BoardListItem {
   };
 }
 
-// Newest first, 20 a page, after `cursor` (createdAt desc, id desc).
+// Newest first, 20 a page (or `limit`: the dashboard's latest 3), after
+// `cursor` (createdAt desc, id desc).
 export async function listBoards(
   organizationId: string,
-  { type, cursor }: { type?: HistoryType; cursor?: BoardCursor | null } = {},
+  {
+    type,
+    cursor,
+    limit = BOARDS_PAGE_SIZE,
+  }: { type?: HistoryType; cursor?: BoardCursor | null; limit?: number } = {},
 ): Promise<{ boards: BoardListItem[]; nextCursor: string | null }> {
   const rows = await db.rateBoard.findMany({
     where: {
@@ -217,15 +222,14 @@ export async function listBoards(
         : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: BOARDS_PAGE_SIZE + 1, // one extra says whether there's a next page
+    take: limit + 1, // one extra says whether there's a next page
     select: boardListSelect,
   });
-  const boards = rows.slice(0, BOARDS_PAGE_SIZE).map(toListItem);
+  const boards = rows.slice(0, limit).map(toListItem);
   const last = boards.at(-1);
   return {
     boards,
-    nextCursor:
-      rows.length > BOARDS_PAGE_SIZE && last ? encodeCursor(last) : null,
+    nextCursor: rows.length > limit && last ? encodeCursor(last) : null,
   };
 }
 

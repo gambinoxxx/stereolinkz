@@ -133,6 +133,21 @@ function zonedParts(date: Date, timeZone: string): ZonedParts {
   };
 }
 
+// The instant the org's calendar day containing `now` began ("today" on
+// the dashboard). Built from the zone's own offset at that moment, then
+// checked once more, so a daylight-saving change on that day is handled.
+export function startOfDayInTimeZone(now: Date, timeZone: string): Date {
+  const p = zonedParts(now, timeZone);
+  const localMidnight = Date.UTC(p.year, p.month - 1, p.day);
+  const offsetAt = (instant: number) => {
+    const z = zonedParts(new Date(instant), timeZone);
+    const wall = Date.UTC(z.year, z.month - 1, z.day, z.hour, z.minute);
+    return wall - Math.floor(instant / 60_000) * 60_000;
+  };
+  const first = localMidnight - offsetAt(localMidnight);
+  return new Date(localMidnight - offsetAt(first));
+}
+
 // Boards: "Sun, 27 Sept 2026".
 export function formatBoardDate(date: Date, timeZone: string): string {
   const p = zonedParts(date, timeZone);

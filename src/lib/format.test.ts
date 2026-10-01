@@ -7,6 +7,7 @@ import {
   formatBoardDay,
   formatDayHeading,
   formatShortDateTime,
+  startOfDayInTimeZone,
   formatUpdatedAt,
   formatLongDate,
   formatPercent,
@@ -170,5 +171,63 @@ describe("formatBoardDay", () => {
     expect(formatBoardDay(new Date("2025-09-25T10:40:00Z"), now, LAGOS)).toBe(
       "Thu 25 Sept 2025",
     );
+  });
+});
+
+describe("startOfDayInTimeZone", () => {
+  const at = (iso: string) => new Date(iso).toISOString();
+
+  it("starts Lagos days at 23:00 UTC the day before", () => {
+    expect(
+      at(
+        startOfDayInTimeZone(
+          new Date("2026-09-27T10:00:00Z"),
+          LAGOS,
+        ).toISOString(),
+      ),
+    ).toBe("2026-09-26T23:00:00.000Z");
+    // 00:05 in Lagos is already the new day; 23:55 is not.
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-09-26T23:05:00Z"),
+        LAGOS,
+      ).toISOString(),
+    ).toBe("2026-09-26T23:00:00.000Z");
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-09-26T22:55:00Z"),
+        LAGOS,
+      ).toISOString(),
+    ).toBe("2026-09-25T23:00:00.000Z");
+  });
+
+  it("follows London's daylight saving", () => {
+    const LONDON = "Europe/London";
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-07-01T12:00:00Z"),
+        LONDON,
+      ).toISOString(),
+    ).toBe("2026-06-30T23:00:00.000Z"); // BST
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-12-01T12:00:00Z"),
+        LONDON,
+      ).toISOString(),
+    ).toBe("2026-12-01T00:00:00.000Z"); // GMT
+    // 29 March 2026: clocks go forward at 01:00 GMT; the day began at 00:00 GMT.
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-03-29T15:00:00Z"),
+        LONDON,
+      ).toISOString(),
+    ).toBe("2026-03-29T00:00:00.000Z");
+    // 25 October 2026: clocks go back at 01:00 GMT; the day began at 23:00 UTC on the 24th.
+    expect(
+      startOfDayInTimeZone(
+        new Date("2026-10-25T15:00:00Z"),
+        LONDON,
+      ).toISOString(),
+    ).toBe("2026-10-24T23:00:00.000Z");
   });
 });

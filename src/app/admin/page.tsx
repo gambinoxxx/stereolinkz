@@ -1,22 +1,40 @@
-import { LayoutGrid, Pencil, Sparkles } from "lucide-react";
+import { Pencil, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { z } from "zod";
 
-import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
+import { getBoardDetail } from "@/features/boards/queries";
+import { DashboardView } from "@/features/dashboard/components/DashboardView";
+import { getDashboard } from "@/features/dashboard/queries";
+import { formatLongDate } from "@/lib/format";
 import { getViewer, requireMember } from "@/lib/server/auth";
 
-// Placeholder until Phase 9. The design's subtitle starts with today's
-// date in the org time zone, which needs the organization row: Phase 9.
-export default async function DashboardPage() {
-  await requireMember();
-  const { firstName } = await getViewer();
+// Regenerating from the board detail runs in this page's function.
+export const maxDuration = 30;
+
+const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+const searchSchema = z.object({
+  board: z.preprocess(first, z.string().max(64).optional().catch(undefined)),
+});
+
+export default async function DashboardPage({
+  searchParams,
+}: PageProps<"/admin">) {
+  const { organizationId } = await requireMember();
+  const { board } = searchSchema.parse(await searchParams);
+  const now = new Date();
+  const [data, viewer, detail] = await Promise.all([
+    getDashboard(organizationId, now),
+    getViewer().catch(() => null),
+    board ? getBoardDetail(organizationId, board, now) : null,
+  ]);
 
   return (
     <>
       <PageHeader
-        title={`Good day, ${firstName}`}
-        description="Update a rate, then generate today’s boards."
+        title={viewer ? `Good day, ${viewer.firstName}` : "Good day"}
+        description={`${formatLongDate(now, data.timeZone)}. Update a rate, then generate today’s boards.`}
         actions={
           <>
             <Button asChild variant="outline">
@@ -34,10 +52,10 @@ export default async function DashboardPage() {
           </>
         }
       />
-      <EmptyState
-        icon={LayoutGrid}
-        title="Coming in Phase 9"
-        description="Today’s rates, recent boards and recent rate changes will be shown here."
+      <DashboardView
+        data={data}
+        detail={detail}
+        boardMissing={board !== undefined && detail === null}
       />
     </>
   );
