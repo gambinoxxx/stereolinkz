@@ -463,6 +463,35 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   .toasts{bottom:84px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═════════════════ Crypto (coins, networks, crypto board) ═════════════════ */
+.t-cx .tr{grid-template-columns:18px minmax(160px,1.3fr) 1.1fr .8fr .8fr .55fr 1fr 1fr 64px}
+.coin{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden;box-shadow:0 0 0 1px rgba(31,11,63,.06)}
+.coin img{width:100%;height:100%;object-fit:cover;background:#fff}
+.coin.lg{width:44px;height:44px;font-size:17px}
+.nets{display:flex;flex-wrap:wrap;gap:5px}
+.net{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--line2);color:var(--ink2);font-size:12px;font-weight:700;letter-spacing:.2px}
+.ig span.per{font-size:12.5px;font-weight:600;white-space:nowrap}
+.gr .coin{width:30px;height:30px;font-size:12.5px}
+/* Crypto board (1080 × 1920, flexbox only, ports to Satori) */
+.b-heads.cx span{width:200px}
+.b-row.cx{padding:8px 0;gap:20px}
+.b-coin{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-coin img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-row.cx .b-code{font-size:50px}
+.b-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
+.b-meta .b-name{margin-top:0;font-size:24px}
+.b-net{padding:2px 11px;border-radius:999px;background:#ECE4FA;color:#4B21A6;font-size:19px;font-weight:700;white-space:nowrap}
+.b-row.cx .b-price{width:200px;height:86px;border-radius:22px;font-size:56px}
+.v-day .b-net{background:#F1EBFB}
+@media (max-width:1100px){
+  .t-cx .tr{grid-template-columns:18px minmax(150px,1.4fr) .9fr .9fr 1fr 1fr 64px}
+  .t-cx .c-spread,.t-cx .c-net{display:none}
+}
+@media (max-width:760px){
+  .t-cx .tr{align-items:start;grid-template-columns:1fr 1fr auto;grid-template-areas:"main main act" "a b st";gap:12px 14px;padding:14px 16px}
+  .gr .coin{width:28px;height:28px;font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -505,12 +534,13 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
 (function(){
   function fit(){document.querySelectorAll('.bwrap').forEach(function(w){var k=w.clientWidth/1080;if(k)w.firstElementChild.style.transform='scale('+k+')'})}
   new ResizeObserver(fit).observe(document.body); fit();
-  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html"}, PARENT=null;
+  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html", "edit-cx": "crypto-edit.html", "add-cx": "crypto-add.html"}, PARENT=null;
   document.addEventListener('click',function(e){
     var el=e.target.closest('[data-action],#dSave'); if(!el) return;
     var a=el.id==='dSave'?'close':el.dataset.action;
     if(a==='menu'){e.preventDefault();document.getElementById('side').classList.add('open');document.getElementById('scrim').classList.add('open');return}
     if(a==='close'){e.preventDefault();var s=document.getElementById('side');if(s&&s.classList.contains('open')){s.classList.remove('open');document.getElementById('scrim').classList.remove('open');return}if(PARENT)location.href=PARENT;return}
+    if(a==='gen-type'&&el.tagName==='BUTTON'){e.preventDefault();location.href={FOREX:'generator.html',POF:'generator-pof.html',CRYPTO:'generator-crypto.html'}[el.dataset.type];return}
     if(MAP[a]){e.preventDefault();location.href=MAP[a]}
   });
 })();

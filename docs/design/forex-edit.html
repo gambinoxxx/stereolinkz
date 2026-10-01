@@ -467,6 +467,35 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   .toasts{bottom:84px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═════════════════ Crypto (coins, networks, crypto board) ═════════════════ */
+.t-cx .tr{grid-template-columns:18px minmax(160px,1.3fr) 1.1fr .8fr .8fr .55fr 1fr 1fr 64px}
+.coin{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden;box-shadow:0 0 0 1px rgba(31,11,63,.06)}
+.coin img{width:100%;height:100%;object-fit:cover;background:#fff}
+.coin.lg{width:44px;height:44px;font-size:17px}
+.nets{display:flex;flex-wrap:wrap;gap:5px}
+.net{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--line2);color:var(--ink2);font-size:12px;font-weight:700;letter-spacing:.2px}
+.ig span.per{font-size:12.5px;font-weight:600;white-space:nowrap}
+.gr .coin{width:30px;height:30px;font-size:12.5px}
+/* Crypto board (1080 × 1920, flexbox only, ports to Satori) */
+.b-heads.cx span{width:200px}
+.b-row.cx{padding:8px 0;gap:20px}
+.b-coin{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-coin img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-row.cx .b-code{font-size:50px}
+.b-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
+.b-meta .b-name{margin-top:0;font-size:24px}
+.b-net{padding:2px 11px;border-radius:999px;background:#ECE4FA;color:#4B21A6;font-size:19px;font-weight:700;white-space:nowrap}
+.b-row.cx .b-price{width:200px;height:86px;border-radius:22px;font-size:56px}
+.v-day .b-net{background:#F1EBFB}
+@media (max-width:1100px){
+  .t-cx .tr{grid-template-columns:18px minmax(150px,1.4fr) .9fr .9fr 1fr 1fr 64px}
+  .t-cx .c-spread,.t-cx .c-net{display:none}
+}
+@media (max-width:760px){
+  .t-cx .tr{align-items:start;grid-template-columns:1fr 1fr auto;grid-template-areas:"main main act" "a b st";gap:12px 14px;padding:14px 16px}
+  .gr .coin{width:28px;height:28px;font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -477,7 +506,7 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   <aside class="side" id="side" aria-label="Main navigation">
     <a class="brand" href="dashboard.html" aria-label="Stereolinkz RateBoard home"><span class="bars"><i style="height:11px"></i><i style="height:19px"></i><i style="height:24px"></i><i style="height:15px"></i></span><span class="wm">stereo<b>linkz</b></span></a>
     <div class="brand-sub">RateBoard</div>
-    <nav class="nav" id="nav"><a href="dashboard.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="forex.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
+    <nav class="nav" id="nav"><a href="dashboard.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="forex.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="crypto.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>Crypto rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
     <div class="side-foot">
       <div class="avatar">G</div>
       <div class="who"><b>Gambino</b><span>Owner</span></div>
@@ -568,12 +597,13 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
 (function(){
   function fit(){document.querySelectorAll('.bwrap').forEach(function(w){var k=w.clientWidth/1080;if(k)w.firstElementChild.style.transform='scale('+k+')'})}
   new ResizeObserver(fit).observe(document.body); fit();
-  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html"}, PARENT="forex.html";
+  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html", "edit-cx": "crypto-edit.html", "add-cx": "crypto-add.html"}, PARENT="forex.html";
   document.addEventListener('click',function(e){
     var el=e.target.closest('[data-action],#dSave'); if(!el) return;
     var a=el.id==='dSave'?'close':el.dataset.action;
     if(a==='menu'){e.preventDefault();document.getElementById('side').classList.add('open');document.getElementById('scrim').classList.add('open');return}
     if(a==='close'){e.preventDefault();var s=document.getElementById('side');if(s&&s.classList.contains('open')){s.classList.remove('open');document.getElementById('scrim').classList.remove('open');return}if(PARENT)location.href=PARENT;return}
+    if(a==='gen-type'&&el.tagName==='BUTTON'){e.preventDefault();location.href={FOREX:'generator.html',POF:'generator-pof.html',CRYPTO:'generator-crypto.html'}[el.dataset.type];return}
     if(MAP[a]){e.preventDefault();location.href=MAP[a]}
   });
 })();

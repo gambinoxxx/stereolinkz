@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+Stereolinkz crypto rate board (WhatsApp Status, 1080 x 1920)
+File: stereolinkz-crypto-board.html
+
+Templates: crypto/signal (Purple Signal) and crypto/daylight (Daylight). maxRows 6.
+Unit: naira per $1 of coin value (per coin for stablecoins).
+Safe area: content stays between y=150 and ~y=1600; only small print and the bottom band sit lower.
+Flexbox only, no grid, no font-stretch tricks beyond what Phase 6 already supports: ports to Satori -> PNG.
+Data is sample data; in the app every row comes from the board snapshot.
+-->
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stereolinkz crypto board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Archivo",system-ui,sans-serif;background:#E4DFEE;color:#1F0B3F;display:flex;flex-direction:column;align-items:center}
+.viewer-bar{display:flex;gap:8px;padding:14px 16px 10px;flex-wrap:wrap;justify-content:center}
+.viewer-bar button{font:600 15px "Archivo",sans-serif;padding:10px 18px;border-radius:999px;border:2px solid #1F0B3F;background:transparent;color:#1F0B3F;cursor:pointer}
+.viewer-bar button[aria-pressed="true"]{background:#1F0B3F;color:#fff}
+.viewer-bar button:focus-visible{outline:3px solid #6A35D9;outline-offset:2px}
+.stage{flex:1;width:100%;display:flex;justify-content:center;align-items:flex-start;padding:0 12px 16px;overflow:hidden}
+.frame{position:relative;box-shadow:0 20px 50px rgba(31,11,63,.3);border-radius:18px;overflow:hidden}
+.frame .bd{position:absolute;top:0;left:0;transform-origin:top left}
+.bd[hidden]{display:none}
+.bd{width:1080px;height:1920px;display:flex;flex-direction:column;background-image:linear-gradient(165deg,#3B1675 0%,#2A0F58 45%,#1C0A3D 100%);color:#fff;padding:150px 72px 0;overflow:hidden;position:relative;font-family:"Archivo",sans-serif;line-height:1.2}
+.b-brand{display:flex;justify-content:space-between;align-items:center}
+.b-logo{display:flex;align-items:flex-end;gap:18px}
+.b-bars{display:flex;align-items:flex-end;gap:7px;height:64px}
+.b-bars span{width:12px;border-radius:6px;background:#E9B949}
+.b-word{font-size:60px;font-weight:800;font-stretch:112%;letter-spacing:-1.5px;line-height:1}
+.b-word b{color:#E9B949;font-weight:800}
+.b-date{display:flex;flex-direction:column;align-items:flex-end;font-size:28px;font-weight:500;color:#C4B6E3;line-height:1.3}
+.b-date strong{color:#fff;font-weight:700;font-size:30px}
+.b-hero{position:relative;display:flex;flex-direction:column;margin-top:60px}
+.b-eq{position:absolute;right:-72px;top:-20px;display:flex;align-items:flex-end;gap:14px;height:280px;opacity:.18}
+.b-eq span{width:26px;border-radius:13px 13px 0 0;background:#6A35D9}
+.b-eq span:nth-child(3n){background:#A77CFF}
+.b-h{position:relative;font-size:124px;font-weight:800;font-stretch:112%;letter-spacing:-4px;line-height:.92}
+.b-sub{position:relative;margin-top:20px;font-size:36px;font-weight:500;color:#D4C8EE}
+.b-card{margin-top:44px;display:flex;flex-direction:column;background:#F7F4FC;color:#1F0B3F;border-radius:44px;padding:36px 40px 34px;box-shadow:0 30px 60px rgba(0,0,0,.28)}
+.b-heads{display:flex;justify-content:flex-end;gap:16px;padding-bottom:14px}
+.b-heads span{width:232px;text-align:center;font-size:30px;font-weight:700;color:#6E6187}
+.b-heads.pof{justify-content:space-between}
+.b-heads.pof span{width:auto;text-align:left}
+.b-row{display:flex;align-items:center;gap:28px;padding:20px 0;border-top:3px solid #E6DFF2}
+.b-flag{width:108px;height:108px;border-radius:54px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-flag svg{width:108px;height:108px;display:block}
+.b-ccy{display:flex;flex-direction:column;flex:1;min-width:0}
+.b-code{font-size:66px;font-weight:900;font-stretch:110%;letter-spacing:-1px;line-height:1}
+.b-name{white-space:nowrap;font-size:26px;font-weight:500;color:#6E6187;margin-top:6px}
+.b-prices{display:flex;gap:16px}
+.b-price{width:232px;height:112px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:68px;font-weight:800;font-stretch:105%;letter-spacing:-1.5px;font-variant-numeric:tabular-nums}
+.b-buy{background:#6A35D9;color:#fff}
+.b-sell{background:#E9B949;color:#1F0B3F}
+.b-note{display:flex;align-items:center;gap:16px;margin-top:6px;padding-top:24px;border-top:3px solid #E6DFF2;font-size:30px;font-weight:600}
+.b-note i{width:18px;height:18px;border-radius:9px;background:#6A35D9;flex-shrink:0}
+.b-row.pof{padding:16px 0;gap:24px}
+.b-mono{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;overflow:hidden}
+.b-mono img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-bank{display:flex;align-items:center;gap:18px;flex:1;min-width:0}
+.b-bname{font-size:48px;font-weight:800;letter-spacing:-.5px;line-height:1.05;white-space:nowrap}
+.b-pill{padding:6px 16px;border-radius:999px;white-space:nowrap;background:#E9B949;color:#1F0B3F;font-size:24px;font-weight:700}
+.b-pct{width:200px;height:88px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:#6A35D9;color:#fff;font-size:56px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.b-reach{margin-top:30px;font-size:31px;font-weight:500;line-height:1.35;color:#E8E0F7}
+.b-contact{margin-top:28px;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-radius:28px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.14)}
+.b-clabel{font-size:28px;font-weight:500;color:#C4B6E3}
+.b-cval{font-size:40px;font-weight:800;letter-spacing:-.5px}
+.b-cdot{width:64px;height:64px;border-radius:32px;background:#E9B949;display:flex;align-items:center;justify-content:center}
+.b-fine{margin-top:18px;font-size:23px;color:#A294C4;line-height:1.4}
+.b-band{position:absolute;left:0;right:0;bottom:0;height:22px;display:flex}
+.b-band span:first-child{flex:3;background:#6A35D9}
+.b-band span:last-child{flex:1;background:#E9B949}
+.bd.v-day{background-image:linear-gradient(170deg,#FFFFFF 0%,#F3EEFB 60%,#E9E1F7 100%);color:#1F0B3F}
+.v-day .b-word{color:#2A0F58}
+.v-day .b-date{color:#6E6187} .v-day .b-date strong{color:#1F0B3F}
+.v-day .b-h{color:#3B1675} .v-day .b-sub{color:#6E6187}
+.v-day .b-eq{opacity:.12}
+.v-day .b-card{background:#fff;box-shadow:0 24px 60px rgba(59,22,117,.14);border:2px solid #ECE5F7}
+.v-day .b-reach{color:#4A3D66}
+.v-day .b-contact{background:#2A0F58;border-color:#2A0F58;color:#fff}
+.v-day .b-fine{color:#7D7196}
+.b-heads.cx span{width:200px}
+.b-row.cx{padding:8px 0;gap:20px}
+.b-coin{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-coin img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-row.cx .b-code{font-size:50px}
+.b-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
+.b-meta .b-name{margin-top:0;font-size:24px}
+.b-net{padding:2px 11px;border-radius:999px;background:#ECE4FA;color:#4B21A6;font-size:19px;font-weight:700;white-space:nowrap}
+.b-row.cx .b-price{width:200px;height:86px;border-radius:22px;font-size:56px}
+.v-day .b-net{background:#F1EBFB}
+.b-heads.cx span{width:200px}
+.b-row.cx{padding:8px 0;gap:20px}
+.b-coin{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-coin img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-row.cx .b-code{font-size:50px}
+.b-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
+.b-meta .b-name{margin-top:0;font-size:24px}
+.b-net{padding:2px 11px;border-radius:999px;background:#ECE4FA;color:#4B21A6;font-size:19px;font-weight:700;white-space:nowrap}
+.b-row.cx .b-price{width:200px;height:86px;border-radius:22px;font-size:56px}
+.v-day .b-net{background:#F1EBFB}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="viewer-bar" role="group" aria-label="Choose template">
+  <button type="button" data-show="signal" aria-pressed="true">Purple Signal</button>
+  <button type="button" data-show="daylight" aria-pressed="false">Daylight</button>
+</div>
+<div class="stage"><div class="frame" id="frame">
+<!-- ════════ CRYPTO BOARD · PURPLE SIGNAL ════════ -->
+<section class="bd" id="signal" aria-label="Crypto rate board, Purple Signal"><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Today’s<br>crypto rates</div><div class="b-sub">Naira per $1 of coin, paid in minutes</div></div>
+  <div class="b-card"><div class="b-heads cx"><span>We buy</span><span>We sell</span></div>
+   <div class="b-row cx"><div class="b-coin" style="background:#1A9E77;color:#fff">T</div><div class="b-ccy"><div class="b-code">USDT</div><div class="b-meta"><div class="b-name">Tether</div><div class="b-net">TRC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1590</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#2775CA;color:#fff">U</div><div class="b-ccy"><div class="b-code">USDC</div><div class="b-meta"><div class="b-name">USD Coin</div><div class="b-net">ERC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1585</div><div class="b-price b-sell">1612</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#F7931A;color:#fff">B</div><div class="b-ccy"><div class="b-code">BTC</div><div class="b-meta"><div class="b-name">Bitcoin</div><div class="b-net">Bitcoin</div></div></div><div class="b-prices"><div class="b-price b-buy">1580</div><div class="b-price b-sell">1620</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#627EEA;color:#fff">E</div><div class="b-ccy"><div class="b-code">ETH</div><div class="b-meta"><div class="b-name">Ethereum</div><div class="b-net">ERC20</div></div></div><div class="b-prices"><div class="b-price b-buy">1575</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#0F9D9A;color:#fff">S</div><div class="b-ccy"><div class="b-code">SOL</div><div class="b-meta"><div class="b-name">Solana</div><div class="b-net">Solana</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#E0A100;color:#1F0B3F">B</div><div class="b-ccy"><div class="b-code">BNB</div><div class="b-meta"><div class="b-name">BNB</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div>
+   <div class="b-note"><i></i>Also trading TRX, LTC and TON. Ask for a rate.</div></div>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to trade</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Always confirm the network before you send.</p>
+  <div class="b-band"><span></span><span></span></div></section>
+<!-- ════════ CRYPTO BOARD · DAYLIGHT ════════ -->
+<section class="bd v-day" id="daylight" aria-label="Crypto rate board, Daylight" hidden><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Today’s<br>crypto rates</div><div class="b-sub">Naira per $1 of coin, paid in minutes</div></div>
+  <div class="b-card"><div class="b-heads cx"><span>We buy</span><span>We sell</span></div>
+   <div class="b-row cx"><div class="b-coin" style="background:#1A9E77;color:#fff">T</div><div class="b-ccy"><div class="b-code">USDT</div><div class="b-meta"><div class="b-name">Tether</div><div class="b-net">TRC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1590</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#2775CA;color:#fff">U</div><div class="b-ccy"><div class="b-code">USDC</div><div class="b-meta"><div class="b-name">USD Coin</div><div class="b-net">ERC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1585</div><div class="b-price b-sell">1612</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#F7931A;color:#fff">B</div><div class="b-ccy"><div class="b-code">BTC</div><div class="b-meta"><div class="b-name">Bitcoin</div><div class="b-net">Bitcoin</div></div></div><div class="b-prices"><div class="b-price b-buy">1580</div><div class="b-price b-sell">1620</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#627EEA;color:#fff">E</div><div class="b-ccy"><div class="b-code">ETH</div><div class="b-meta"><div class="b-name">Ethereum</div><div class="b-net">ERC20</div></div></div><div class="b-prices"><div class="b-price b-buy">1575</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#0F9D9A;color:#fff">S</div><div class="b-ccy"><div class="b-code">SOL</div><div class="b-meta"><div class="b-name">Solana</div><div class="b-net">Solana</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#E0A100;color:#1F0B3F">B</div><div class="b-ccy"><div class="b-code">BNB</div><div class="b-meta"><div class="b-name">BNB</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div>
+   <div class="b-note"><i></i>Also trading TRX, LTC and TON. Ask for a rate.</div></div>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to trade</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Always confirm the network before you send.</p>
+  <div class="b-band"><span></span><span></span></div></section>
+</div></div>
+<script>
+  const frame=document.getElementById('frame');
+  const boards=[...document.querySelectorAll('.bd')];
+  function fit(){const bar=document.querySelector('.viewer-bar').offsetHeight;
+    const s=Math.min((window.innerWidth-24)/1080,(window.innerHeight-bar-16)/1920,1);
+    frame.style.width=1080*s+'px';frame.style.height=1920*s+'px';
+    boards.forEach(b=>b.style.transform=`scale(${s})`);}
+  document.querySelectorAll('[data-show]').forEach(btn=>btn.addEventListener('click',()=>{
+    boards.forEach(b=>b.hidden=b.id!==btn.dataset.show);
+    document.querySelectorAll('[data-show]').forEach(x=>x.setAttribute('aria-pressed',x===btn));}));
+  window.addEventListener('resize',fit);fit();
+</script>
+</body></html>

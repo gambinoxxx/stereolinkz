@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <!--
-RateBoard (Stereolinkz) design reference: Add currency (drawer)
-File: forex-add.html
+RateBoard (Stereolinkz) design reference: Crypto rates
+File: crypto.html
 
-ROUTE: /admin/forex (drawer)
-PURPOSE: Create a Currency plus its first ForexRate in one step.
-COMPONENTS:
-  - Currency code (3 letters, forced uppercase)
-  - Symbol
-  - Name shown on boards
-  - Flag picker (bundled SVG flags keyed by flagCode)
-  - We buy / We sell
-  - Active switch
+ROUTE: /admin/crypto
+PURPOSE: Manage coins (BTC, USDT, ETH and alt coins) and their current buy/sell rates.
+UNIT: Naira per $1 of coin value. For stablecoins (USDT, USDC) that equals naira per coin.
+LAYOUT: Header with "Add coin" and "Generate crypto board". Filter (All / Active / Inactive). Table: drag handle,
+  coin (icon or letter badge + ticker + name), Networks, We buy, We sell (+ change arrow), Spread, Updated,
+  Status switch, Edit. Info note explaining the unit. On phones each row becomes a card.
+DATA:
+  - Coin: ticker, name, networks (string list), iconUrl, badgeColor, status, sortOrder
+  - Latest CryptoRate per coin (buy, sell, createdAt) and the one before it for the change arrow
+ACTIONS:
+  - Edit -> crypto-edit.html (side drawer; bottom sheet on phones)
+  - Add coin -> crypto-add.html
+  - Status switch toggles Coin.status ACTIVE / INACTIVE
+  - Drag rows to reorder (updates Coin.sortOrder; boards use this order)
 RULES:
-  - Duplicate code error: "CAD already exists. Edit it from the table instead."
+  - Saving a rate INSERTS a new CryptoRate row; never update the old one
+  - buy > 0, sell > 0, sell >= buy (Zod + DB CHECK)
+  - Ticker: 2-6 uppercase letters or digits, unique per organization
+  - Coins are rows, not code: no ticker or coin name hard-coded outside the seed
 
 SHARED: Styles and tokens are identical in every file (see :root). Build with Next.js 16 + Tailwind + shadcn/ui;
 this HTML is the visual spec, not production code. Data shown is sample data.
@@ -22,7 +30,7 @@ Board previews (.bd) are 1080x1920 and use flexbox only so the same markup can b
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Add currency (drawer) · RateBoard</title>
+<title>Crypto rates · RateBoard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&amp;display=swap" rel="stylesheet">
@@ -504,7 +512,7 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   <aside class="side" id="side" aria-label="Main navigation">
     <a class="brand" href="dashboard.html" aria-label="Stereolinkz RateBoard home"><span class="bars"><i style="height:11px"></i><i style="height:19px"></i><i style="height:24px"></i><i style="height:15px"></i></span><span class="wm">stereo<b>linkz</b></span></a>
     <div class="brand-sub">RateBoard</div>
-    <nav class="nav" id="nav"><a href="dashboard.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="forex.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="crypto.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>Crypto rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
+    <nav class="nav" id="nav"><a href="dashboard.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="forex.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="crypto.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>Crypto rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
     <div class="side-foot">
       <div class="avatar">G</div>
       <div class="who"><b>Gambino</b><span>Owner</span></div>
@@ -516,76 +524,100 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
       <a class="brand" href="dashboard.html"><span class="bars"><i style="height:10px"></i><i style="height:17px"></i><i style="height:21px"></i><i style="height:13px"></i></span><span class="wm">stereo<b>linkz</b></span></a>
       <button type="button" data-action="menu" aria-label="Open menu" data-ic="menu"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
     </header>
-    <main class="content" id="view"><div class="ph"><div><h1>Forex rates</h1><p>Naira per unit. Saving a new rate keeps the old one in history, so earlier boards stay accurate.</p></div>
-  <div class="actions"><button class="btn" data-action="add-fx"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add currency</button><a class="btn pri" href="generator.html" data-action="gen-type" data-type="FOREX"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generate forex board</a></div></div>
- <div class="toolbar"><div class="seg" role="group" aria-label="Filter"><button data-action="fx-filter" data-k="all" aria-pressed="true">All</button><button data-action="fx-filter" data-k="on" aria-pressed="false">Active</button><button data-action="fx-filter" data-k="off" aria-pressed="false">Inactive</button></div><span class="faint hm" style="font-size:13.5px">Drag rows to set their order on boards</span></div>
- <div class="panel t-fx">
-  <div class="tr th"><span></span><span>Currency</span><span class="r">We buy</span><span class="r">We sell</span><span class="r c-spread">Spread</span><span>Updated</span><span>Status</span><span></span></div>
-  <div class="tr " draggable="true" data-drag="usd">
+    <main class="content" id="view"><div class="ph"><div><h1>Crypto rates</h1><p>Naira per $1 of coin. For stablecoins like USDT that is per coin. Saving a new rate keeps the old one in history.</p></div>
+  <div class="actions"><button class="btn" data-action="add-cx"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add coin</button><a class="btn pri" href="generator-crypto.html"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generate crypto board</a></div></div>
+ <div class="toolbar"><div class="seg" role="group" aria-label="Filter"><button data-action="cx-filter" data-k="all" aria-pressed="true">All</button><button data-action="cx-filter" data-k="on" aria-pressed="false">Active</button><button data-action="cx-filter" data-k="off" aria-pressed="false">Inactive</button></div><span class="faint hm" style="font-size:13.5px">Drag rows to set their order on boards</span></div>
+ <div class="panel t-cx">
+  <div class="tr th"><span></span><span>Coin</span><span class="c-net">Networks</span><span class="r">We buy</span><span class="r">We sell</span><span class="r c-spread">Spread</span><span>Updated</span><span>Status</span><span></span></div>
+  <div class="tr " draggable="true" data-drag="usdt">
    <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
-   <div class="ent c-main"><span class="fl"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><g fill="#C8102E"><rect y="0" width="60" height="4.6"></rect><rect y="9.2" width="60" height="4.6"></rect><rect y="18.4" width="60" height="4.6"></rect><rect y="27.6" width="60" height="4.6"></rect><rect y="36.8" width="60" height="4.6"></rect><rect y="46" width="60" height="4.6"></rect><rect y="55.2" width="60" height="4.6"></rect></g><rect width="30" height="32.2" fill="#0A3161"></rect><g fill="#fff"><circle cx="6" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="24" cy="6" r="1.6"></circle><circle cx="10.5" cy="12" r="1.6"></circle><circle cx="19.5" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle><circle cx="24" cy="18" r="1.6"></circle><circle cx="10.5" cy="24" r="1.6"></circle><circle cx="19.5" cy="24" r="1.6"></circle></g></svg></span><div><b>USD</b><span>US dollar</span></div></div>
-   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,365</span></div>
-   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,378</span><span class="cell-sub"><span class="delta up"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"></path></svg>4</span></span></div>
-   <div class="r c-spread hm num muted">13</div>
-   <div class="hm muted" style="font-size:14px">Today, 10:25 AM</div>
-   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="fx" data-id="usd" aria-label="USD active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
-   <div class="c-act"><button class="btn sm" data-action="edit-fx" data-id="usd">Edit</button></div>
-  </div><div class="tr " draggable="true" data-drag="gbp">
-   <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
-   <div class="ent c-main"><span class="fl"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#012169"></rect><path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"></path><path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"></path><path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"></path><path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"></path></svg></span><div><b>GBP</b><span>British pound</span></div></div>
-   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,815</span></div>
-   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,840</span><span class="cell-sub"><span class="delta down"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6 13l6 6 6-6"></path></svg>5</span></span></div>
+   <div class="ent c-main"><span class="coin" style="background:#1A9E77;color:#fff">T</span><div><b>USDT</b><span>Tether</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">TRC20</span><span class="net">BEP20</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,590</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,615</span><span class="cell-sub"><span class="delta up"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"></path></svg>5</span></span></div>
    <div class="r c-spread hm num muted">25</div>
    <div class="hm muted" style="font-size:14px">Today, 10:25 AM</div>
-   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="fx" data-id="gbp" aria-label="GBP active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
-   <div class="c-act"><button class="btn sm" data-action="edit-fx" data-id="gbp">Edit</button></div>
-  </div><div class="tr " draggable="true" data-drag="eur">
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="usdt" aria-label="USDT active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="usdt">Edit</button></div>
+  </div><div class="tr " draggable="true" data-drag="usdc">
    <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
-   <div class="ent c-main"><span class="fl"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#003399"></rect><g fill="#FFCC00"><polygon points="30.00,10.00 30.74,11.98 32.85,12.07 31.20,13.39 31.76,15.43 30.00,14.26 28.24,15.43 28.80,13.39 27.15,12.07 29.26,11.98"></polygon><polygon points="38.50,12.28 39.24,14.26 41.35,14.35 39.70,15.67 40.26,17.70 38.50,16.54 36.74,17.70 37.30,15.67 35.65,14.35 37.76,14.26"></polygon><polygon points="44.72,18.50 45.46,20.48 47.58,20.57 45.92,21.89 46.49,23.93 44.72,22.76 42.96,23.93 43.52,21.89 41.87,20.57 43.98,20.48"></polygon><polygon points="47.00,27.00 47.74,28.98 49.85,29.07 48.20,30.39 48.76,32.43 47.00,31.26 45.24,32.43 45.80,30.39 44.15,29.07 46.26,28.98"></polygon><polygon points="44.72,35.50 45.46,37.48 47.58,37.57 45.92,38.89 46.49,40.93 44.72,39.76 42.96,40.93 43.52,38.89 41.87,37.57 43.98,37.48"></polygon><polygon points="38.50,41.72 39.24,43.70 41.35,43.80 39.70,45.11 40.26,47.15 38.50,45.98 36.74,47.15 37.30,45.11 35.65,43.80 37.76,43.70"></polygon><polygon points="30.00,44.00 30.74,45.98 32.85,46.07 31.20,47.39 31.76,49.43 30.00,48.26 28.24,49.43 28.80,47.39 27.15,46.07 29.26,45.98"></polygon><polygon points="21.50,41.72 22.24,43.70 24.35,43.80 22.70,45.11 23.26,47.15 21.50,45.98 19.74,47.15 20.30,45.11 18.65,43.80 20.76,43.70"></polygon><polygon points="15.28,35.50 16.02,37.48 18.13,37.57 16.48,38.89 17.04,40.93 15.28,39.76 13.51,40.93 14.08,38.89 12.42,37.57 14.54,37.48"></polygon><polygon points="13.00,27.00 13.74,28.98 15.85,29.07 14.20,30.39 14.76,32.43 13.00,31.26 11.24,32.43 11.80,30.39 10.15,29.07 12.26,28.98"></polygon><polygon points="15.28,18.50 16.02,20.48 18.13,20.57 16.48,21.89 17.04,23.93 15.28,22.76 13.51,23.93 14.08,21.89 12.42,20.57 14.54,20.48"></polygon><polygon points="21.50,12.28 22.24,14.26 24.35,14.35 22.70,15.67 23.26,17.70 21.50,16.54 19.74,17.70 20.30,15.67 18.65,14.35 20.76,14.26"></polygon></g></svg></span><div><b>EUR</b><span>Euro</span></div></div>
+   <div class="ent c-main"><span class="coin" style="background:#2775CA;color:#fff">U</span><div><b>USDC</b><span>USD Coin</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">ERC20</span><span class="net">BEP20</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,585</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,612</span></div>
+   <div class="r c-spread hm num muted">27</div>
+   <div class="hm muted" style="font-size:14px">Today, 10:25 AM</div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="usdc" aria-label="USDC active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="usdc">Edit</button></div>
+  </div><div class="tr " draggable="true" data-drag="btc">
+   <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
+   <div class="ent c-main"><span class="coin" style="background:#F7931A;color:#fff">B</span><div><b>BTC</b><span>Bitcoin</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">Bitcoin</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,580</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,620</span><span class="cell-sub"><span class="delta down"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6 13l6 6 6-6"></path></svg>5</span></span></div>
+   <div class="r c-spread hm num muted">40</div>
+   <div class="hm muted" style="font-size:14px">Today, 10:25 AM</div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="btc" aria-label="BTC active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="btc">Edit</button></div>
+  </div><div class="tr " draggable="true" data-drag="eth">
+   <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
+   <div class="ent c-main"><span class="coin" style="background:#627EEA;color:#fff">E</span><div><b>ETH</b><span>Ethereum</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">ERC20</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,575</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,615</span><span class="cell-sub"><span class="delta up"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"></path></svg>4</span></span></div>
+   <div class="r c-spread hm num muted">40</div>
+   <div class="hm muted" style="font-size:14px">Today, 9:10 AM</div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="eth" aria-label="ETH active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="eth">Edit</button></div>
+  </div><div class="tr " draggable="true" data-drag="sol">
+   <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
+   <div class="ent c-main"><span class="coin" style="background:#0F9D9A;color:#fff">S</span><div><b>SOL</b><span>Solana</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">Solana</span></div></div>
    <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,560</span></div>
-   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,583</span><span class="cell-sub"><span class="delta up"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"></path></svg>5</span></span></div>
-   <div class="r c-spread hm num muted">23</div>
-   <div class="hm muted" style="font-size:14px">Today, 8:40 AM</div>
-   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="fx" data-id="eur" aria-label="EUR active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
-   <div class="c-act"><button class="btn sm" data-action="edit-fx" data-id="eur">Edit</button></div>
-  </div><div class="tr off" draggable="true" data-drag="cad">
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,605</span></div>
+   <div class="r c-spread hm num muted">45</div>
+   <div class="hm muted" style="font-size:14px">Today, 9:10 AM</div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="sol" aria-label="SOL active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="sol">Edit</button></div>
+  </div><div class="tr " draggable="true" data-drag="bnb">
    <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
-   <div class="ent c-main"><span class="fl"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><rect width="15" height="60" fill="#D52B1E"></rect><rect x="45" width="15" height="60" fill="#D52B1E"></rect><path d="M30 15l2.6 5.4 4.4-2.2-1.6 8.6 4.8-1.2-1.2 3.6 5 3.2-7.2 1.4.8 3.4-6.6-.8V42h-2v-6.6l-6.6.8.8-3.4-7.2-1.4 5-3.2-1.2-3.6 4.8 1.2-1.6-8.6 4.4 2.2z" fill="#D52B1E"></path></svg></span><div><b>CAD</b><span>Canadian dollar</span></div></div>
-   <div class="r c-a c-buy num" data-l="We buy"><span class="big">985</span></div>
-   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,002</span></div>
-   <div class="r c-spread hm num muted">17</div>
+   <div class="ent c-main"><span class="coin" style="background:#E0A100;color:#1F0B3F">B</span><div><b>BNB</b><span>BNB</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">BEP20</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,560</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,605</span><span class="cell-sub"><span class="delta up"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"></path></svg>5</span></span></div>
+   <div class="r c-spread hm num muted">45</div>
+   <div class="hm muted" style="font-size:14px">Yesterday</div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="bnb" aria-label="BNB active" checked=""><span class="tk"></span><span class="hm">Active</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="bnb">Edit</button></div>
+  </div><div class="tr off" draggable="true" data-drag="trx">
+   <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
+   <div class="ent c-main"><span class="coin" style="background:#D7263D;color:#fff">T</span><div><b>TRX</b><span>Tron</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">TRC20</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,540</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,590</span></div>
+   <div class="r c-spread hm num muted">50</div>
    <div class="hm muted" style="font-size:14px">22 Sept</div>
-   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="fx" data-id="cad" aria-label="CAD active"><span class="tk"></span><span class="hm">Inactive</span></label></div>
-   <div class="c-act"><button class="btn sm" data-action="edit-fx" data-id="cad">Edit</button></div>
-  </div><div class="tr off" draggable="true" data-drag="cny">
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="trx" aria-label="TRX active"><span class="tk"></span><span class="hm">Inactive</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="trx">Edit</button></div>
+  </div><div class="tr off" draggable="true" data-drag="ltc">
    <span class="grip hm" aria-hidden="true"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
-   <div class="ent c-main"><span class="fl"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#DE2910"></rect><polygon points="20.00,13.00 22.22,18.94 28.56,19.22 23.59,23.17 25.29,29.28 20.00,25.78 14.71,29.28 16.41,23.17 11.44,19.22 17.78,18.94" fill="#FFDE00"></polygon><polygon points="33.00,10.00 33.74,11.98 35.85,12.07 34.20,13.39 34.76,15.43 33.00,14.26 31.24,15.43 31.80,13.39 30.15,12.07 32.26,11.98" fill="#FFDE00"></polygon><polygon points="38.00,16.00 38.74,17.98 40.85,18.07 39.20,19.39 39.76,21.43 38.00,20.26 36.24,21.43 36.80,19.39 35.15,18.07 37.26,17.98" fill="#FFDE00"></polygon><polygon points="38.00,24.00 38.74,25.98 40.85,26.07 39.20,27.39 39.76,29.43 38.00,28.26 36.24,29.43 36.80,27.39 35.15,26.07 37.26,25.98" fill="#FFDE00"></polygon><polygon points="33.00,30.00 33.74,31.98 35.85,32.07 34.20,33.39 34.76,35.43 33.00,34.26 31.24,35.43 31.80,33.39 30.15,32.07 32.26,31.98" fill="#FFDE00"></polygon></svg></span><div><b>CNY</b><span>Chinese yuan</span></div></div>
-   <div class="r c-a c-buy num" data-l="We buy"><span class="big">188</span></div>
-   <div class="r c-b c-sell num" data-l="We sell"><span class="big">194</span></div>
-   <div class="r c-spread hm num muted">6</div>
+   <div class="ent c-main"><span class="coin" style="background:#345D9D;color:#fff">L</span><div><b>LTC</b><span>Litecoin</span></div></div>
+   <div class="c-net hm"><div class="nets"><span class="net">Litecoin</span></div></div>
+   <div class="r c-a c-buy num" data-l="We buy"><span class="big">1,540</span></div>
+   <div class="r c-b c-sell num" data-l="We sell"><span class="big">1,590</span></div>
+   <div class="r c-spread hm num muted">50</div>
    <div class="hm muted" style="font-size:14px">19 Sept</div>
-   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="fx" data-id="cny" aria-label="CNY active"><span class="tk"></span><span class="hm">Inactive</span></label></div>
-   <div class="c-act"><button class="btn sm" data-action="edit-fx" data-id="cny">Edit</button></div>
+   <div class="c-st"><label class="sw"><input type="checkbox" data-toggle="cx" data-id="ltc" aria-label="LTC active"><span class="tk"></span><span class="hm">Inactive</span></label></div>
+   <div class="c-act"><button class="btn sm" data-action="edit-cx" data-id="ltc">Edit</button></div>
   </div>
- </div></main>
+ </div>
+ <div class="note-box" style="margin-top:16px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.5h.01"></path></svg><div>Rates are naira per $1 of coin value. A customer selling $500 of BTC at ₦1,580 receives ₦790,000. Only active coins appear on new boards; a crypto board fits 6 coins.</div></div></main>
   </div>
 </div>
-<nav class="mnav" id="mnav" aria-label="Quick navigation"><a href="dashboard.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Home</a><a href="forex.html" aria-current="page"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex</a><a href="pof.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF</a><a href="generator.html" class="gen-tab"><span class="ico"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg></span>Generate</a><button type="button" data-action="menu"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"></circle></svg>More</button></nav>
+<nav class="mnav" id="mnav" aria-label="Quick navigation"><a href="dashboard.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Home</a><a href="forex.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex</a><a href="pof.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF</a><a href="generator.html" class="gen-tab"><span class="ico"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg></span>Generate</a><button type="button" data-action="menu"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"></circle></svg>More</button></nav>
 
-<div class="scrim open" id="scrim" data-action="close"></div>
-<aside class="drawer open" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
-  <div class="dh"><div><h2 id="dTitle">Add currency</h2><p id="dSub">It becomes available to forex boards straight away.</p></div><button class="btn ghost icon" data-action="close" aria-label="Close" data-ic="x"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
-  <div class="db" id="dBody">
-  <div class="row2 keep"><div class="field"><label for="f-code">Currency code</label><input class="inp" id="f-code" maxlength="3" placeholder="CAD" style="text-transform:uppercase" autocomplete="off"></div><div class="field"><label for="f-sym">Symbol</label><input class="inp" id="f-sym" placeholder="$"></div></div>
-  <div class="field"><label for="f-name">Name shown on boards</label><input class="inp" id="f-name" placeholder="Canadian dollar"></div>
-  <div class="field"><label for="f-flag">Flag</label><select class="inp" id="f-flag"><option value="us">United States</option><option value="gb">United Kingdom</option><option value="eu">European Union</option><option value="ca">Canada</option><option value="cn">China</option><option value="ng">Nigeria</option><option value="">No flag</option></select></div>
-  <div class="row2 keep"><div class="field"><label for="f-buy">We buy</label><div class="ig"><span>₦</span><input id="f-buy" inputmode="decimal" value="" data-live="spread"></div></div>
-   <div class="field"><label for="f-sell">We sell</label><div class="ig"><span>₦</span><input id="f-sell" inputmode="decimal" value="" data-live="spread"></div></div></div>
-  <div class="hint" id="f-spread"></div>
-  <div class="err" id="f-err" role="alert"></div>
-  <label class="sw"><input type="checkbox" id="f-on" checked=""><span class="tk"></span>Active and shown on new boards</label></div>
-  <div class="df"><button class="btn" data-action="close">Cancel</button><button class="btn pri" id="dSave">Add currency</button></div>
-</aside>
+<div class="scrim" id="scrim" data-action="close"></div>
+
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
@@ -598,7 +630,7 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
 (function(){
   function fit(){document.querySelectorAll('.bwrap').forEach(function(w){var k=w.clientWidth/1080;if(k)w.firstElementChild.style.transform='scale('+k+')'})}
   new ResizeObserver(fit).observe(document.body); fit();
-  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html", "edit-cx": "crypto-edit.html", "add-cx": "crypto-add.html"}, PARENT="forex.html";
+  var MAP={"edit-fx": "forex-edit.html", "add-fx": "forex-add.html", "edit-pof": "pof-edit.html", "add-pof": "pof-add.html", "add-bank": "bank-add.html", "edit-bank": "bank-edit.html", "del-bank": "bank-delete.html", "view": "history-board.html", "regen": "history-regenerate.html", "login": "dashboard.html", "generate": "generator-done.html", "gen-reset": "generator.html", "dup": "generator.html", "use-tpl": "generator.html", "edit-cx": "crypto-edit.html", "add-cx": "crypto-add.html"}, PARENT=null;
   document.addEventListener('click',function(e){
     var el=e.target.closest('[data-action],#dSave'); if(!el) return;
     var a=el.id==='dSave'?'close':el.dataset.action;
