@@ -198,7 +198,7 @@ export function CryptoTable({
                 {coin.networks.map((network) => (
                   <span
                     key={network}
-                    className="rounded-full bg-accent-soft px-2 py-px text-[12px] font-semibold whitespace-nowrap text-accent-primary-hover"
+                    className="rounded-md bg-border-subtle px-2 py-0.5 text-[12.5px] font-semibold whitespace-nowrap text-text-secondary"
                   >
                     {network}
                   </span>

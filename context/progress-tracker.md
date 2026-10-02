@@ -9,10 +9,26 @@ change.
 
 ## Current Goal
 
-- Phase 10: waiting for `.env.local` to point at the Neon `dev` branch, then migrate, seed and check every part in the browser
+- Phase 10: templates page check, then generator (crypto board, failure test), then history / dashboard / download and the old-board checks
 
 ## Completed
 
+- 2026-10-02: Phase 10, schema, snapshot and crypto rates page. Owner chose
+  to apply the migration to production (no dev branch): `prisma migrate
+  deploy` applied `20261001233401_crypto` (additive); checked in a
+  rolled-back transaction that `crypto_sell_gte_buy` rejects sell < buy
+  (23514). Owner chose to seed the 8 sample coins into production: run
+  twice, 8 coins / 11 CryptoRate both times, nothing else changed.
+  Snapshot: CRYPTO variant additive (version 1); real Forex and POF
+  snapshots copied from the database parse unchanged (test).
+  `/admin/crypto` checked on a production build: BTC rate saved (+1
+  CryptoRate, older rows untouched), unchanged save → "No changes to
+  save", ETH networks only → "ETH updated" (no rate row), sell < buy and a
+  duplicate ticker show their errors, TON added (networks "TON, ton, ,
+  Jetton" → TON, Jetton) and given an icon, reorder persisted and was put
+  back; both widths and both drawers match the designs. CryptoRate 11 →
+  13. Key files: `prisma/{schema.prisma,seed.ts}`, the `crypto`
+  migration, `src/features/{coins,crypto-rates}/`, `src/app/admin/crypto/page.tsx`.
 - 2026-10-01: Phase 9 complete. All Done-when items checked, tagged
   phase-9-complete.
 - 2026-10-01: Phase 9, brand on boards (no code change needed: the
@@ -502,19 +518,7 @@ change.
 
 ## In Progress
 
-- Phase 10, written but not yet run against a database (the migration
-  waits for the Neon `dev` branch; `.env.local` still points at
-  production `ep-twilight-brook-…`): schema + `crypto` migration (SQL
-  reviewed, additive), the CRYPTO snapshot variant, `defaults.ts`,
-  `buildSnapshot`, the two crypto templates and `CryptoBoard` layout
-  (rendered from fixtures: match `stereolinkz-crypto-board.html`, worst
-  case fits), board type widened to FOREX | POF | CRYPTO with exhaustive
-  switches (`assertNever`), generator / preview / generateBoard / history
-  / Now X / prefill / dashboard changes / Templates page / download for
-  CRYPTO, `/admin/crypto` (table, both drawers, icon upload, status,
-  reorder), sidebar link, development seed coins. Tests pass (169).
-  Left: migrate + seed on `dev`, browser checks of every part, the
-  failure test and the old-board checks.
+- Nothing in progress.
 
 ## Next Up
 

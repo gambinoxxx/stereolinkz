@@ -1,10 +1,11 @@
 "use client";
 
-import { Filter, Info, Plus, Sparkles } from "lucide-react";
+import { Filter, Plus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Callout } from "@/components/callout";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusFilterBar } from "@/components/status-filter-bar";
@@ -136,16 +137,11 @@ export function CryptoManager({
       )}
 
       {shown.length > 0 && (
-        <p className="mt-3.5 flex gap-2 text-[13.5px] text-text-muted">
-          <Info
-            aria-hidden="true"
-            className="mt-0.5 size-4 shrink-0"
-            strokeWidth={1.9}
-          />
+        <Callout className="mt-3.5">
           Rates are naira per $1 of coin value. A customer selling $500 of a
           coin at ₦1,580 receives ₦790,000. Only active coins appear on new
           boards; a crypto board fits 6 coins.
-        </p>
+        </Callout>
       )}
 
       <CryptoRateDrawer
