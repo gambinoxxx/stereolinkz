@@ -7,6 +7,7 @@ import {
   listCurrenciesWithRates,
 } from "@/features/currencies/queries";
 import {
+  type CryptoChangeRow,
   type ForexChangeRow,
   mergeRateChanges,
   type PofChangeRow,
@@ -84,6 +85,45 @@ async function recentForexChanges(
   }));
 }
 
+// The same for crypto rates, per coin. One query.
+async function recentCryptoChanges(
+  organizationId: string,
+  limit: number,
+): Promise<CryptoChangeRow[]> {
+  const rows = await db.$queryRaw<
+    {
+      id: string;
+      at: string;
+      ticker: string;
+      buy: string;
+      sell: string;
+      prev_buy: string | null;
+      prev_sell: string | null;
+    }[]
+  >`
+    SELECT id, at, ticker, buy, sell, prev_buy, prev_sell FROM (
+      SELECT r.id, r."createdAt" AS ts, r."createdAt"::text AS at, c.ticker,
+             r.buy::text AS buy, r.sell::text AS sell,
+             LAG(r.buy::text) OVER w AS prev_buy,
+             LAG(r.sell::text) OVER w AS prev_sell
+      FROM "CryptoRate" r
+      JOIN "Coin" c ON c.id = r."coinId"
+      WHERE c."organizationId" = ${organizationId}
+      WINDOW w AS (PARTITION BY r."coinId" ORDER BY r."createdAt", r.id)
+    ) x
+    ORDER BY ts DESC, id DESC
+    LIMIT ${limit}`;
+  return rows.map((r) => ({
+    id: r.id,
+    at: iso(r.at),
+    ticker: r.ticker,
+    buy: r.buy,
+    sell: r.sell,
+    prevBuy: r.prev_buy,
+    prevSell: r.prev_sell,
+  }));
+}
+
 // The same for POF rates, per bank. One query.
 async function recentPofChanges(
   organizationId: string,
@@ -139,6 +179,7 @@ export async function getDashboard(
     lastBoard,
     forexChanges,
     pofChanges,
+    cryptoChanges,
     forex,
     pof,
     bankOptions,
@@ -174,13 +215,19 @@ export async function getDashboard(
     }),
     recentForexChanges(organizationId, RECENT_CHANGES),
     recentPofChanges(organizationId, RECENT_CHANGES),
+    recentCryptoChanges(organizationId, RECENT_CHANGES),
     listCurrenciesWithRates(organizationId, "ACTIVE"),
     listPofRates(organizationId, "active"),
     listActiveBankOptions(organizationId),
     listBoards(organizationId, { limit: RECENT_BOARDS }),
   ]);
 
-  const changes = mergeRateChanges(forexChanges, pofChanges, RECENT_CHANGES);
+  const changes = mergeRateChanges(
+    forexChanges,
+    pofChanges,
+    cryptoChanges,
+    RECENT_CHANGES,
+  );
   const count = (status: string) =>
     currencyCounts.find((c) => c.status === status)?._count._all ?? 0;
 

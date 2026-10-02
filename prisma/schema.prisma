@@ -37,13 +37,15 @@ model Organization {
   email           String?
 
   // Board defaults (Settings and Templates pages)
-  defaultFinePrint        String?
-  defaultForexTemplateKey String? // e.g. "forex/purple-signal"; null = first registered template
-  defaultPofTemplateKey   String?
+  defaultFinePrint         String?
+  defaultForexTemplateKey  String? // e.g. "forex/purple-signal"; null = first registered template
+  defaultPofTemplateKey    String?
+  defaultCryptoTemplateKey String?
 
   memberships Membership[]
   currencies  Currency[]
   banks       Bank[]
+  coins       Coin[]
   rateBoards  RateBoard[]
 
   createdAt DateTime @default(now())
@@ -89,10 +91,10 @@ model Currency {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  code      String       // ISO 4217, uppercase: "USD"
-  name      String       // "US Dollar"
-  symbol    String?      // "$"
-  flagCode  String?      // "us", "gb", "eu" → bundled SVG flag (emoji flags render unreliably in SVG)
+  code      String // ISO 4217, uppercase: "USD"
+  name      String // "US Dollar"
+  symbol    String? // "$"
+  flagCode  String? // "us", "gb", "eu" → bundled SVG flag (emoji flags render unreliably in SVG)
   sortOrder Int          @default(0)
   status    RecordStatus @default(ACTIVE)
 
@@ -129,10 +131,10 @@ model Bank {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  name      String       // "Wema Bank"
-  shortName String?      // "Wema" — what most templates print
-  slug      String       // normalized name, blocks "Ecobank" vs "Eco Bank" duplicates
-  logoUrl   String?      // Vercel Blob URL; never overwritten, a new upload = new URL
+  name      String // "Wema Bank"
+  shortName String? // "Wema" — what most templates print
+  slug      String // normalized name, blocks "Ecobank" vs "Eco Bank" duplicates
+  logoUrl   String? // Vercel Blob URL; never overwritten, a new upload = new URL
   sortOrder Int          @default(0)
   status    RecordStatus @default(ACTIVE)
   pofActive Boolean      @default(true) // show this bank's current POF rate on new POF boards
@@ -168,6 +170,7 @@ model PofRate {
 enum RateBoardType {
   FOREX
   POF
+  CRYPTO
   CUSTOM
 }
 
@@ -214,4 +217,42 @@ model RateBoardImage {
   createdAt   DateTime @default(now())
 
   @@index([rateBoardId, createdAt(sort: Desc)])
+}
+
+// Coins (Phase 10): rows, like currencies and banks. Rates are naira per
+// $1 of coin value, one buy and one sell per coin.
+model Coin {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  ticker     String // "BTC": ^[A-Z0-9]{2,6}$, unique per org; fixed once added
+  name       String // "Bitcoin", ≤ 20 characters
+  networks   String[] // ["TRC20", "BEP20"]: display only, ≤ 4 stored, boards show 2
+  iconUrl    String? // Vercel Blob URL; never overwritten, a new upload = new URL
+  badgeColor String? // #RRGGBB behind the letter badge when there is no icon
+  sortOrder  Int          @default(0)
+  status     RecordStatus @default(ACTIVE)
+
+  rates CryptoRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, ticker])
+  @@index([organizationId, status, sortOrder])
+}
+
+model CryptoRate {
+  id     String @id @default(cuid())
+  coinId String
+  coin   Coin   @relation(fields: [coinId], references: [id], onDelete: Restrict)
+
+  buy  Decimal @db.Decimal(14, 4) // naira per $1 of coin value
+  sell Decimal @db.Decimal(14, 4) // CHECK (sell >= buy) added via raw SQL in the migration
+
+  createdById String? // Clerk user id
+  createdAt   DateTime @default(now())
+
+  @@index([coinId, createdAt(sort: Desc)])
 }

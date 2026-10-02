@@ -10,7 +10,13 @@ import { embedImages } from "@/lib/render/assets";
 import { renderBoardPng } from "@/lib/render/render-board";
 import { renderPng } from "@/lib/render/render-png";
 import { renderSvg } from "@/lib/render/render-svg";
-import { forexFixture, pofFixture, WORST_CASES } from "@/test/board-fixtures";
+import type { TemplateType } from "@/features/templates/types";
+import {
+  cryptoFixture,
+  forexFixture,
+  pofFixture,
+  WORST_CASES,
+} from "@/test/board-fixtures";
 
 const OUT = join(process.cwd(), "tmp/boards");
 mkdirSync(OUT, { recursive: true });
@@ -21,7 +27,7 @@ const GUIDES =
 
 type Case = {
   name: string;
-  type: "FOREX" | "POF";
+  type: TemplateType;
   snapshot: () => Parameters<typeof renderBoardPng>[0];
 };
 const CASES: Case[] = [
@@ -36,6 +42,12 @@ const CASES: Case[] = [
     name: "worst-long-names",
     type: "POF",
     snapshot: WORST_CASES["pof-long-names"],
+  },
+  { name: "seed", type: "CRYPTO", snapshot: cryptoFixture },
+  {
+    name: "worst-long-names",
+    type: "CRYPTO",
+    snapshot: WORST_CASES["crypto-long-names"],
   },
 ];
 

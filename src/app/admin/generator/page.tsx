@@ -14,7 +14,7 @@ export const maxDuration = 30;
 const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
 
 const searchSchema = z.object({
-  type: z.preprocess(first, z.enum(["FOREX", "POF"]).catch("FOREX")),
+  type: z.preprocess(first, z.enum(["FOREX", "POF", "CRYPTO"]).catch("FOREX")),
   template: z.preprocess(first, z.string().optional().catch(undefined)),
   // "Use these rates again" (history) links here with ?from=<boardId>.
   from: z.preprocess(first, z.string().optional().catch(undefined)),

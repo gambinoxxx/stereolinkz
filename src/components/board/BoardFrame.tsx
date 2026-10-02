@@ -4,6 +4,7 @@ import "./board-fonts.css";
 
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 
+import { TYPE_LABEL } from "@/features/boards/history";
 import type { BoardSnapshot } from "@/features/boards/snapshot";
 import { BOARD_H, BOARD_W } from "@/features/templates/layout";
 import { getTemplate } from "@/features/templates/registry";
@@ -48,9 +49,7 @@ export function BoardFrame({
     <div
       ref={box}
       role="img"
-      aria-label={
-        label ?? `${snapshot.type === "FOREX" ? "Forex" : "POF"} board preview`
-      }
+      aria-label={label ?? `${TYPE_LABEL[snapshot.type]} preview`}
       className={cn(
         "relative aspect-[9/16] w-full overflow-hidden rounded-control",
         className,

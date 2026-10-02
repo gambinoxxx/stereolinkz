@@ -25,7 +25,11 @@ type GeneratorProps = {
   notice: string | null; // skipped items, or a ?from= that couldn't load
 };
 
-const TYPE_LABEL: Record<BoardType, string> = { FOREX: "Forex", POF: "POF" };
+const TYPE_LABEL: Record<BoardType, string> = {
+  FOREX: "Forex",
+  POF: "POF",
+  CRYPTO: "Crypto",
+};
 
 // generator.html. Owns the board type: switching resets the form (a new
 // key remounts it with that type's rows, default template and copy).

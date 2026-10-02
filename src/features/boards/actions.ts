@@ -5,7 +5,13 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { buildSnapshot, toSnapshotOrg } from "@/features/boards/build-snapshot";
+import {
+  buildSnapshot,
+  type CryptoRow,
+  type ForexRow,
+  type PofRow,
+  toSnapshotOrg,
+} from "@/features/boards/build-snapshot";
 import { diffRates } from "@/features/boards/diff";
 import {
   type BoardListItem,
@@ -22,6 +28,8 @@ import { PERCENT_ERRORS } from "@/features/pof-rates/schema";
 import { getTemplate, isTemplateKey } from "@/features/templates/registry";
 import { toDecimalString } from "@/lib/decimal";
 import { type ActionResult, safeAction } from "@/lib/server/action";
+import type { Prisma } from "@/generated/prisma/client";
+import { assertNever } from "@/lib/assert-never";
 import { db } from "@/lib/server/db";
 import { isCheckViolation } from "@/lib/server/prisma-errors";
 
@@ -41,14 +49,14 @@ const GONE =
 const inactive = (name: string) =>
   `${name} is no longer active. Refresh the page and try again.`;
 
-type Prepared =
+// The rows for one board type, loaded and checked, with the rate inserts
+// for values that changed.
+type Prepared<Row> =
   | { ok: false; error: string }
   | {
       ok: true;
-      snapshotRows: BoardSnapshot["rows"];
-      rateInserts: ReturnType<
-        typeof db.forexRate.create | typeof db.pofRate.create
-      >[];
+      snapshotRows: Row[];
+      rateInserts: Prisma.PrismaPromise<unknown>[];
     };
 
 // Pages that show rates or boards.
@@ -58,6 +66,7 @@ function revalidateBoardPages() {
     "/admin/forex",
     "/admin/pof",
     "/admin/banks",
+    "/admin/crypto",
     "/admin/history",
     "/admin/generator",
   ])
@@ -106,35 +115,49 @@ const generate = safeAction(
     const org = await db.organization.findUniqueOrThrow({
       where: { id: organizationId },
     });
-    const prepared =
-      input.type === "FOREX"
-        ? await prepareForex(organizationId, userId, input.rows)
-        : await preparePof(organizationId, userId, input.rows);
-    if (!prepared.ok) return prepared;
-
     // 4. Snapshot, stamped with server time (Invariant 11: org time zone).
-    const snapshot =
-      input.type === "FOREX"
-        ? buildSnapshot({
-            org: toSnapshotOrg(org),
-            type: "FOREX",
-            rows: prepared.snapshotRows as Extract<
-              BoardSnapshot,
-              { type: "FOREX" }
-            >["rows"],
-            content: input.content,
-            now: new Date(),
-          })
-        : buildSnapshot({
-            org: toSnapshotOrg(org),
-            type: "POF",
-            rows: prepared.snapshotRows as Extract<
-              BoardSnapshot,
-              { type: "POF" }
-            >["rows"],
-            content: input.content,
-            now: new Date(),
-          });
+    const now = new Date();
+    const base = { org: toSnapshotOrg(org), content: input.content, now };
+    let snapshot: BoardSnapshot;
+    let rateInserts: Prisma.PrismaPromise<unknown>[];
+    switch (input.type) {
+      case "FOREX": {
+        const p = await prepareForex(organizationId, userId, input.rows);
+        if (!p.ok) return p;
+        snapshot = buildSnapshot({
+          ...base,
+          type: "FOREX",
+          rows: p.snapshotRows,
+        });
+        rateInserts = p.rateInserts;
+        break;
+      }
+      case "POF": {
+        const p = await preparePof(organizationId, userId, input.rows);
+        if (!p.ok) return p;
+        snapshot = buildSnapshot({
+          ...base,
+          type: "POF",
+          rows: p.snapshotRows,
+        });
+        rateInserts = p.rateInserts;
+        break;
+      }
+      case "CRYPTO": {
+        const p = await prepareCrypto(organizationId, userId, input.rows);
+        if (!p.ok) return p;
+        snapshot = buildSnapshot({
+          ...base,
+          type: "CRYPTO",
+          rows: p.snapshotRows,
+        });
+        rateInserts = p.rateInserts;
+        break;
+      }
+      default:
+        return assertNever(input);
+    }
+    const prepared = { rateInserts };
 
     // 5–8. Render, upload, then one transaction: the edited rates
     // (Invariant 2: inserts only), the board with its snapshot, and the
@@ -279,7 +302,7 @@ async function prepareForex(
   organizationId: string,
   userId: string,
   rows: { id: string; buy: string; sell: string }[],
-): Promise<Prepared> {
+): Promise<Prepared<ForexRow>> {
   const currencies = await db.currency.findMany({
     where: { organizationId, id: { in: rows.map((row) => row.id) } },
     orderBy: [{ sortOrder: "asc" }, { code: "asc" }],
@@ -342,11 +365,83 @@ async function prepareForex(
   };
 }
 
+// Coins: the forex rules (naira per $1, sell ≥ buy), each coin ACTIVE.
+// Networks (first 2), icon and badge colour are copied from the database.
+async function prepareCrypto(
+  organizationId: string,
+  userId: string,
+  rows: { id: string; buy: string; sell: string }[],
+): Promise<Prepared<CryptoRow>> {
+  const coins = await db.coin.findMany({
+    where: { organizationId, id: { in: rows.map((row) => row.id) } },
+    orderBy: [{ sortOrder: "asc" }, { ticker: "asc" }],
+    select: {
+      id: true,
+      ticker: true,
+      name: true,
+      networks: true,
+      iconUrl: true,
+      badgeColor: true,
+      status: true,
+      rates: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { buy: true, sell: true },
+      },
+    },
+  });
+  if (coins.length !== rows.length) return { ok: false, error: GONE };
+  const stale = coins.find((c) => c.status !== "ACTIVE");
+  if (stale) return { ok: false, error: inactive(stale.ticker) };
+
+  const submitted = new Map(rows.map((row) => [row.id, row]));
+  const current = new Map(
+    coins.flatMap((c) =>
+      c.rates[0]
+        ? [
+            [
+              c.id,
+              {
+                buy: toDecimalString(c.rates[0].buy),
+                sell: toDecimalString(c.rates[0].sell),
+              },
+            ] as const,
+          ]
+        : [],
+    ),
+  );
+  const changed = diffRates("CRYPTO", current, rows);
+
+  return {
+    ok: true,
+    snapshotRows: coins.map((c) => ({
+      coinId: c.id,
+      ticker: c.ticker,
+      name: c.name,
+      networks: c.networks.slice(0, 2),
+      iconUrl: c.iconUrl,
+      badgeColor: c.badgeColor,
+      buy: submitted.get(c.id)!.buy,
+      sell: submitted.get(c.id)!.sell,
+    })),
+    rateInserts: changed.map(({ id }) =>
+      db.cryptoRate.create({
+        data: {
+          coinId: id,
+          buy: submitted.get(id)!.buy,
+          sell: submitted.get(id)!.sell,
+          createdById: userId,
+        },
+      }),
+    ),
+  };
+}
+
 async function preparePof(
   organizationId: string,
   userId: string,
   rows: { id: string; rate: string; note: string | null }[],
-): Promise<Prepared> {
+): Promise<Prepared<PofRow>> {
   const banks = await db.bank.findMany({
     where: { organizationId, id: { in: rows.map((row) => row.id) } },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

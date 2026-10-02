@@ -24,7 +24,7 @@ import { RateDelta } from "@/components/rate-delta";
 import { Button } from "@/components/ui/button";
 import { BoardDetailDialog } from "@/features/boards/components/BoardDetailDialog";
 import { RegenerateDialog } from "@/features/boards/components/RegenerateDialog";
-import type { BoardListItem } from "@/features/boards/history";
+import { type BoardListItem, TYPE_LABEL } from "@/features/boards/history";
 import type { BoardDetail } from "@/features/boards/queries";
 import type { CurrencyListItem } from "@/features/currencies/queries";
 import type { RateChange } from "@/features/dashboard/changes";
@@ -436,8 +436,7 @@ function RecentBoard({
   onOpen: () => void;
 }) {
   const { snapshot } = board;
-  const kind =
-    board.type === "FOREX" ? "Forex" : board.type === "POF" ? "POF" : "Custom";
+  const kind = TYPE_LABEL[board.type].replace(" board", "");
   const created = new Date(board.createdAt);
   const day = formatBoardDay(created, now, timeZone);
   const when = `${day === "Today" ? "" : `${day.split(" ")[0]} `}${snapshot?.content.timeLabel ?? formatBoardTime(created, timeZone)}`;

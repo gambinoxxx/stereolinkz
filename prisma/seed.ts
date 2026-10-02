@@ -1,6 +1,7 @@
-// Seeds the Stereolinkz organization with sample currencies, banks and
-// rates. This is the only file where bank and currency names may appear
-// (architecture.md → Invariant 1).
+// Seeds the Stereolinkz organization with sample currencies, banks, coins
+// and rates. This is the only file where bank, currency and coin names may
+// appear (architecture.md → Invariant 1). Development only: never run it
+// against production unless the owner says so.
 //
 // Idempotent: parents are upserted on their unique keys and never
 // overwritten (so later edits in the app survive a re-run); rate rows are
@@ -139,6 +140,93 @@ function rateDates(count: number): Date[] {
   return count === 2 ? [dayBefore, now] : [now];
 }
 
+// crypto.html: naira per $1 of coin value. Oldest rate first; the change
+// arrows compare the last two.
+type SeedCoin = {
+  ticker: string;
+  name: string;
+  networks: string[];
+  badgeColor: string;
+  status: RecordStatus;
+  rates: SeedForexRate[];
+};
+
+const coins: SeedCoin[] = [
+  {
+    ticker: "USDT",
+    name: "Tether",
+    networks: ["TRC20", "BEP20"],
+    badgeColor: "#1A9E77",
+    status: "ACTIVE",
+    rates: [
+      { buy: "1585", sell: "1610" },
+      { buy: "1590", sell: "1615" },
+    ],
+  },
+  {
+    ticker: "USDC",
+    name: "USD Coin",
+    networks: ["ERC20", "BEP20"],
+    badgeColor: "#2775CA",
+    status: "ACTIVE",
+    rates: [{ buy: "1585", sell: "1612" }],
+  },
+  {
+    ticker: "BTC",
+    name: "Bitcoin",
+    networks: ["Bitcoin"],
+    badgeColor: "#F7931A",
+    status: "ACTIVE",
+    rates: [
+      { buy: "1585", sell: "1625" },
+      { buy: "1580", sell: "1620" },
+    ],
+  },
+  {
+    ticker: "ETH",
+    name: "Ethereum",
+    networks: ["ERC20"],
+    badgeColor: "#627EEA",
+    status: "ACTIVE",
+    rates: [
+      { buy: "1570", sell: "1611" },
+      { buy: "1575", sell: "1615" },
+    ],
+  },
+  {
+    ticker: "SOL",
+    name: "Solana",
+    networks: ["Solana"],
+    badgeColor: "#0F9D9A",
+    status: "ACTIVE",
+    rates: [{ buy: "1560", sell: "1605" }],
+  },
+  {
+    ticker: "BNB",
+    name: "BNB",
+    networks: ["BEP20"],
+    badgeColor: "#E0A100",
+    status: "ACTIVE",
+    rates: [{ buy: "1560", sell: "1605" }],
+  },
+  {
+    ticker: "TRX",
+    name: "Tron",
+    networks: ["TRC20"],
+    badgeColor: "#D7263D",
+    status: "INACTIVE",
+    rates: [{ buy: "1540", sell: "1590" }],
+  },
+  {
+    ticker: "LTC",
+    name: "Litecoin",
+    networks: ["Litecoin"],
+    badgeColor: "#345D9D",
+    status: "INACTIVE",
+    rates: [{ buy: "1540", sell: "1590" }],
+  },
+];
+
 async function main() {
   const org = await prisma.organization.upsert({
     where: { slug: "stereolinkz" },
@@ -154,6 +242,7 @@ async function main() {
       contactLine: "+234 800 000 0000", // placeholder until set in Settings
       defaultForexTemplateKey: "forex/purple-signal",
       defaultPofTemplateKey: "pof/purple-signal",
+      defaultCryptoTemplateKey: "crypto/purple-signal",
       defaultFinePrint: "Rates can change without notice.",
     },
   });
@@ -182,6 +271,39 @@ async function main() {
       await prisma.forexRate.createMany({
         data: c.rates.map((r, i) => ({
           currencyId: currency.id,
+          buy: r.buy,
+          sell: r.sell,
+          createdAt: dates[i],
+        })),
+      });
+    }
+  }
+
+  for (const [sortOrder, c] of coins.entries()) {
+    const coin = await prisma.coin.upsert({
+      where: {
+        organizationId_ticker: { organizationId: org.id, ticker: c.ticker },
+      },
+      update: {},
+      create: {
+        organizationId: org.id,
+        ticker: c.ticker,
+        name: c.name,
+        networks: c.networks,
+        badgeColor: c.badgeColor,
+        sortOrder,
+        status: c.status,
+      },
+    });
+
+    const existing = await prisma.cryptoRate.count({
+      where: { coinId: coin.id },
+    });
+    if (existing === 0) {
+      const dates = rateDates(c.rates.length);
+      await prisma.cryptoRate.createMany({
+        data: c.rates.map((r, i) => ({
+          coinId: coin.id,
           buy: r.buy,
           sell: r.sell,
           createdAt: dates[i],
@@ -249,6 +371,8 @@ async function main() {
     ForexRate: await prisma.forexRate.count(),
     Bank: await prisma.bank.count(),
     PofRate: await prisma.pofRate.count(),
+    Coin: await prisma.coin.count(),
+    CryptoRate: await prisma.cryptoRate.count(),
     RateBoard: await prisma.rateBoard.count(),
     RateBoardImage: await prisma.rateBoardImage.count(),
   };

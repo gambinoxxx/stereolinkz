@@ -4,6 +4,8 @@ import {
   percentPillFontSize,
   pofNoteBelow,
   pricePillFontSize,
+  compactPriceFontSize,
+  cryptoNetworksShown,
 } from "@/features/templates/text-rules";
 
 describe("pricePillFontSize", () => {
@@ -33,5 +35,30 @@ describe("pofNoteBelow", () => {
     expect(pofNoteBelow("Wema", null)).toBe(false);
     expect(pofNoteBelow("Fourteen Chars", "New account")).toBe(true); // 25
     expect(pofNoteBelow("Shrt", "Twenty-four chars note!!")).toBe(true);
+  });
+});
+
+describe("crypto rows", () => {
+  it("steps the 200px price boxes down from 56px after 6 characters", () => {
+    expect(compactPriceFontSize("1615")).toBe(56);
+    expect(compactPriceFontSize("123456")).toBe(48);
+    expect(compactPriceFontSize("1234567")).toBe(42);
+    expect(compactPriceFontSize("99999.99")).toBe(38);
+    expect(compactPriceFontSize("12345678901")).toBe(27);
+  });
+
+  it("keeps both tags when they fit, else drops the second", () => {
+    expect(cryptoNetworksShown("USD Coin", ["ERC20", "BEP20"])).toEqual([
+      "ERC20",
+      "BEP20",
+    ]);
+    expect(cryptoNetworksShown("Tether", ["TRC20", "BEP20", "ERC20"])).toEqual([
+      "TRC20",
+      "BEP20",
+    ]);
+    expect(
+      cryptoNetworksShown("Mmmmmmmmmmmmmmmmmmmm", ["ARBITRUM", "OPTIMISM"]),
+    ).toEqual(["ARBITRUM"]);
+    expect(cryptoNetworksShown("Solana", [])).toEqual([]);
   });
 });

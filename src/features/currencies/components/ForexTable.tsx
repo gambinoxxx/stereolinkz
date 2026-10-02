@@ -9,7 +9,7 @@ import { RateDelta } from "@/components/rate-delta";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CellLabel, isRowControl } from "@/components/table-cells";
-import { dropOrder, moveItem } from "@/features/currencies/order";
+import { dropOrder, moveItem } from "@/lib/order";
 import type { CurrencyListItem } from "@/features/currencies/queries";
 import { PHONE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { subtractDecimalStrings } from "@/lib/decimal";

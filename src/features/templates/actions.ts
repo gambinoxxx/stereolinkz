@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getTemplate, isTemplateKey } from "@/features/templates/registry";
+import type { TemplateType } from "@/features/templates/types";
 import { type ActionResult, safeAction } from "@/lib/server/action";
 import { db } from "@/lib/server/db";
 
 const input = z.object({
-  type: z.enum(["FOREX", "POF"]),
+  type: z.enum(["FOREX", "POF", "CRYPTO"]),
   key: z.string().min(1),
 });
 
@@ -18,7 +19,7 @@ const setDefault = safeAction(
     { organizationId },
     rawType: unknown,
     rawKey: unknown,
-  ): Promise<ActionResult<{ name: string; type: "FOREX" | "POF" }>> => {
+  ): Promise<ActionResult<{ name: string; type: TemplateType }>> => {
     const parsed = input.safeParse({ type: rawType, key: rawKey });
     if (!parsed.success || !isTemplateKey(parsed.data.key, parsed.data.type))
       return {
@@ -29,10 +30,11 @@ const setDefault = safeAction(
 
     await db.organization.update({
       where: { id: organizationId },
-      data:
-        type === "FOREX"
-          ? { defaultForexTemplateKey: key }
-          : { defaultPofTemplateKey: key },
+      data: {
+        FOREX: { defaultForexTemplateKey: key },
+        POF: { defaultPofTemplateKey: key },
+        CRYPTO: { defaultCryptoTemplateKey: key },
+      }[type],
     });
     revalidatePath("/admin/templates");
     revalidatePath("/admin/generator");
@@ -41,6 +43,6 @@ const setDefault = safeAction(
 );
 
 // A "use server" file may only export async functions.
-export async function setDefaultTemplate(type: "FOREX" | "POF", key: string) {
+export async function setDefaultTemplate(type: TemplateType, key: string) {
   return setDefault(type, key);
 }

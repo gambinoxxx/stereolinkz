@@ -33,7 +33,8 @@ async function toDataUri(url: string | null): Promise<string | null> {
   }
 }
 
-// A copy of the snapshot with every logo URL (brand and POF rows) replaced
+// A copy of the snapshot with every image URL (brand logo, POF bank logos,
+// crypto coin icons) replaced
 // by a data URI, fetched in parallel. For rendering only: the stored
 // snapshot keeps its URLs and is never changed (Invariant 3).
 export async function embedImages<S extends BoardSnapshot>(
@@ -52,6 +53,22 @@ export async function embedImages<S extends BoardSnapshot>(
       rows: snapshot.rows.map((row, i) => ({
         ...row,
         logoUrl: logos[i] ?? null,
+      })),
+    };
+  }
+  if (snapshot.type === "CRYPTO") {
+    // Coin icons; one that can't be fetched becomes null, and the board
+    // shows the letter badge instead.
+    const icons = await Promise.all(
+      snapshot.rows.map((row) => toDataUri(row.iconUrl)),
+    );
+    content.brand.logoUrl = await brandLogo;
+    return {
+      ...snapshot,
+      content,
+      rows: snapshot.rows.map((row, i) => ({
+        ...row,
+        iconUrl: icons[i] ?? null,
       })),
     };
   }

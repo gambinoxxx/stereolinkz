@@ -24,26 +24,34 @@ describe("template registry", () => {
       ["pof/purple-signal", 6],
       ["pof/daylight", 6],
     ]);
+    expect(listTemplates("CRYPTO").map((t) => [t.key, t.maxRows])).toEqual([
+      ["crypto/purple-signal", 6],
+      ["crypto/daylight", 6],
+    ]);
   });
 
   it("resolves the org default, falling back to the first of the type", () => {
     const org = {
       defaultForexTemplateKey: "forex/daylight",
       defaultPofTemplateKey: null,
+      defaultCryptoTemplateKey: "crypto/daylight",
     };
     expect(resolveTemplateKey("FOREX", org)).toBe("forex/daylight");
     expect(resolveTemplateKey("POF", org)).toBe("pof/purple-signal");
+    expect(resolveTemplateKey("CRYPTO", org)).toBe("crypto/daylight");
     // Unregistered, or the wrong type: fall back.
     expect(
       resolveTemplateKey("FOREX", {
         defaultForexTemplateKey: "forex/gone",
         defaultPofTemplateKey: null,
+        defaultCryptoTemplateKey: null,
       }),
     ).toBe("forex/purple-signal");
     expect(
       resolveTemplateKey("POF", {
         defaultForexTemplateKey: null,
         defaultPofTemplateKey: "forex/daylight",
+        defaultCryptoTemplateKey: null,
       }),
     ).toBe("pof/purple-signal");
   });

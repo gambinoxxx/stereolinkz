@@ -20,6 +20,7 @@ import type {
 import type { GeneratorData } from "@/features/boards/queries";
 import type { BoardSnapshot } from "@/features/boards/snapshot";
 import { isTemplateKey } from "@/features/templates/registry";
+import { assertNever } from "@/lib/assert-never";
 import { formatBoardPrice } from "@/lib/format";
 
 export type Prefill = {
@@ -30,7 +31,7 @@ export type Prefill = {
 
 type PrefillData = Pick<
   GeneratorData,
-  "currencies" | "banks" | "defaultTemplates"
+  "currencies" | "banks" | "coins" | "defaultTemplates"
 >;
 
 export function prefillFromSnapshot(
@@ -46,40 +47,40 @@ export function prefillFromSnapshot(
 
   let rows: FormRow[];
   let skipped: string[];
-  if (snapshot.type === "FOREX") {
-    const saved = new Map(snapshot.rows.map((r) => [r.currencyId, r]));
-    const today = new Set(data.currencies.map((c) => c.id));
-    rows = data.currencies.map((c) => {
-      const row = saved.get(c.id);
-      return {
-        id: c.id,
-        included: row !== undefined,
-        buy: formatBoardPrice(row?.buy ?? c.buy),
-        sell: formatBoardPrice(row?.sell ?? c.sell),
-        rate: "",
-        note: "",
-      };
-    });
-    skipped = snapshot.rows
-      .filter((r) => !today.has(r.currencyId))
-      .map((r) => r.code);
-  } else {
-    const saved = new Map(snapshot.rows.map((r) => [r.bankId, r]));
-    const today = new Set(data.banks.map((b) => b.id));
-    rows = data.banks.map((b) => {
-      const row = saved.get(b.id);
-      return {
-        id: b.id,
-        included: row !== undefined,
-        buy: "",
-        sell: "",
-        rate: formatBoardPrice(row?.rate ?? b.rate),
-        note: (row ? row.note : b.note) ?? "",
-      };
-    });
-    skipped = snapshot.rows
-      .filter((r) => !today.has(r.bankId))
-      .map((r) => r.shortName ?? r.name);
+  switch (snapshot.type) {
+    case "FOREX":
+      ({ rows, skipped } = prefillPairs(
+        snapshot.rows.map((r) => ({ ...r, id: r.currencyId, label: r.code })),
+        data.currencies,
+      ));
+      break;
+    case "CRYPTO":
+      ({ rows, skipped } = prefillPairs(
+        snapshot.rows.map((r) => ({ ...r, id: r.coinId, label: r.ticker })),
+        data.coins,
+      ));
+      break;
+    case "POF": {
+      const saved = new Map(snapshot.rows.map((r) => [r.bankId, r]));
+      const today = new Set(data.banks.map((b) => b.id));
+      rows = data.banks.map((b) => {
+        const row = saved.get(b.id);
+        return {
+          id: b.id,
+          included: row !== undefined,
+          buy: "",
+          sell: "",
+          rate: formatBoardPrice(row?.rate ?? b.rate),
+          note: (row ? row.note : b.note) ?? "",
+        };
+      });
+      skipped = snapshot.rows
+        .filter((r) => !today.has(r.bankId))
+        .map((r) => r.shortName ?? r.name);
+      break;
+    }
+    default:
+      return assertNever(snapshot);
   }
 
   const { content } = snapshot;
@@ -99,5 +100,29 @@ export function prefillFromSnapshot(
       skipped.length === 0
         ? null
         : `Skipped ${skipped.length} ${skipped.length === 1 ? "item that is" : "items that are"} no longer active: ${skipped.join(", ")}.`,
+  };
+}
+
+// Forex and crypto: buy/sell rows matched by id. Saved rows that aren't
+// among today's active ones are skipped and named.
+function prefillPairs(
+  saved: { id: string; label: string; buy: string; sell: string }[],
+  today: { id: string; buy: string; sell: string }[],
+): { rows: FormRow[]; skipped: string[] } {
+  const byId = new Map(saved.map((r) => [r.id, r]));
+  const todayIds = new Set(today.map((t) => t.id));
+  return {
+    rows: today.map((t) => {
+      const row = byId.get(t.id);
+      return {
+        id: t.id,
+        included: row !== undefined,
+        buy: formatBoardPrice(row?.buy ?? t.buy),
+        sell: formatBoardPrice(row?.sell ?? t.sell),
+        rate: "",
+        note: "",
+      };
+    }),
+    skipped: saved.filter((r) => !todayIds.has(r.id)).map((r) => r.label),
   };
 }

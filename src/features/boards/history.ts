@@ -7,6 +7,7 @@ import {
   boardSnapshotV1,
 } from "@/features/boards/snapshot";
 import { getTemplate, isTemplateKey } from "@/features/templates/registry";
+import { assertNever } from "@/lib/assert-never";
 import { formatDayHeading, formatPercent, formatRate } from "@/lib/format";
 
 export const BOARDS_PAGE_SIZE = 20;
@@ -15,7 +16,7 @@ export const BOARDS_PAGE_SIZE = 20;
 // snapshot (null when it can't be read), image count, newest image.
 export type BoardListItem = {
   id: string;
-  type: "FOREX" | "POF" | "CUSTOM";
+  type: "FOREX" | "POF" | "CRYPTO" | "CUSTOM";
   templateKey: string;
   templateVersion: number;
   createdAt: string;
@@ -24,7 +25,10 @@ export type BoardListItem = {
   latestImageId: string | null;
 };
 
-export const historyType = z.enum(["FOREX", "POF"]).optional().catch(undefined);
+export const historyType = z
+  .enum(["FOREX", "POF", "CRYPTO"])
+  .optional()
+  .catch(undefined);
 export type HistoryType = z.infer<typeof historyType>;
 
 // Validated before any render or preview (Invariant 4). Only version 1
@@ -118,16 +122,24 @@ export function ratePills(snapshot: BoardSnapshot): RatePill[] {
         label: row.shortName ?? row.name,
         value: formatPercent(row.rate),
       }));
+    case "CRYPTO":
+      return snapshot.rows.map((row) => ({
+        label: row.ticker,
+        value: `${formatRate(row.buy)} / ${formatRate(row.sell)}`,
+      }));
     case "CUSTOM":
       return snapshot.rows.map((row) => ({
         label: row.label,
         value: row.value,
       }));
+    default:
+      return assertNever(snapshot);
   }
 }
 
 export const TYPE_LABEL = {
   FOREX: "Forex board",
   POF: "POF board",
+  CRYPTO: "Crypto board",
   CUSTOM: "Custom board",
 } as const;

@@ -9,6 +9,7 @@ import {
 } from "@/features/boards/diff";
 import type {
   GeneratorBank,
+  GeneratorCoin,
   GeneratorCurrency,
 } from "@/features/boards/queries";
 import {
@@ -17,6 +18,7 @@ import {
   generateInput,
   type GeneratorErrors,
 } from "@/features/boards/schema";
+import { assertNever } from "@/lib/assert-never";
 import { formatBoardPrice } from "@/lib/format";
 
 // One row per currency or bank. Forex rows use buy/sell, POF rows use
@@ -48,6 +50,7 @@ export type GeneratorFormValues = {
 export type GeneratorEntities = {
   currencies: GeneratorCurrency[];
   banks: GeneratorBank[];
+  coins: GeneratorCoin[];
 };
 
 export function defaultContent(
@@ -72,24 +75,38 @@ export function initialFormValues(
   templateKey: string,
   maxRows: number,
 ): GeneratorFormValues {
-  const rows: FormRow[] =
-    type === "FOREX"
-      ? entities.currencies.map((c, i) => ({
-          id: c.id,
-          included: i < maxRows,
-          buy: formatBoardPrice(c.buy),
-          sell: formatBoardPrice(c.sell),
-          rate: "",
-          note: "",
-        }))
-      : entities.banks.map((b, i) => ({
-          id: b.id,
-          included: i < maxRows,
-          buy: "",
-          sell: "",
-          rate: formatBoardPrice(b.rate),
-          note: b.note ?? "",
-        }));
+  const pairRow = (
+    item: { id: string; buy: string; sell: string },
+    i: number,
+  ): FormRow => ({
+    id: item.id,
+    included: i < maxRows,
+    buy: formatBoardPrice(item.buy),
+    sell: formatBoardPrice(item.sell),
+    rate: "",
+    note: "",
+  });
+  let rows: FormRow[];
+  switch (type) {
+    case "FOREX":
+      rows = entities.currencies.map(pairRow);
+      break;
+    case "CRYPTO":
+      rows = entities.coins.map(pairRow);
+      break;
+    case "POF":
+      rows = entities.banks.map((b, i) => ({
+        id: b.id,
+        included: i < maxRows,
+        buy: "",
+        sell: "",
+        rate: formatBoardPrice(b.rate),
+        note: b.note ?? "",
+      }));
+      break;
+    default:
+      return assertNever(type);
+  }
   return { templateKey, rows, content: defaultContent(type, org) };
 }
 
@@ -98,11 +115,16 @@ export function rowLabels(
   type: BoardType,
   entities: GeneratorEntities,
 ): Map<string, string> {
-  return new Map(
-    type === "FOREX"
-      ? entities.currencies.map((c) => [c.id, c.code])
-      : entities.banks.map((b) => [b.id, b.shortName ?? b.name]),
-  );
+  switch (type) {
+    case "FOREX":
+      return new Map(entities.currencies.map((c) => [c.id, c.code]));
+    case "POF":
+      return new Map(entities.banks.map((b) => [b.id, b.shortName ?? b.name]));
+    case "CRYPTO":
+      return new Map(entities.coins.map((c) => [c.id, c.ticker]));
+    default:
+      return assertNever(type);
+  }
 }
 
 // Fields that differ from the current rate, per row id (the gold state).
@@ -112,18 +134,34 @@ export function changedFieldsByRow(
   rows: FormRow[],
 ): Map<string, RateField[]> {
   const result = new Map<string, RateField[]>();
-  if (type === "FOREX") {
-    const original = new Map(entities.currencies.map((c) => [c.id, c]));
+  const collect = <T>(
+    originals: Map<string, T>,
+    diff: (original: T | undefined, row: FormRow) => RateField[],
+  ) => {
     for (const row of rows) {
-      const fields = changedForexFields(original.get(row.id), row);
+      const fields = diff(originals.get(row.id), row);
       if (fields.length > 0) result.set(row.id, fields);
     }
-  } else {
-    const original = new Map(entities.banks.map((b) => [b.id, b]));
-    for (const row of rows) {
-      const fields = changedPofFields(original.get(row.id), row);
-      if (fields.length > 0) result.set(row.id, fields);
-    }
+  };
+  switch (type) {
+    case "FOREX":
+      collect(
+        new Map(entities.currencies.map((c) => [c.id, c])),
+        changedForexFields,
+      );
+      break;
+    case "CRYPTO":
+      // Same buy/sell rules as forex.
+      collect(
+        new Map(entities.coins.map((c) => [c.id, c])),
+        changedForexFields,
+      );
+      break;
+    case "POF":
+      collect(new Map(entities.banks.map((b) => [b.id, b])), changedPofFields);
+      break;
+    default:
+      return assertNever(type);
   }
   return result;
 }
@@ -135,19 +173,26 @@ export function toGenerateInput(
 ): GenerateInput {
   const included = values.rows.filter((row) => row.included);
   const { headline, subheading, note, finePrint } = values.content;
-  return type === "FOREX"
-    ? {
+  const { templateKey } = values;
+  switch (type) {
+    case "FOREX":
+    case "CRYPTO":
+      return {
         type,
-        templateKey: values.templateKey,
+        templateKey,
         rows: included.map(({ id, buy, sell }) => ({ id, buy, sell })),
         content: { headline, subheading, note, finePrint },
-      }
-    : {
+      };
+    case "POF":
+      return {
         type,
-        templateKey: values.templateKey,
+        templateKey,
         rows: included.map(({ id, rate, note }) => ({ id, rate, note })),
         content: { headline, subheading, finePrint },
       };
+    default:
+      return assertNever(type);
+  }
 }
 
 // The same check the server runs, for the error line and the disabled

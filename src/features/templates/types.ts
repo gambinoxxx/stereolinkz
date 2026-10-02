@@ -1,16 +1,20 @@
 import type { ReactElement } from "react";
 
 import type {
+  CryptoSnapshot,
   ForexSnapshot,
   PofSnapshot,
 } from "@/features/boards/build-snapshot";
+import type { BoardType } from "@/features/boards/defaults";
 import type { ThemeName } from "@/features/templates/theme";
 
-export type TemplateType = "FOREX" | "POF";
+export type TemplateType = BoardType;
 
-export type SnapshotOf<T extends TemplateType> = T extends "FOREX"
-  ? ForexSnapshot
-  : PofSnapshot;
+export type SnapshotOf<T extends TemplateType> = {
+  FOREX: ForexSnapshot;
+  POF: PofSnapshot;
+  CRYPTO: CryptoSnapshot;
+}[T];
 
 // A board design. Pure (Invariant 4): a validated snapshot in, JSX out;
 // no Prisma, fetch, clock or env. Rendered by Satori on the server and by

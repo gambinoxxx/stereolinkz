@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dropOrder, isSameIdSet, moveItem } from "@/features/currencies/order";
+import { dropOrder, isSameIdSet, moveItem } from "@/lib/order";
 
 describe("moveItem", () => {
   it("moves up and down", () => {

@@ -9,7 +9,7 @@ import {
   type CurrentRate,
   type SnapshotRowStatus,
 } from "@/features/boards/compare";
-import type { BoardType } from "@/features/boards/defaults";
+import { BOARD_TYPES, type BoardType } from "@/features/boards/defaults";
 import {
   type BoardCursor,
   type BoardListItem,
@@ -52,6 +52,19 @@ export type GeneratorBank = {
   note: string | null;
 };
 
+// Coins: rates are naira per $1 of coin value. Networks and the badge are
+// copied into the snapshot at generation time.
+export type GeneratorCoin = {
+  id: string;
+  ticker: string;
+  name: string;
+  networks: string[];
+  iconUrl: string | null;
+  badgeColor: string | null;
+  buy: string;
+  sell: string;
+};
+
 export type GeneratorTemplate = {
   key: string;
   type: BoardType;
@@ -67,13 +80,14 @@ export type GeneratorData = {
   defaultTemplates: Record<BoardType, string>;
   currencies: GeneratorCurrency[];
   banks: GeneratorBank[];
+  coins: GeneratorCoin[];
   templates: GeneratorTemplate[];
 };
 
 export async function getGeneratorData(
   organizationId: string,
 ): Promise<GeneratorData> {
-  const [org, currencies, banks] = await Promise.all([
+  const [org, currencies, banks, coins] = await Promise.all([
     db.organization.findUniqueOrThrow({ where: { id: organizationId } }),
     db.currency.findMany({
       where: { organizationId, status: "ACTIVE", rates: { some: {} } },
@@ -111,6 +125,23 @@ export async function getGeneratorData(
         },
       },
     }),
+    db.coin.findMany({
+      where: { organizationId, status: "ACTIVE", rates: { some: {} } },
+      orderBy: [{ sortOrder: "asc" }, { ticker: "asc" }],
+      select: {
+        id: true,
+        ticker: true,
+        name: true,
+        networks: true,
+        iconUrl: true,
+        badgeColor: true,
+        rates: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { buy: true, sell: true },
+        },
+      },
+    }),
   ]);
 
   return {
@@ -118,6 +149,7 @@ export async function getGeneratorData(
     defaultTemplates: {
       FOREX: resolveTemplateKey("FOREX", org),
       POF: resolveTemplateKey("POF", org),
+      CRYPTO: resolveTemplateKey("CRYPTO", org),
     },
     currencies: currencies.flatMap(({ rates, ...c }) =>
       rates[0]
@@ -141,7 +173,18 @@ export async function getGeneratorData(
           ]
         : [],
     ),
-    templates: (["FOREX", "POF"] as const).flatMap((type) =>
+    coins: coins.flatMap(({ rates, ...c }) =>
+      rates[0]
+        ? [
+            {
+              ...c,
+              buy: toDecimalString(rates[0].buy),
+              sell: toDecimalString(rates[0].sell),
+            },
+          ]
+        : [],
+    ),
+    templates: BOARD_TYPES.flatMap((type) =>
       listTemplates(type).map((t) => ({
         key: t.key,
         type,
@@ -356,7 +399,36 @@ async function currentRates(
       }),
     );
   }
-  return new Map();
+  if (snapshot.type === "CRYPTO") {
+    const coins = await db.coin.findMany({
+      where: { organizationId, id: { in: snapshot.rows.map((r) => r.coinId) } },
+      select: {
+        id: true,
+        status: true,
+        rates: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { buy: true, sell: true },
+        },
+      },
+    });
+    return new Map(
+      coins.map((c) => {
+        const rate = c.rates[0];
+        return [
+          c.id,
+          c.status === "ARCHIVED" || !rate
+            ? { listed: false }
+            : {
+                listed: true,
+                buy: toDecimalString(rate.buy),
+                sell: toDecimalString(rate.sell),
+              },
+        ] as const;
+      }),
+    );
+  }
+  return new Map(); // CUSTOM: no live rates to compare
 }
 
 // "Use these rates again" (?from=): a board's template and parsed snapshot,

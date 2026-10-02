@@ -1,0 +1,130 @@
+{
+  "_note": "Real Phase 7 boards copied from the database on 2026-10-01 (read-only), to prove existing snapshots keep parsing after Phase 10.",
+  "forex": {
+    "boardId": "e4cc31a0-83e9-4611-9180-aeec6abe91be",
+    "snapshot": {
+      "v": 1,
+      "rows": [
+        {
+          "buy": "1370",
+          "code": "USD",
+          "name": "US dollar",
+          "sell": "1385",
+          "flagCode": "us",
+          "currencyId": "cmulrh1zm00018xmmnundsme6"
+        },
+        {
+          "buy": "1815",
+          "code": "GBP",
+          "name": "British pound",
+          "sell": "1840",
+          "flagCode": "gb",
+          "currencyId": "cmulrh30w00048xmmh7qk2bee"
+        },
+        {
+          "buy": "1560",
+          "code": "EUR",
+          "name": "Euro",
+          "sell": "1583",
+          "flagCode": "eu",
+          "currencyId": "cmulrh41t00078xmmcvgjodpx"
+        }
+      ],
+      "type": "FOREX",
+      "content": {
+        "note": "T+1 settlement to China and the rest of the world",
+        "brand": {
+          "name": "Stereolinkz",
+          "logoUrl": null,
+          "accentColor": "#E9B949",
+          "contactLine": "+234 800 000 0000",
+          "primaryColor": "#6A35D9",
+          "backgroundColor": "#2A0F58"
+        },
+        "reach": "Pay into the UK, US, Europe, Canada, China and more by wire, ACH or local bank transfer.",
+        "ctaLabel": "Send a message to trade",
+        "headline": "Today’s\nforex rates",
+        "dateLabel": "Wed, 30 Sept 2026",
+        "finePrint": "Rates can change without notice.",
+        "timeLabel": "10:59 AM",
+        "subheading": "Naira per unit, settled fast"
+      },
+      "quoteCurrency": "NGN"
+    }
+  },
+  "pof": {
+    "boardId": "121c5c16-225c-4150-923b-3aaff34a8120",
+    "snapshot": {
+      "v": 1,
+      "rows": [
+        {
+          "name": "Wema Bank",
+          "note": null,
+          "rate": "3.4",
+          "bankId": "cmulrh750000e8xmmbqakvrxt",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/wema-yBmcSh3zgcIjO3WaQK85nHBQcTE8up.png",
+          "shortName": "Wema"
+        },
+        {
+          "name": "Providus Bank",
+          "note": "New account",
+          "rate": "3.4",
+          "bankId": "cmulrh861000h8xmm4frzjeub",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/providus-txUc4GcFk3QhqkR3FPaz6b5A7ydkCP.png",
+          "shortName": "Providus"
+        },
+        {
+          "name": "Ecobank",
+          "note": "New account",
+          "rate": "3.4",
+          "bankId": "cmulrh98v000j8xmmscxku5bf",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/eco-68Umzuu4VFTUMxWsISs4SJNMCtn9Xm.jpg",
+          "shortName": "Ecobank"
+        },
+        {
+          "name": "Fidelity Bank",
+          "note": "New account",
+          "rate": "3.4",
+          "bankId": "cmulrhaat000l8xmm5pyx5hxx",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/fidelity-QFcj4B2F34bbOz6NVTnk9El4KIjq9U.jpg",
+          "shortName": "Fidelity"
+        },
+        {
+          "name": "Parallex Bank",
+          "note": null,
+          "rate": "2.1",
+          "bankId": "cmulrhbc8000n8xmmzcefbi9d",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/parallex-aV0aLpPfPN8mrFXp0TY67skRM1x8cM.png",
+          "shortName": "Parallex"
+        },
+        {
+          "name": "Globus Bank",
+          "note": null,
+          "rate": "2.3",
+          "bankId": "cmulrhcde000q8xmm9dgqxdfc",
+          "logoUrl": "https://x4irno2ijxp17fxc.public.blob.vercel-storage.com/logos/cmulrh19000008xmmu1wcadoq/banks/globus-1B0DVSnDQMSmhL8O0XWZbTnsZxSI6i.png",
+          "shortName": "Globus"
+        }
+      ],
+      "type": "POF",
+      "content": {
+        "note": null,
+        "brand": {
+          "name": "Stereolinkz",
+          "logoUrl": null,
+          "accentColor": "#E9B949",
+          "contactLine": "+234 800 000 0000",
+          "primaryColor": "#6A35D9",
+          "backgroundColor": "#2A0F58"
+        },
+        "reach": null,
+        "ctaLabel": "Send a message to apply",
+        "headline": "Proof of\nfunds rates",
+        "dateLabel": "Wed, 30 Sept 2026",
+        "finePrint": "Rates can change without notice.",
+        "timeLabel": "11:00 AM",
+        "subheading": "For visa, school and travel applications"
+      }
+    }
+  }
+}

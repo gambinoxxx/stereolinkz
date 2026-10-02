@@ -8,6 +8,7 @@ import {
 } from "react-hook-form";
 
 import { BankMark } from "@/components/bank-mark";
+import { CoinBadge } from "@/components/coin-badge";
 import { CurrencyFlag } from "@/components/currency-flag";
 import { InputAddon } from "@/components/input-addon";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,10 +35,36 @@ type RateRowsProps = {
 };
 
 // Column layouts from generator.html .gr (phones first, then ≥ 760px).
-const GRID = {
-  FOREX:
-    "grid-cols-[22px_minmax(0,1fr)_92px_92px] gap-2 sheet:grid-cols-[22px_minmax(0,1fr)_128px_128px] sheet:gap-3",
+const PAIR_GRID =
+  "grid-cols-[22px_minmax(0,1fr)_92px_92px] gap-2 sheet:grid-cols-[22px_minmax(0,1fr)_128px_128px] sheet:gap-3";
+const GRID: Record<BoardType, string> = {
+  FOREX: PAIR_GRID,
+  CRYPTO: PAIR_GRID, // generator-crypto.html: the forex columns
   POF: "grid-cols-[22px_minmax(0,1fr)_92px] gap-2 sheet:grid-cols-[22px_minmax(0,1fr)_110px_150px] sheet:gap-3",
+};
+
+const EMPTY: Record<BoardType, { text: string; href: string; link: string }> = {
+  FOREX: {
+    text: "No active currencies with a rate yet.",
+    href: "/admin/forex",
+    link: "Add one on the Forex page",
+  },
+  POF: {
+    text: "No banks are showing a POF rate yet.",
+    href: "/admin/pof",
+    link: "Add one on the POF page",
+  },
+  CRYPTO: {
+    text: "No active coins with a rate yet.",
+    href: "/admin/crypto",
+    link: "Add one on the Crypto rates page",
+  },
+};
+
+const ENTITY_HEADING: Record<BoardType, string> = {
+  FOREX: "Currency",
+  POF: "Bank",
+  CRYPTO: "Coin",
 };
 
 // Step 3: one row per active currency or POF bank. A value that differs
@@ -62,34 +89,20 @@ export function RateRows({
   if (rows.length === 0)
     return (
       <p className="rounded-control bg-bg-subtle px-4 py-3.5 text-[14px] text-text-secondary">
-        {type === "FOREX" ? (
-          <>
-            No active currencies with a rate yet.{" "}
-            <Link
-              href="/admin/forex"
-              className="font-semibold text-accent-primary"
-            >
-              Add one on the Forex page
-            </Link>
-            .
-          </>
-        ) : (
-          <>
-            No banks are showing a POF rate yet.{" "}
-            <Link
-              href="/admin/pof"
-              className="font-semibold text-accent-primary"
-            >
-              Add one on the POF page
-            </Link>
-            .
-          </>
-        )}
+        {EMPTY[type].text}{" "}
+        <Link
+          href={EMPTY[type].href}
+          className="font-semibold text-accent-primary"
+        >
+          {EMPTY[type].link}
+        </Link>
+        .
       </p>
     );
 
   const currencies = new Map(entities.currencies.map((c) => [c.id, c]));
   const banks = new Map(entities.banks.map((b) => [b.id, b]));
+  const coins = new Map(entities.coins.map((c) => [c.id, c]));
 
   return (
     <>
@@ -101,8 +114,8 @@ export function RateRows({
         )}
       >
         <span />
-        <span>{type === "FOREX" ? "Currency" : "Bank"}</span>
-        {type === "FOREX" ? (
+        <span>{ENTITY_HEADING[type]}</span>
+        {type !== "POF" ? (
           <>
             <span>We buy</span>
             <span>We sell</span>
@@ -118,7 +131,10 @@ export function RateRows({
       {rows.map((row, index) => {
         const currency = currencies.get(row.id);
         const bank = banks.get(row.id);
-        const label = currency?.code ?? bank?.shortName ?? bank?.name ?? "";
+        const coin = coins.get(row.id);
+        const label =
+          currency?.code ?? coin?.ticker ?? bank?.shortName ?? bank?.name ?? "";
+        const subtitle = currency?.name ?? coin?.name;
         const off = !row.included;
         return (
           <div
@@ -154,6 +170,14 @@ export function RateRows({
                   currencyCode={currency.code}
                   className="max-sheet:size-7!"
                 />
+              ) : coin ? (
+                <CoinBadge
+                  ticker={coin.ticker}
+                  name={coin.name}
+                  iconUrl={coin.iconUrl}
+                  badgeColor={coin.badgeColor}
+                  className="max-sheet:size-7! max-sheet:text-[12px]!"
+                />
               ) : bank ? (
                 <BankMark
                   name={bank.name}
@@ -164,15 +188,15 @@ export function RateRows({
               ) : null}
               <div className="min-w-0">
                 <b className="block leading-[1.2] font-bold">{label}</b>
-                {currency && (
+                {subtitle && (
                   <span className="hidden truncate text-[13px] text-text-secondary sheet:block">
-                    {currency.name}
+                    {subtitle}
                   </span>
                 )}
               </div>
             </div>
 
-            {type === "FOREX" ? (
+            {type !== "POF" ? (
               <>
                 <InputAddon
                   size="sm"

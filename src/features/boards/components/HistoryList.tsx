@@ -36,6 +36,7 @@ const FILTERS = [
   { value: "ALL", label: "All" },
   { value: "FOREX", label: "Forex" },
   { value: "POF", label: "POF" },
+  { value: "CRYPTO", label: "Crypto" },
 ] as const;
 
 // history.html: the filter and count, then boards grouped by day in the
@@ -115,7 +116,7 @@ export function HistoryList({
           icon={History}
           title={
             type
-              ? `No ${type === "FOREX" ? "Forex" : "POF"} boards yet`
+              ? `No ${FILTERS.find((f) => f.value === type)?.label} boards yet`
               : "No boards yet"
           }
           description="Boards you generate are saved here with the rates they showed."

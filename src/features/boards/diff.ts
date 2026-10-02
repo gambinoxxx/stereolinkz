@@ -55,7 +55,7 @@ type Submitted<V> = V & { id: string };
 // Only the rows with at least one changed field, in submitted order. A row
 // with no current rate (`original` has no entry) counts as changed.
 export function diffRates(
-  type: "FOREX",
+  type: "FOREX" | "CRYPTO", // coins use the forex buy/sell rules
   original: ReadonlyMap<string, ForexValues>,
   submitted: Submitted<ForexValues>[],
 ): RateDiff[];
@@ -65,13 +65,13 @@ export function diffRates(
   submitted: Submitted<PofValues>[],
 ): RateDiff[];
 export function diffRates(
-  type: "FOREX" | "POF",
+  type: "FOREX" | "POF" | "CRYPTO",
   original: ReadonlyMap<string, ForexValues | PofValues>,
   submitted: Submitted<ForexValues | PofValues>[],
 ): RateDiff[] {
   return submitted.flatMap((row) => {
     const fields =
-      type === "FOREX"
+      type !== "POF"
         ? changedForexFields(
             original.get(row.id) as ForexValues | undefined,
             row as ForexValues,

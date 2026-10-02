@@ -52,11 +52,28 @@ const pofRow = z.object({
   note: z.string().nullable(),
 });
 
+// Phase 10, additive (snapshotVersion stays 1): rates are naira per $1 of
+// coin value. Networks are display text, at most 2 on a board.
+const cryptoRow = z.object({
+  coinId: z.string(),                       // traceability only
+  ticker: z.string(),                       // "BTC"
+  name: z.string(),                         // "Bitcoin"
+  networks: z.array(z.string()).max(2),     // ["TRC20", "BEP20"]
+  iconUrl: z.string().url().nullable(),
+  badgeColor: z.string().nullable(),        // #RRGGBB behind the letter badge
+  buy: decimalString,
+  sell: decimalString,
+}).refine((row) => compareDecimalStrings(row.sell, row.buy) >= 0, {
+  message: "Sell must be the same as or higher than buy.",
+  path: ["sell"],
+});
+
 const customRow = z.object({ label: z.string(), value: z.string(), note: z.string().nullable() });
 
 export const boardSnapshotV1 = z.discriminatedUnion("type", [
   z.object({ v: z.literal(1), type: z.literal("FOREX"), quoteCurrency: z.string(), content, rows: z.array(forexRow).min(1) }),
   z.object({ v: z.literal(1), type: z.literal("POF"), content, rows: z.array(pofRow).min(1) }),
+  z.object({ v: z.literal(1), type: z.literal("CRYPTO"), quoteCurrency: z.string(), content, rows: z.array(cryptoRow).min(1) }),
   z.object({ v: z.literal(1), type: z.literal("CUSTOM"), content, rows: z.array(customRow).min(1) }),
 ]);
 

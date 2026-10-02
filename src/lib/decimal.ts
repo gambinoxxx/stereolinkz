@@ -74,3 +74,19 @@ export function subtractDecimalStrings(a: string, b: string): string {
   const frac = digits.slice(digits.length - scale).replace(/0+$/, "");
   return (negative ? "-" : "") + int + (frac ? `.${frac}` : "");
 }
+
+// a × b as a decimal string, exact (scaled BigInt, not floats). Used for
+// the crypto drawer's worked example: multiplyDecimalStrings("500",
+// "1580") → "790000".
+export function multiplyDecimalStrings(a: string, b: string): string {
+  const pa = parse(a);
+  const pb = parse(b);
+  const scale = pa.frac.length + pb.frac.length;
+  const product =
+    BigInt((pa.int || "0") + pa.frac) * BigInt((pb.int || "0") + pb.frac);
+  const negative = pa.negative !== pb.negative && product !== BigInt(0);
+  const digits = product.toString().padStart(scale + 1, "0");
+  const int = digits.slice(0, digits.length - scale);
+  const frac = digits.slice(digits.length - scale).replace(/0+$/, "");
+  return (negative ? "-" : "") + int + (frac ? `.${frac}` : "");
+}

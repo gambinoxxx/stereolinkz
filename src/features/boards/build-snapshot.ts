@@ -8,12 +8,15 @@ import {
   type BoardSnapshot,
   boardSnapshotV1,
 } from "@/features/boards/snapshot";
+import { assertNever } from "@/lib/assert-never";
 import { formatBoardDate, formatBoardTime } from "@/lib/format";
 
 export type ForexSnapshot = Extract<BoardSnapshot, { type: "FOREX" }>;
 export type PofSnapshot = Extract<BoardSnapshot, { type: "POF" }>;
+export type CryptoSnapshot = Extract<BoardSnapshot, { type: "CRYPTO" }>;
 export type ForexRow = ForexSnapshot["rows"][number];
 export type PofRow = PofSnapshot["rows"][number];
+export type CryptoRow = CryptoSnapshot["rows"][number];
 export type BoardContent = BoardSnapshot["content"];
 
 // The organization fields a snapshot copies.
@@ -65,7 +68,7 @@ export class SnapshotError extends Error {
 type BuildInput<T extends BoardType> = {
   org: SnapshotOrg;
   type: T;
-  rows: T extends "FOREX" ? ForexRow[] : PofRow[];
+  rows: { FOREX: ForexRow[]; POF: PofRow[]; CRYPTO: CryptoRow[] }[T];
   content?: ContentOverrides;
   now: Date;
 };
@@ -73,9 +76,10 @@ type BuildInput<T extends BoardType> = {
 // The snapshot's shape without the Zod check. buildSnapshot validates it;
 // the generator's live preview (buildPreviewSnapshot) uses it directly so
 // half-typed values can still be shown.
-export function assembleSnapshot(
-  input: BuildInput<"FOREX"> | BuildInput<"POF">,
-): BoardSnapshot {
+type AnyBuildInput =
+  BuildInput<"FOREX"> | BuildInput<"POF"> | BuildInput<"CRYPTO">;
+
+export function assembleSnapshot(input: AnyBuildInput): BoardSnapshot {
   const { org, content = {}, now } = input;
   const defaults = CONTENT_DEFAULTS[input.type];
 
@@ -105,22 +109,38 @@ export function assembleSnapshot(
     },
   };
 
-  return input.type === "FOREX"
-    ? {
+  switch (input.type) {
+    case "FOREX":
+      return {
         v: 1,
         type: "FOREX",
         quoteCurrency: org.quoteCurrency,
         content: shared,
         rows: input.rows,
-      }
-    : { v: 1, type: "POF", content: shared, rows: input.rows };
+      };
+    case "POF":
+      return { v: 1, type: "POF", content: shared, rows: input.rows };
+    case "CRYPTO":
+      return {
+        v: 1,
+        type: "CRYPTO",
+        quoteCurrency: org.quoteCurrency,
+        content: shared,
+        // Boards show at most 2 networks (snapshot rule).
+        rows: input.rows.map((row) => ({
+          ...row,
+          networks: row.networks.slice(0, 2),
+        })),
+      };
+    default:
+      return assertNever(input);
+  }
 }
 
 export function buildSnapshot(input: BuildInput<"FOREX">): ForexSnapshot;
 export function buildSnapshot(input: BuildInput<"POF">): PofSnapshot;
-export function buildSnapshot(
-  input: BuildInput<"FOREX"> | BuildInput<"POF">,
-): BoardSnapshot {
+export function buildSnapshot(input: BuildInput<"CRYPTO">): CryptoSnapshot;
+export function buildSnapshot(input: AnyBuildInput): BoardSnapshot {
   const parsed = boardSnapshotV1.safeParse(assembleSnapshot(input));
   if (!parsed.success) throw new SnapshotError(parsed.error.issues);
   return parsed.data;

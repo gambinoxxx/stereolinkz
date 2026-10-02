@@ -11,11 +11,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { setDefaultTemplate } from "@/features/templates/actions";
+import { ROW_NOUN } from "@/features/boards/schema";
 import type { TemplateCard } from "@/features/templates/queries";
+import type { TemplateType } from "@/features/templates/types";
 
-type Tab = "FOREX" | "POF" | "CUSTOM";
+type Tab = TemplateType | "CUSTOM";
 
-const ROWS_NOUN = { FOREX: "currencies", POF: "banks" } as const;
+// "forex", "POF", "crypto" in sentences.
+const TYPE_WORD: Record<TemplateType, string> = {
+  FOREX: "forex",
+  POF: "POF",
+  CRYPTO: "crypto",
+};
 
 // templates.html: tabs, then a card per template with a live thumbnail
 // (the top of the board) built from the org's current rates.
@@ -31,7 +38,7 @@ export function TemplateGallery({ cards }: { cards: TemplateCard[] }) {
       setPendingKey(null);
       if (result.ok)
         toast.success(
-          `${result.data.name} is now the default ${result.data.type === "FOREX" ? "forex" : "POF"} template`,
+          `${result.data.name} is now the default ${TYPE_WORD[result.data.type]} template`,
         );
       else toast.error(result.error);
     });
@@ -52,6 +59,7 @@ export function TemplateGallery({ cards }: { cards: TemplateCard[] }) {
         >
           <ToggleGroupItem value="FOREX">Forex</ToggleGroupItem>
           <ToggleGroupItem value="POF">POF</ToggleGroupItem>
+          <ToggleGroupItem value="CRYPTO">Crypto</ToggleGroupItem>
           <ToggleGroupItem value="CUSTOM">Custom</ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -75,7 +83,7 @@ export function TemplateGallery({ cards }: { cards: TemplateCard[] }) {
                   <BoardFrame
                     templateKey={card.key}
                     snapshot={card.sample}
-                    label={`${card.name} ${card.type === "FOREX" ? "forex" : "POF"} template preview`}
+                    label={`${card.name} ${TYPE_WORD[card.type]} template preview`}
                     className="rounded-b-none shadow-[0_12px_30px_rgb(31_11_63/0.2)]"
                   />
                 ) : (
@@ -93,8 +101,8 @@ export function TemplateGallery({ cards }: { cards: TemplateCard[] }) {
                   {card.description}
                 </p>
                 <p className="text-[12.5px] text-text-muted">
-                  1080 × 1920, fits up to {card.maxRows} {ROWS_NOUN[card.type]},
-                  version {card.version}
+                  1080 × 1920, fits up to {card.maxRows}{" "}
+                  {ROW_NOUN[card.type].many}, version {card.version}
                 </p>
                 <div className="mt-auto flex flex-wrap gap-2 pt-1">
                   <Button asChild size="sm">

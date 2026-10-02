@@ -11,6 +11,7 @@ import {
 import { FIXTURE_NOW, FIXTURE_ORG } from "@/test/board-fixtures";
 
 const entities: GeneratorEntities = {
+  coins: [],
   currencies: [
     {
       id: "usd",

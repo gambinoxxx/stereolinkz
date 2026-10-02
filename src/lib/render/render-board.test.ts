@@ -11,7 +11,12 @@ import { renderSvg } from "@/lib/render/render-svg";
 import { tightenShadowFilters } from "@/lib/render/shadow";
 import satori from "satori";
 import { getFonts } from "@/lib/render/fonts";
-import { forexFixture, pofFixture } from "@/test/board-fixtures";
+import {
+  cryptoFixture,
+  forexFixture,
+  pofFixture,
+  WORST_CASES,
+} from "@/test/board-fixtures";
 
 const sha256 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
@@ -48,9 +53,31 @@ describe("renderBoardPng", () => {
     }
   }, 60_000);
 
+  it("renders both crypto templates, byte-identical on a second run, and the worst case", async () => {
+    for (const key of ["crypto/purple-signal", "crypto/daylight"]) {
+      const first = await renderBoardPng(cryptoFixture(), key);
+      expect(ihdr(first.png), key).toEqual({
+        signature: "89504e470d0a1a0a",
+        chunk: "IHDR",
+        width: 1080,
+        height: 1920,
+      });
+      const second = await renderBoardPng(cryptoFixture(), key);
+      expect(sha256(second.png), key).toBe(sha256(first.png));
+      const worst = await renderBoardPng(
+        WORST_CASES["crypto-long-names"](),
+        key,
+      );
+      expect(ihdr(worst.png).height, key).toBe(1920);
+    }
+  }, 120_000);
+
   it("refuses a snapshot of the wrong type", async () => {
     await expect(
       renderBoardPng(pofFixture(), "forex/purple-signal"),
+    ).rejects.toThrow(TemplateMismatchError);
+    await expect(
+      renderBoardPng(forexFixture(), "crypto/daylight"),
     ).rejects.toThrow(TemplateMismatchError);
   });
 });

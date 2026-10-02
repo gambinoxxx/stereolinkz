@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { isSameIdSet } from "@/features/currencies/order";
+import { isSameIdSet } from "@/lib/order";
 import { currencyInput } from "@/features/currencies/schema";
 import { RATE_ERRORS } from "@/features/forex-rates/schema";
 import { type ActionResult, safeAction } from "@/lib/server/action";

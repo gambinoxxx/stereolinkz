@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareDecimalStrings,
+  multiplyDecimalStrings,
   subtractDecimalStrings,
   toDecimalString,
 } from "@/lib/decimal";
@@ -43,5 +44,16 @@ describe("subtractDecimalStrings", () => {
     expect(subtractDecimalStrings("1360", "1365")).toBe("-5");
     expect(subtractDecimalStrings("3.40", "3.4")).toBe("0");
     expect(subtractDecimalStrings("3.4", "3.45")).toBe("-0.05");
+  });
+});
+
+describe("multiplyDecimalStrings", () => {
+  it("multiplies exactly, without floats", () => {
+    expect(multiplyDecimalStrings("500", "1580")).toBe("790000");
+    expect(multiplyDecimalStrings("500", "1580.0000")).toBe("790000");
+    expect(multiplyDecimalStrings("0.1", "0.2")).toBe("0.02");
+    expect(multiplyDecimalStrings("500", "1612.75")).toBe("806375");
+    expect(multiplyDecimalStrings("-2", "3.5")).toBe("-7");
+    expect(multiplyDecimalStrings("0", "-3")).toBe("0");
   });
 });

@@ -7,7 +7,12 @@ const forex = forexFixture(); // USD 1365/1378, GBP 1815/1840, EUR 1560/1583
 const ids = forex.type === "FOREX" ? forex.rows.map((r) => r.currencyId) : [];
 
 const data = {
-  defaultTemplates: { FOREX: "forex/purple-signal", POF: "pof/purple-signal" },
+  defaultTemplates: {
+    FOREX: "forex/purple-signal",
+    POF: "pof/purple-signal",
+    CRYPTO: "crypto/purple-signal",
+  },
+  coins: [],
   banks: [],
   // Today: USD has moved, GBP is the same, EUR is no longer active (absent),
   // CAD is new and wasn't on the board. Today's order puts GBP first.

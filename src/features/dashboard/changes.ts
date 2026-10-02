@@ -1,4 +1,5 @@
-// Recent rate changes on the dashboard: ForexRate and PofRate rows, each
+// Recent rate changes on the dashboard: ForexRate, PofRate and CryptoRate
+// rows, each
 // with the previous rate of the same currency or bank (read with LAG in
 // SQL), merged newest first. Pure; values are decimal strings.
 import { compareDecimalStrings } from "@/lib/decimal";
@@ -13,6 +14,9 @@ export type ForexChangeRow = {
   prevBuy: string | null; // null: the first rate for this currency
   prevSell: string | null;
 };
+
+// Coins: naira per $1, the same buy/sell shape as forex.
+export type CryptoChangeRow = Omit<ForexChangeRow, "code"> & { ticker: string };
 
 export type PofChangeRow = {
   id: string;
@@ -34,12 +38,24 @@ export type RateChange = {
 const dir = (c: number) => (c > 0 ? "up" : c < 0 ? "down" : "flat");
 
 function forexChange(row: ForexChangeRow): RateChange {
+  return pairChange(row, row.code);
+}
+
+function cryptoChange(row: CryptoChangeRow): RateChange {
+  return pairChange(row, row.ticker);
+}
+
+// Buy / sell pairs (forex and crypto).
+function pairChange(
+  row: Omit<ForexChangeRow, "code">,
+  label: string,
+): RateChange {
   const to = `${formatRate(row.buy)} / ${formatRate(row.sell)}`;
   if (row.prevBuy === null || row.prevSell === null)
     return {
       id: row.id,
       at: row.at,
-      label: row.code,
+      label,
       from: null,
       to,
       direction: "flat",
@@ -49,7 +65,7 @@ function forexChange(row: ForexChangeRow): RateChange {
   return {
     id: row.id,
     at: row.at,
-    label: row.code,
+    label,
     from: `${formatRate(row.prevBuy)} / ${formatRate(row.prevSell)}`,
     to,
     direction: dir(
@@ -72,14 +88,19 @@ function pofChange(row: PofChangeRow): RateChange {
   };
 }
 
-// Newest first across both tables, `limit` in all. Each list is already
-// the newest `limit` of its table, so the merge never misses a row.
+// Newest first across the three tables, `limit` in all. Each list is
+// already the newest `limit` of its table, so the merge never misses a row.
 export function mergeRateChanges(
   forex: ForexChangeRow[],
   pof: PofChangeRow[],
+  crypto: CryptoChangeRow[],
   limit: number,
 ): RateChange[] {
-  return [...forex.map(forexChange), ...pof.map(pofChange)]
+  return [
+    ...forex.map(forexChange),
+    ...pof.map(pofChange),
+    ...crypto.map(cryptoChange),
+  ]
     .sort((a, b) =>
       a.at === b.at ? (a.id < b.id ? 1 : -1) : a.at < b.at ? 1 : -1,
     )

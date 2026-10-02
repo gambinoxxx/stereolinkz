@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- Phase 9: Dashboard and settings, complete
+- Phase 10: Crypto, in progress
 
 ## Current Goal
 
-- None. Waiting for the owner's go to push Phase 9.
+- Phase 10: waiting for `.env.local` to point at the Neon `dev` branch, then migrate, seed and check every part in the browser
 
 ## Completed
 
@@ -502,12 +502,24 @@ change.
 
 ## In Progress
 
-- Nothing in progress.
+- Phase 10, written but not yet run against a database (the migration
+  waits for the Neon `dev` branch; `.env.local` still points at
+  production `ep-twilight-brook-…`): schema + `crypto` migration (SQL
+  reviewed, additive), the CRYPTO snapshot variant, `defaults.ts`,
+  `buildSnapshot`, the two crypto templates and `CryptoBoard` layout
+  (rendered from fixtures: match `stereolinkz-crypto-board.html`, worst
+  case fits), board type widened to FOREX | POF | CRYPTO with exhaustive
+  switches (`assertNever`), generator / preview / generateBoard / history
+  / Now X / prefill / dashboard changes / Templates page / download for
+  CRYPTO, `/admin/crypto` (table, both drawers, icon upload, status,
+  reorder), sidebar link, development seed coins. Tests pass (169).
+  Left: migrate + seed on `dev`, browser checks of every part, the
+  failure test and the old-board checks.
 
 ## Next Up
 
-- Phase 10: Crypto (coins, crypto rates, crypto boards;
-  `prompts/phase-10-crypto.md`)
+- Phase 10: crypto rates page, then templates, generator, history /
+  dashboard / download
 - Phase 9 on production: owner opens the dashboard on a phone and edits a
   rate from a pencil, enters the real WhatsApp number (and logo, if
   ready) in Settings, generates one board and confirms it shows them
@@ -534,6 +546,13 @@ change.
 
 ## Architecture Decisions
 
+- 2026-10-01: A Neon `dev` branch for development (owner's choice).
+  Until Phase 9 the local `.env.local` and production shared one database
+  (endpoint `ep-twilight-brook-…`), so every local test wrote to
+  production. From Phase 10, `.env.local` points at the `dev` branch;
+  production keeps its own `DATABASE_URL` in Vercel and gets migrations
+  with `prisma migrate deploy` at push time, with the owner's go. The
+  development seed never runs against production unless the owner says so.
 - 2026-10-01: Crypto added as Phase 10 (coins, crypto rates, crypto
   boards); Hardening and launch moved to Phase 11. Crypto rates are naira
   per $1 of coin value.

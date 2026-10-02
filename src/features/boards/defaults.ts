@@ -1,7 +1,10 @@
 // Default board copy per type, from docs/design/stereolinkz-rate-boards.html.
 // The generator (Phase 7) lets the admin change these per board.
 
-export type BoardType = "FOREX" | "POF";
+// The board types the generator makes. CUSTOM stays reserved in the schema.
+export type BoardType = "FOREX" | "POF" | "CRYPTO";
+
+export const BOARD_TYPES: readonly BoardType[] = ["FOREX", "POF", "CRYPTO"];
 
 export type ContentDefaults = {
   headline: string; // "\n" is the line break
@@ -30,5 +33,16 @@ export const CONTENT_DEFAULTS: Record<BoardType, ContentDefaults> = {
     reach: null,
     ctaLabel: "Send a message to apply",
     finePrint: "Rates can change without notice. Terms and conditions apply.",
+  },
+  // stereolinkz-crypto-board.html. The note is sample copy; the owner
+  // edits it per board. No reach paragraph on crypto boards.
+  CRYPTO: {
+    headline: "Today’s\ncrypto rates",
+    subheading: "Naira per $1 of coin, paid in minutes",
+    note: "Also trading TRX, LTC and TON. Ask for a rate.",
+    reach: null,
+    ctaLabel: "Send a message to trade",
+    finePrint:
+      "Rates can change without notice. Always confirm the network before you send.",
   },
 };

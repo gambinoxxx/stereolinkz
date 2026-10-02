@@ -55,15 +55,26 @@ export function ContentFields({
           {...register("content.subheading")}
         />
       </div>
-      {type === "FOREX" && (
+      {type !== "POF" && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-note`}>Note under the rates</Label>
+          <Label htmlFor={`${id}-note`}>
+            {type === "CRYPTO" ? "Note in the card" : "Note under the rates"}
+          </Label>
           <Input
             id={`${id}-note`}
             autoComplete="off"
             aria-invalid={invalid("note")}
+            aria-describedby={type === "CRYPTO" ? `${id}-note-hint` : undefined}
             {...register("content.note")}
           />
+          {type === "CRYPTO" && (
+            <span
+              id={`${id}-note-hint`}
+              className="text-[13px] text-text-muted"
+            >
+              Use it for coins that aren’t on the board.
+            </span>
+          )}
         </div>
       )}
       <div className="flex flex-col gap-1.5">

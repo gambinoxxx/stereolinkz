@@ -98,8 +98,12 @@ export function GeneratorForm({
   const template =
     templates.find((t) => t.key === templateKey) ?? templates[0]!;
   const entities = useMemo(
-    () => ({ currencies: data.currencies, banks: data.banks }),
-    [data.currencies, data.banks],
+    () => ({
+      currencies: data.currencies,
+      banks: data.banks,
+      coins: data.coins,
+    }),
+    [data.currencies, data.banks, data.coins],
   );
 
   const { control, register, setValue, formState } =
@@ -242,6 +246,7 @@ export function GeneratorForm({
               >
                 <ToggleGroupItem value="FOREX">Forex</ToggleGroupItem>
                 <ToggleGroupItem value="POF">POF</ToggleGroupItem>
+                <ToggleGroupItem value="CRYPTO">Crypto</ToggleGroupItem>
               </ToggleGroup>
             </Step>
 
@@ -254,7 +259,15 @@ export function GeneratorForm({
               />
             </Step>
 
-            <Step n={3} title="Rates" aside="Edited values turn gold">
+            <Step
+              n={3}
+              title="Rates"
+              aside={
+                type === "CRYPTO"
+                  ? "Naira per $1 · edited values turn gold"
+                  : "Edited values turn gold"
+              }
+            >
               <RateRows
                 type={type}
                 rows={values.rows}

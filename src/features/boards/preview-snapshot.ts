@@ -80,6 +80,36 @@ export function buildPreviewSnapshot(
     });
   }
 
+  if (type === "CRYPTO") {
+    const byId = new Map(entities.coins.map((c) => [c.id, c]));
+    return assembleSnapshot({
+      org,
+      type,
+      now,
+      content: {
+        ...overrides,
+        note: clip(content.note, CONTENT_LIMITS.note),
+      },
+      rows: included.flatMap((row) => {
+        const c = byId.get(row.id);
+        return c
+          ? [
+              {
+                coinId: c.id,
+                ticker: c.ticker,
+                name: c.name,
+                networks: c.networks,
+                iconUrl: c.iconUrl,
+                badgeColor: c.badgeColor,
+                buy: previewValue(decimalInput, row.buy),
+                sell: previewValue(decimalInput, row.sell),
+              },
+            ]
+          : [];
+      }),
+    });
+  }
+
   const byId = new Map(entities.banks.map((b) => [b.id, b]));
   return assembleSnapshot({
     org,

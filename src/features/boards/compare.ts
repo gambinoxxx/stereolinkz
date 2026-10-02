@@ -2,6 +2,7 @@
 // same currency or bank. Rates only (POF notes are not compared): the
 // detail answers "has the price moved since?". Pure.
 import type { BoardSnapshot } from "@/features/boards/snapshot";
+import { assertNever } from "@/lib/assert-never";
 import { compareDecimalStrings, isDecimalString } from "@/lib/decimal";
 import { formatPercent, formatRate } from "@/lib/format";
 
@@ -68,6 +69,26 @@ export function compareSnapshotToCurrent(
           gone: false,
         };
       });
+    case "CRYPTO":
+      return snapshot.rows.map((row) => {
+        const today = current.get(row.coinId);
+        const base = {
+          key: row.coinId,
+          label: row.ticker,
+          value: `${formatRate(row.buy)} / ${formatRate(row.sell)}`,
+        };
+        if (!today?.listed || !("buy" in today))
+          return { ...base, now: null, gone: true };
+        const changed =
+          !same(row.buy, today.buy) || !same(row.sell, today.sell);
+        return {
+          ...base,
+          now: changed
+            ? `Now ${formatRate(today.buy)} / ${formatRate(today.sell)}`
+            : null,
+          gone: false,
+        };
+      });
     case "CUSTOM":
       return snapshot.rows.map((row, i) => ({
         key: String(i),
@@ -76,5 +97,7 @@ export function compareSnapshotToCurrent(
         now: null,
         gone: false,
       }));
+    default:
+      return assertNever(snapshot);
   }
 }

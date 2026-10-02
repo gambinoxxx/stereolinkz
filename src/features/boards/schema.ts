@@ -27,6 +27,7 @@ export const CONTENT_LIMITS = {
 export const ROW_NOUN: Record<BoardType, { one: string; many: string }> = {
   FOREX: { one: "currency", many: "currencies" },
   POF: { one: "bank", many: "banks" },
+  CRYPTO: { one: "coin", many: "coins" },
 };
 
 // "Today’s \r\nforex rates " → "Today’s\nforex rates": Windows line ends,
@@ -82,6 +83,20 @@ export const generateInput = z
   .discriminatedUnion("type", [
     z.object({
       type: z.literal("FOREX"),
+      templateKey: z.string(),
+      rows: z.array(
+        z
+          .object({ id, buy: decimalInput, sell: decimalInput })
+          .superRefine(checkRatePair),
+      ),
+      content: z.object({
+        ...sharedContent,
+        note: optionalText(CONTENT_LIMITS.note, "note"),
+      }),
+    }),
+    // Coins use the forex value rules: naira per $1, sell ≥ buy.
+    z.object({
+      type: z.literal("CRYPTO"),
       templateKey: z.string(),
       rows: z.array(
         z

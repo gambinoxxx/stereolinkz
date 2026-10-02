@@ -8,12 +8,16 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import type {
+  CryptoSnapshot,
   ForexSnapshot,
   PofSnapshot,
 } from "@/features/boards/build-snapshot";
 import { bankSlug } from "@/features/banks/slug";
+import { badgeTextColor, coinLetter } from "@/features/coins/badge-color";
 import { flagDataUri } from "@/features/templates/assets/flags";
 import {
+  compactPriceFontSize,
+  cryptoNetworksShown,
   percentPillFontSize,
   pofNoteBelow,
   pricePillFontSize,
@@ -424,6 +428,35 @@ function NoRows({ theme }: { theme: BoardTheme }) {
   );
 }
 
+// The note line at the foot of a card (forex and crypto).
+function CardNote({ note, theme }: { note: string; theme: BoardTheme }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        marginTop: 6,
+        paddingTop: 24,
+        borderTop: divider(theme),
+        fontSize: 30,
+        fontWeight: 600,
+      }}
+    >
+      <div
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          flexShrink: 0,
+          backgroundColor: theme.primary,
+        }}
+      />
+      <div style={ellipsis}>{note}</div>
+    </div>
+  );
+}
+
 function PricePill({
   value,
   bg,
@@ -552,31 +585,7 @@ export function ForexBoard({
             </div>
           </div>
         ))}
-        {content.note ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              marginTop: 6,
-              paddingTop: 24,
-              borderTop: divider(theme),
-              fontSize: 30,
-              fontWeight: 600,
-            }}
-          >
-            <div
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                flexShrink: 0,
-                backgroundColor: theme.primary,
-              }}
-            />
-            <div style={ellipsis}>{content.note}</div>
-          </div>
-        ) : null}
+        {content.note ? <CardNote note={content.note} theme={theme} /> : null}
       </Card>
       {content.reach ? (
         <div
@@ -748,6 +757,210 @@ export function PofBoard({
             </div>
           );
         })}
+      </Card>
+    </BoardShell>
+  );
+}
+
+// ── Crypto ───────────────────────────────────────────────────────────
+// stereolinkz-crypto-board.html: rates are naira per $1 of coin value.
+
+type CryptoRowData = CryptoSnapshot["rows"][number];
+
+// The coin icon (a data URI by render time), or the first letter of the
+// name on the coin's badge colour, with the flags' white ring.
+function CoinBadge({ row, theme }: { row: CryptoRowData; theme: BoardTheme }) {
+  const background = row.badgeColor ?? theme.primary;
+  return (
+    <div
+      style={{
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        flexShrink: 0,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: theme.flagRing,
+        backgroundColor: row.iconUrl ? theme.logoBackdrop : background,
+        color: badgeTextColor(background),
+        fontSize: 36,
+        fontWeight: 900,
+      }}
+    >
+      {row.iconUrl ? (
+        <img
+          src={row.iconUrl}
+          alt=""
+          width={80}
+          height={80}
+          style={{ width: 80, height: 80, objectFit: "cover" }}
+        />
+      ) : (
+        coinLetter(row.name, row.ticker)
+      )}
+    </div>
+  );
+}
+
+function CompactPricePill({
+  value,
+  bg,
+  fg,
+}: {
+  value: string;
+  bg: string;
+  fg: string;
+}) {
+  const text = boardPrice(value);
+  return (
+    <div
+      style={{
+        width: 200,
+        height: 86,
+        borderRadius: 22,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        fontSize: compactPriceFontSize(text),
+        fontWeight: 800,
+        letterSpacing: -1.5,
+        backgroundColor: bg,
+        color: fg,
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
+export function CryptoBoard({
+  snapshot,
+  theme,
+}: {
+  snapshot: CryptoSnapshot;
+  theme: BoardTheme;
+}) {
+  const { content, rows } = snapshot;
+  return (
+    <BoardShell content={content} theme={theme}>
+      <Card theme={theme}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 16,
+            paddingBottom: 14,
+          }}
+        >
+          {["We buy", "We sell"].map((label) => (
+            <div
+              key={label}
+              style={{
+                width: 200,
+                display: "flex",
+                justifyContent: "center",
+                fontSize: 30,
+                fontWeight: 700,
+                color: theme.cardMuted,
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+        {rows.length === 0 ? <NoRows theme={theme} /> : null}
+        {rows.map((row) => (
+          <div
+            key={row.coinId}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 20,
+              padding: "8px 0",
+              borderTop: divider(theme),
+            }}
+          >
+            <CoinBadge row={row} theme={theme} />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flexGrow: 1,
+                flexShrink: 1,
+                minWidth: 0,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 50,
+                  fontWeight: 900,
+                  letterSpacing: -1,
+                  lineHeight: 1,
+                  ...ellipsis,
+                }}
+              >
+                {row.ticker}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginTop: 4,
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 500,
+                    color: theme.cardMuted,
+                    flexShrink: 1,
+                    minWidth: 0,
+                    ...ellipsis,
+                  }}
+                >
+                  {row.name}
+                </div>
+                {cryptoNetworksShown(row.name, row.networks).map((network) => (
+                  <div
+                    key={network}
+                    style={{
+                      display: "flex",
+                      flexShrink: 0,
+                      padding: "2px 11px",
+                      borderRadius: 999,
+                      backgroundColor: theme.netTag,
+                      color: theme.netTagText,
+                      fontSize: 19,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {network}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+              <CompactPricePill
+                value={row.buy}
+                bg={theme.primary}
+                fg={theme.primaryText}
+              />
+              <CompactPricePill
+                value={row.sell}
+                bg={theme.accent}
+                fg={theme.accentText}
+              />
+            </div>
+          </div>
+        ))}
+        {content.note ? <CardNote note={content.note} theme={theme} /> : null}
       </Card>
     </BoardShell>
   );

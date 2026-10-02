@@ -10,6 +10,9 @@ describe("boardFilename", () => {
     expect(boardFilename("Stereolinkz", "POF", "4:05 PM")).toBe(
       "stereolinkz-pof-405pm.png",
     );
+    expect(boardFilename("Stereolinkz", "CRYPTO", "10:25 AM")).toBe(
+      "stereolinkz-crypto-1025am.png",
+    );
   });
 
   it("slugs any org name, including accents and punctuation", () => {

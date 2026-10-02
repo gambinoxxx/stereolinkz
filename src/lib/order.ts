@@ -1,4 +1,4 @@
-// Board order of currencies. Pure, so the table (optimistic UI) and the
+// Board order of currencies and coins. Pure, so the table (optimistic UI) and the
 // server (validation) share it, and it's tested on its own.
 
 // Moves the item at `from` so it ends up at index `to`.
@@ -26,7 +26,7 @@ export function dropOrder(
 }
 
 // A new order is valid only if it names exactly the org's current
-// (non-archived) currencies, each once. Anything else means the list the
+// (non-archived) rows (currencies or coins), each once. Anything else means the list the
 // admin saw is out of date, or the input was tampered with.
 export function isSameIdSet(
   ordered: readonly string[],
