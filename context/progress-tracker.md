@@ -5,14 +5,28 @@ change.
 
 ## Current Phase
 
-- Phase 10: Crypto, in progress
+- Phase 10: Crypto, complete
 
 ## Current Goal
 
-- Phase 10: templates page check, then generator (crypto board, failure test), then history / dashboard / download and the old-board checks
+- None. Waiting for the owner's go to push Phase 10.
 
 ## Completed
 
+- 2026-10-02: Phase 10 complete. All Done-when items checked, tagged
+  phase-10-complete.
+- 2026-10-02: Phase 10, templates, generator, history, dashboard and
+  download. Templates page Crypto tab (Daylight set as the crypto default
+  and back). Generator Crypto: 6 of 6 rows, "Purple Signal fits 6 coins.
+  Untick 1 to continue.", one edited USDT rate → +1 RateBoard, +1
+  RateBoardImage, +1 CryptoRate (5.8 s), `stereolinkz-crypto-652am.png`.
+  Failure test (render forced to throw for CRYPTO): message shown, rows and
+  blobs unchanged (32 / 34 / 14, 34 = 34), switch removed. Old boards:
+  after BTC 1582 / 1622 → 1590 / 1630 the crypto board shows "Now 1,590 /
+  1,630" and its Daylight regeneration still prints 1582 / 1622; an old
+  Forex and an old POF board open with their saved rates and regenerate.
+  `?from` on the crypto board prefills BTC 1582 / 1622 in gold. Dashboard:
+  "Last rate change … BTC" and crypto in recent changes.
 - 2026-10-02: Phase 10, schema, snapshot and crypto rates page. Owner chose
   to apply the migration to production (no dev branch): `prisma migrate
   deploy` applied `20261001233401_crypto` (additive); checked in a
@@ -522,14 +536,12 @@ change.
 
 ## Next Up
 
-- Phase 10: crypto rates page, then templates, generator, history /
-  dashboard / download
-- Phase 9 on production: owner opens the dashboard on a phone and edits a
-  rate from a pencil, enters the real WhatsApp number (and logo, if
-  ready) in Settings, generates one board and confirms it shows them
-- Phases 4–8 on production: owner's live checks (asked, not yet confirmed)
-- Then Phase 11: Hardening and launch (states, accessibility, security,
+- Phase 10 on production: owner checks the coins on the live site (sample
+  coins seeded; replace rates, add icons, deactivate what isn't traded),
+  generates a crypto board on a phone and posts it to WhatsApp Status
+- Phase 11: Hardening and launch (states, accessibility, security,
   mobile and performance, launch). Open: the launch users' Clerk IDs
+- Phases 4–9 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
 
@@ -541,15 +553,43 @@ change.
   be done in Phase 11 before launch, in `.env.local` and in Vercel (no
   quotes), then redeploy.
 
-- Stereolinkz logo file and the real WhatsApp number: still the wordmark
-  and `+234 800 000 0000`. The owner can enter both in Settings on the
-  live site (asked at the end of Phase 9).
+- Stereolinkz logo file: boards still use the wordmark. (The real
+  WhatsApp number is set: +234 903 591 4544.)
 - Who else needs access at launch? Their Clerk user IDs are needed
   for memberships. Needed by Phase 11.
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-02: Phase 10 decisions.
+  - **Board type union** `FOREX | POF | CRYPTO` (`BoardType`,
+    `TemplateType`) with exhaustive switches ending in `assertNever`, so
+    the compiler lists every place a new type must be handled.
+  - **The snapshot union is additive**: a CRYPTO variant beside FOREX /
+    POF, `snapshotVersion` stays 1; real Forex and POF snapshots from the
+    database are a test fixture and still parse unchanged.
+  - **Networks are display text**: up to 4 on the coin, deduplicated
+    ignoring case; boards show at most 2 (snapshot rule).
+  - **`defaultBadgeColor(ticker)`**: a hash of the ticker into a fixed
+    palette of 10 colours (colours, not coins); the letter is white or
+    #1F0B3F, whichever contrasts more (the owner's rule; it differs from
+    the design's all-white letters on some badges).
+  - **Coin rows on boards**: a 320px column for ticker, name and tags;
+    estimated widths (from Satori measurements) drop the second tag
+    first, then the name is cut with an ellipsis; prices step down from
+    56px after 6 characters. Same rule in preview and PNG.
+  - **Edit drawer saves rate and networks in one transaction**
+    (`saveCoinEdit`): rate changed → "BTC saved. The previous rate is in
+    history.", only details → "BTC updated", nothing → "No changes to
+    save". The icon saves on its own at once (`updateCoinDetails`).
+  - **Generalised from forex**: `src/lib/order.ts` (reorder for currencies
+    and coins), the buy/sell "pair" paths (generator rows, `diffRates`,
+    `prefillPairs`, `pairChange` on the dashboard), `CardNote` in the
+    layout, `TYPE_LABEL`. Crypto-specific: `CoinBadge`, network tags,
+    `CryptoBoard`, the compact price box.
+  - **Migration on production** (owner's choice, no dev branch): applied
+    with `prisma migrate deploy`; the 8 sample coins were seeded into
+    production at the owner's request.
 - 2026-10-01: A Neon `dev` branch for development (owner's choice).
   Until Phase 9 the local `.env.local` and production shared one database
   (endpoint `ep-twilight-brook-…`), so every local test wrote to
@@ -990,6 +1030,16 @@ change.
 
 ## Session Notes
 
+- 2026-10-02: Phase 10 complete and tagged `phase-10-complete` locally,
+  not pushed. Production database already has the `crypto` migration and
+  the 8 sample coins (+ TON added during the checks, with a test icon;
+  BTC moved to 1590 / 1630; ETH networks ERC20, Arbitrum; USDT sell 1618).
+  The live site still runs Phase 9 code until the push; after it, the
+  crypto pages read these rows. Test boards: one crypto board (6:52 AM)
+  with 2 images, regenerated images on the old Forex and POF boards. A
+  crypto board at 6:54 AM came from the owner's local dev server. The
+  owner's local `npm run dev` needed a restart after the schema change
+  (stale Prisma client: `db.coin` undefined).
 - 2026-10-01: Docs update for crypto (no code). Applied
   `docs/updates/crypto-docs.patch` (copied from the owner's
   `phase-10-crypto-files` download) to the five context files.

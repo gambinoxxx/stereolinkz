@@ -7,7 +7,7 @@ export const cryptoPurpleSignal: BoardTemplate<"CRYPTO"> = {
   version: 1,
   type: "CRYPTO",
   name: "Purple Signal",
-  description: "Deep purple, gold sell prices. Built for WhatsApp Status.",
+  description: "Deep purple with coin badges and network tags.",
   maxRows: 6,
   theme: "purple-signal",
   render: (snapshot) => (
