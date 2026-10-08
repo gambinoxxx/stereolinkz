@@ -12,6 +12,18 @@ const nextConfig: NextConfig = {
     "/admin/**": ["./assets/fonts/**/*"],
     "/api/boards/**": ["./assets/fonts/**/*"],
   },
+  // The landing page shows the latest board PNGs from Vercel Blob through
+  // next/image (resized for the phone screens). Board images only; logos
+  // and flags stay unoptimized and need no entry.
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/boards/**",
+      },
+    ],
+  },
   experimental: {
     serverActions: {
       // Logos are up to 1 MB; the default 1 MB limit would leave no room

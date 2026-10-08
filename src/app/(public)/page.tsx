@@ -1,3 +1,4 @@
+import { Landing } from "@/features/public/components/Landing";
 import { getPublicLanding } from "@/features/public/queries";
 
 // Static, regenerated when a board is generated or the settings are saved
@@ -6,22 +7,5 @@ import { getPublicLanding } from "@/features/public/queries";
 export const revalidate = 3600;
 
 export default async function Home() {
-  const landing = await getPublicLanding();
-  return (
-    <main>
-      <h1>{landing.org?.name ?? "Stereolinkz"}</h1>
-      <p>
-        Forex {landing.forex?.timeLabel ?? "none"} · Crypto{" "}
-        {landing.crypto?.timeLabel ?? "none"} · POF{" "}
-        {landing.pof?.timeLabel ?? "none"}
-      </p>
-      <ul>
-        {landing.forex?.rows.map((row) => (
-          <li key={row.code}>
-            {row.code} {row.buy} / {row.sell}
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
+  return <Landing data={await getPublicLanding()} />;
 }

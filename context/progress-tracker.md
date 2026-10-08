@@ -9,11 +9,28 @@ change.
 
 ## Current Goal
 
-- Phase 11, static page: every section of `landing.html` as server
-  components, with the empty states.
+- Phase 11, motion: check every animation against `landing.html`, the
+  loops stopping off-screen, and record them.
 
 ## Completed
 
+- 2026-10-08: Phase 11, static page. `features/public/components/Landing.tsx`
+  (server) builds every section of `landing.html`: nav, hero with the 3D
+  phone (newest Forex PNG via `next/image`, Blob host in `remotePatterns`
+  for `/boards/**`), two tickers, pinned services (four steps; Forex,
+  Crypto and POF PNGs plus an Example receipt), rates tabs + calculator,
+  globe, school-fees tilt card, steps with the example chat, outline
+  marquee, reviews (only when set), FAQ, CTA, footer, phone FAB. Styles:
+  `src/app/(public)/landing.css`, the design's CSS scoped under `.lp`,
+  keyframes renamed `lp-*` (Tailwind's `spin`/`ping` untouched), board
+  CSS dropped, hex only in the CSS. Brand primary/accent/background from
+  Settings as `--violet`/`--gold`/`--deep`. Copy in `content.ts`; every
+  name and figure from the boards in `landing-view.ts` (tested). Empty
+  states: "Today’s rates are shared on WhatsApp" and the wordmark screen.
+  Server-render test: empty and full data, Settings number in every
+  `wa.me` link, none of the design's placeholders. Checked at 1440 and
+  390 on a production build; reduced motion: 0 running animations,
+  everything visible; no console or hydration errors.
 - 2026-10-08: Phase 11, data and routing. `features/public/queries.ts`
   (`getPublicLanding()`, server-only): the org by `PUBLIC_ORG_SLUG` (public
   fields + time zone; id dropped), then the newest FOREX, CRYPTO and (only
@@ -548,7 +565,7 @@ change.
 
 ## In Progress
 
-- Phase 11: Landing page (data and routing done).
+- Phase 11: Landing page (data and routing, static page done).
 
 ## Next Up
 
