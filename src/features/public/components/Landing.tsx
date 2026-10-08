@@ -152,6 +152,10 @@ export function Landing({ data }: { data: PublicLanding }) {
 
   return (
     <div className="lp" style={brandVars}>
+      {/* Smooth anchor scrolling on this page only (a :has() selector on
+          <html> would make Chrome re-check the whole page's style on every
+          class change). Rendered by React, so it goes when the page does. */}
+      <style>{`@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}`}</style>
       <noscript>
         <style>{`.lp .rv,.lp .rrow,.lp .msg{opacity:1;transform:none}.lp .split .w>span{transform:none}`}</style>
       </noscript>
@@ -342,7 +346,7 @@ export function Landing({ data }: { data: PublicLanding }) {
                 <div className="ok">
                   <Check size={30} strokeWidth={3} />
                 </div>
-                <h4>Payment delivered</h4>
+                <p className="rt">Payment delivered</p>
                 {fee && <div className="amt num">{fee.amount}</div>}
                 <div className="ln">
                   <span>To</span>
@@ -455,7 +459,7 @@ export function Landing({ data }: { data: PublicLanding }) {
                   <Wordmark scale={0.85} />
                   <span className="tag">{content.fees.example.tag}</span>
                 </div>
-                <h4>{content.fees.example.title}</h4>
+                <p className="it">{content.fees.example.title}</p>
                 {fee && <div className="amt num">{fee.amount}</div>}
                 {fee && (
                   <>

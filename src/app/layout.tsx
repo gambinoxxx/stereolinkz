@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+
+import { siteUrl } from "@/lib/site-url";
 
 // ₦ only exists in Archivo's latin-ext subset.
 const archivo = Archivo({
@@ -11,29 +12,16 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
   title: "RateBoard · Stereolinkz",
 };
 
+// Clerk is added by the signed-in sections (AuthProvider), not here, so
+// the public page stays free of it.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <ClerkProvider
-      appearance={{ cssLayerName: "clerk" }}
-      localization={{
-        signIn: {
-          start: {
-            title: "Sign in to RateBoard",
-            subtitle: "For Stereolinkz team members.",
-            // Clerk shows the "combined" copy when sign-in and sign-up share a flow
-            titleCombined: "Sign in to RateBoard",
-            subtitleCombined: "For Stereolinkz team members.",
-          },
-        },
-        formFieldInputPlaceholder__emailAddress: "you@stereolinkz.com",
-      }}
-    >
-      <html lang="en" className={`${archivo.variable} h-full`}>
-        <body className="flex min-h-full flex-col">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className={`${archivo.variable} h-full`}>
+      <body className="flex min-h-full flex-col">{children}</body>
+    </html>
   );
 }

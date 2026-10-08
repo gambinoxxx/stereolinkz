@@ -9,11 +9,38 @@ change.
 
 ## Current Goal
 
-- Phase 11, SEO and performance: metadata, Open Graph from the newest
-  Forex PNG, robots and sitemap, Lighthouse mobile budgets.
+- Phase 11, end of phase: publish test, checks, Done-when, tag. Then the
+  owner's stop points (Vercel env vars, real content, push, phone test,
+  Lighthouse on the production URL).
 
 ## Completed
 
+- 2026-10-08: Phase 11, SEO and performance. `generateMetadata` on `/`:
+  title "Stereolinkz · One chat for all your money", description,
+  canonical, Open Graph + Twitter `summary_large_image` with the newest
+  Forex board PNG (1080×1920); `metadataBase` from `siteUrl()`
+  (`NEXT_PUBLIC_SITE_URL`, else `VERCEL_PROJECT_PRODUCTION_URL`, else
+  localhost; tested). `src/app/robots.ts` (allow `/`, disallow `/admin`,
+  `/api`, sitemap link) and `src/app/sitemap.ts` (`/`); build shows
+  `○ /robots.txt`, `○ /sitemap.xml`. `getPublicLanding` is React-cached
+  (page + metadata share one read). Performance: `ClerkProvider` moved
+  from the root layout into `components/auth-provider.tsx`, used by the
+  admin layout, `(auth)/layout.tsx` and `not-authorized/layout.tsx`, so
+  `/` loads no Clerk scripts or cookies; the proxy matcher skips `/`,
+  `robots.txt` and `sitemap.xml` (dev keys sent every first visit through
+  Clerk's handshake redirect: TTFB 3.96 s). Signed-in check after the
+  move: ticket sign-in → `/admin`, forex/crypto/generator/settings load,
+  sign out → `/login`; `/admin` signed out → 307 `/login`; API 401.
+  Continuous frame loops start once the page is idle after load; sections
+  below the fold use `content-visibility: auto`; the ticker width is
+  measured on resize, not per frame; `html:has(.lp)` removed. Contrast:
+  the landing's `--ink3` darkened to #6A6082 (design #8D84A3, 3.4:1) for
+  4.5:1; heading order fixed (services kicker is the h2; receipt and
+  invoice titles are text). Local Lighthouse mobile (production build,
+  host benchmark ~800, so CPU-bound metrics read high): first run 27 / 95
+  / 79 / 100 → now Performance 79–81, Accessibility 100, Best practices
+  100, SEO 100, CLS 0, TBT 220–250 ms, FCP 1.2 s, LCP 4.3–4.5 s simulated
+  (0.8–1.3 s observed). Budgets to be confirmed on the production URL.
 - 2026-10-08: Phase 11, calculator and WhatsApp. Selling uses the board's
   buy rate, buying its sell rate; coins are listed as "X ($ value)" with
   "per $1 of X". Checked on a production build: sell 500 USD → ₦680,000,
@@ -591,8 +618,7 @@ change.
 
 ## In Progress
 
-- Phase 11: Landing page (data and routing, static page, motion,
-  calculator and WhatsApp done).
+- Phase 11: Landing page (all five parts built; end-of-phase checks next).
 
 ## Next Up
 

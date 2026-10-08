@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/components/auth-provider";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { MobileMenuProvider } from "@/components/shell/mobile-menu";
 import { MobileTopBar } from "@/components/shell/mobile-top-bar";
@@ -20,20 +21,22 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = { name: fullName, role };
 
   return (
-    <TooltipProvider>
-      <MobileMenuProvider menu={<SidebarContent user={user} />}>
-        <div className="min-h-screen shell:grid shell:grid-cols-[248px_minmax(0,1fr)]">
-          <Sidebar user={user} />
-          <div className="min-w-0">
-            <MobileTopBar />
-            <main className="mx-auto w-full max-w-[1200px] px-4 pt-[22px] pb-[120px] shell:px-10 shell:pt-[34px] shell:pb-20">
-              {children}
-            </main>
+    <AuthProvider>
+      <TooltipProvider>
+        <MobileMenuProvider menu={<SidebarContent user={user} />}>
+          <div className="min-h-screen shell:grid shell:grid-cols-[248px_minmax(0,1fr)]">
+            <Sidebar user={user} />
+            <div className="min-w-0">
+              <MobileTopBar />
+              <main className="mx-auto w-full max-w-[1200px] px-4 pt-[22px] pb-[120px] shell:px-10 shell:pt-[34px] shell:pb-20">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-        <BottomTabBar />
-      </MobileMenuProvider>
-      <Toaster />
-    </TooltipProvider>
+          <BottomTabBar />
+        </MobileMenuProvider>
+        <Toaster />
+      </TooltipProvider>
+    </AuthProvider>
   );
 }

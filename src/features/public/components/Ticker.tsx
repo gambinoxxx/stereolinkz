@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 
 import type { TickerItem } from "@/features/public/landing-view";
 import {
@@ -25,12 +25,23 @@ export function Ticker({
 }) {
   const box = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
-  const state = useRef({ x: 0, vel: 0, lastY: -1 });
+  const state = useRef({ x: 0, vel: 0, lastY: -1, w: 0 });
   const reduced = useReducedMotion();
   const inView = useInView(box);
 
   const base: TickerItem[] = [];
   while (items.length && base.length < 8) base.push(...items);
+
+  // One copy's width, measured on resize (never inside the frame loop).
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const measure = () => (state.current.w = el.scrollWidth / 2);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useFrame(() => {
     const el = track.current;
@@ -41,7 +52,8 @@ export function Ticker({
     s.vel = (s.vel + (y - s.lastY)) * 0.9;
     s.lastY = y;
     s.x -= speed * (1 + Math.min(Math.abs(s.vel) * 0.08, 6));
-    const w = el.scrollWidth / 2;
+    const w = s.w;
+    if (!w) return;
     if (s.x < -w) s.x += w;
     if (s.x > 0) s.x -= w;
     el.style.transform = `translateX(${s.x}px)`;

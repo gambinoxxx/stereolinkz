@@ -91,22 +91,55 @@ export function useInView(
   return inView;
 }
 
-// Runs callback(now) every frame while active. The latest callback is
-// used without restarting the loop.
+// True once the page has loaded and the browser is idle (or after 2 s):
+// continuous loops wait for it, so they never compete with hydration.
+let settled = false;
+const settledListeners = new Set<() => void>();
+function settle() {
+  settled = true;
+  settledListeners.forEach((l) => l());
+}
+const settledStore = {
+  subscribe(onChange: () => void) {
+    settledListeners.add(onChange);
+    if (settledListeners.size === 1 && !settled) {
+      const idle = () =>
+        "requestIdleCallback" in window
+          ? window.requestIdleCallback(settle, { timeout: 2000 })
+          : setTimeout(settle, 300); // Safari has no requestIdleCallback
+      if (document.readyState === "complete") idle();
+      else window.addEventListener("load", idle, { once: true });
+    }
+    return () => settledListeners.delete(onChange);
+  },
+  get: () => settled,
+};
+
+export function usePageSettled(): boolean {
+  return useSyncExternalStore(
+    settledStore.subscribe,
+    settledStore.get,
+    () => false,
+  );
+}
+
+// Runs callback(now) every frame while active, once the page has settled.
+// The latest callback is used without restarting the loop.
 export function useFrame(callback: (now: number) => void, active: boolean) {
   const cb = useRef(callback);
   useEffect(() => {
     cb.current = callback;
   });
   const visible = usePageVisible();
+  const ready = usePageSettled();
   useEffect(() => {
-    if (!active || !visible) return;
+    if (!active || !visible || !ready) return;
     let id = requestAnimationFrame(function tick(now) {
       cb.current(now);
       id = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(id);
-  }, [active, visible]);
+  }, [active, visible, ready]);
 }
 
 // How far the page has scrolled through an element: 0 when its top meets

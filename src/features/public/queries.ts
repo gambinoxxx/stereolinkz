@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   type PublicBoardType,
   type PublicLanding,
@@ -15,7 +17,8 @@ import { db } from "@/lib/server/db";
 // named by PUBLIC_ORG_SLUG, its public fields, and the newest board of
 // each type with its newest image. Never ForexRate, PofRate or CryptoRate.
 // Bounded: one org, at most one board and one image per type.
-export async function getPublicLanding(): Promise<PublicLanding> {
+// React-cached: the page and its metadata share one read per render.
+export const getPublicLanding = cache(async (): Promise<PublicLanding> => {
   const slug = process.env.PUBLIC_ORG_SLUG?.trim();
   const empty: PublicLanding = {
     org: null,
@@ -88,4 +91,4 @@ export async function getPublicLanding(): Promise<PublicLanding> {
     crypto: toCryptoBoard(crypto),
     pof: toPofBoard(pof),
   };
-}
+});

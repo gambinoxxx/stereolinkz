@@ -48,7 +48,7 @@ export function Services({
         </div>
         <div className="pin wrap">
           <div>
-            <p className="kicker">{kicker}</p>
+            <h2 className="kicker">{kicker}</h2>
             <div className="sc-text">
               {items.map((item, k) => (
                 <div
