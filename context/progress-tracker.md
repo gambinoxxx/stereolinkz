@@ -5,16 +5,42 @@ change.
 
 ## Current Phase
 
-- Phase 11: Landing page
+- Phase 11: Landing page, complete
 
 ## Current Goal
 
-- Phase 11, end of phase: publish test, checks, Done-when, tag. Then the
-  owner's stop points (Vercel env vars, real content, push, phone test,
-  Lighthouse on the production URL).
+- None. Waiting for the owner: Vercel env vars, real content (POF public,
+  reviews, payout time, legal line, location), the go to push, then
+  Lighthouse on the production URL and the real phone test.
 
 ## Completed
 
+- 2026-10-08: Phase 11 complete. Tagged phase-11-complete. Done when:
+  - [x] Signed out, `/` is public (200, static cache HIT); `/admin` → 307
+    `/login`; `/robots.txt`, `/sitemap.xml` public.
+  - [x] `/` shows the latest board of each type with its Updated time.
+    Publish test on the production build (shared DB): `/` USD 1,360;
+    USD buy 1,361 saved without generating → `/` still 1,360; Forex board
+    generated → `/` shows 1,361 within 3 s; WhatsApp number → +234 800 111
+    2222 → every link 2348001112222 within 3 s, put back → 2349035914544;
+    USD restored to 1,360 and a Forex board generated with the original
+    rates → `/` 1,360. Rows: RateBoard 39 → 41, RateBoardImage 44 → 46,
+    ForexRate 24 → 26; blobs 46 = rows 46, no orphans.
+  - [x] Matches `landing.html` at 1440 and 390, motion included
+    (screenshots `final-1440-*`, `final-390-*`; recordings
+    `motion-1440-*.mp4`, `motion-390-*.mp4`); still version with reduced
+    motion (`final-1440-reduced-motion-*`, `motion-1440-rm-*.mp4`).
+  - [x] Every WhatsApp link uses the Settings number with a prefilled
+    message (7 links, checked in the browser and in the render test).
+  - [ ] Lighthouse mobile budgets: locally Accessibility 100, Best
+    practices 100, SEO 100, CLS 0, but Performance 79–81 and simulated
+    LCP 4.3–4.5 s (observed 0.8–1.3 s) on this machine (benchmark ~800,
+    below Lighthouse's reference). To be measured on the production URL
+    after the push; report `lighthouse-local-mobile.report.html`.
+  - [x] No placeholder reviews, figures or claims (render test over empty
+    and full data; optional parts null and hidden).
+  Checks: build (`○ /  1h  1y`, `○ /robots.txt`, `○ /sitemap.xml`), lint,
+  tsc, 212 tests, format:check.
 - 2026-10-08: Phase 11, SEO and performance. `generateMetadata` on `/`:
   title "Stereolinkz · One chat for all your money", description,
   canonical, Open Graph + Twitter `summary_large_image` with the newest
@@ -618,10 +644,13 @@ change.
 
 ## In Progress
 
-- Phase 11: Landing page (all five parts built; end-of-phase checks next).
+- Nothing in progress.
 
 ## Next Up
 
+- Phase 11 on production (owner): set `PUBLIC_ORG_SLUG`, `PUBLIC_SHOW_POF`
+  and `NEXT_PUBLIC_SITE_URL` in Vercel, then push; Lighthouse mobile on
+  the production URL; real phone test of `/`.
 - Phase 10 on production: owner checks the coins on the live site,
   generates a crypto board on a phone and posts it to WhatsApp Status
 - Phase 12: Hardening and launch. Open: the launch users' Clerk IDs
@@ -641,16 +670,60 @@ change.
   WhatsApp number is set: +234 903 591 4544.)
 - Who else needs access at launch? Their Clerk user IDs are needed
   for memberships. Needed by Phase 12.
-- Phase 11 (landing page): show POF rates on the public site? (default:
-  yes, `PUBLIC_SHOW_POF=true`)
+- Phase 11 (landing page): show POF rates on the public site? The POF tab
+  lists bank names from the board. (Built with `PUBLIC_SHOW_POF=true`.)
 - Phase 11: real customer reviews (with permission), a real typical
-  payout time, and the registered business name / RC number / licence
-  line, if any. Until provided, those sections stay hidden.
+  payout time, the registered business name / RC number / licence line,
+  and whether to show "Lagos, Nigeria" in the footer. Until provided,
+  those stay hidden (`content.ts`: `reviews`, `typicalPayoutMinutes`,
+  `legalLine`, `location`).
+- Phase 11: confirm the service claims kept from the design copy: "Same
+  day", "T+1" (China and the rest of the world), "Low fees, agreed before
+  you pay", "Real people on WhatsApp".
 - Phase 11: custom domain for the site (can wait until Phase 12)
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-08: Phase 11 decisions.
+  - **Caching model**: classic segment config, as the rest of the app
+    (no `cacheComponents`): `export const revalidate = 3600` on `/`, plus
+    `revalidatePath("/")` in `generateBoard`, `regenerateBoard` and
+    `updateOrgSettings`. Rate-saving actions don't touch `/`.
+  - **Board PNGs in the phones**: the hero and the services phones show
+    each type's newest `RateBoardImage` through `next/image` (Blob host in
+    `remotePatterns` for `/boards/**` only), not HTML replicas, so the
+    site shows exactly what was posted. No board → the wordmark on the
+    brand gradient.
+  - **Server/client split**: `Landing.tsx` (server) renders all text and
+    rows; small client components get plain props (nav, rotator, hero
+    stage, tickers, services, rates panel, calculator, globe, tilt card,
+    steps, marquee, FAQ, coin rain, `MotionRoot`, `UpdatedLabel`). Only
+    rows without ids, labels and public org fields reach the browser.
+  - **Names and figures from the boards**: `landing-view.ts` builds every
+    currency/coin name and example figure from the latest boards
+    (Invariant 1); worked examples are board rate × a round amount and
+    are labelled Example; without boards they fall back to words.
+  - **Optional content hidden**: `content.ts` `reviews`,
+    `typicalPayoutMinutes`, `legalLine`, `location` are null and their
+    parts don't render; the design's Terms/Privacy links, minimums FAQ,
+    "· 9 min" and sample reviews were dropped.
+  - **`PUBLIC_SHOW_POF`**: POF is read and shown only when it is exactly
+    "true" (POF boards name banks).
+  - **"Updated today" label**: computed in the browser (`UpdatedLabel`,
+    `useSyncExternalStore`), since the page can be an hour old; the server
+    and hydration show the board's own time.
+  - **Motion simplified on phones**: no pointer tilt or magnetic buttons
+    on coarse pointers; coin orbit radius × 0.62; the services phone sits
+    above the copy at 168 × 346. Everything else as on desktop.
+  - **Transform/opacity only**: the design's shine, box-shadow ping,
+    background-colour change, width and grid-row transitions and SMIL `r`
+    were replaced; the globe's route draw keeps `stroke-dashoffset`.
+    Continuous loops start once the page is idle after load.
+  - **Clerk off the public page**: `ClerkProvider` only in the signed-in
+    sections; the proxy matcher skips `/`, `robots.txt`, `sitemap.xml`.
+  - **Contrast**: the landing's `--ink3` is #6A6082 (design #8D84A3) for
+    4.5:1.
 - 2026-10-08: Landing page added as Phase 11; Hardening and launch moved to
   Phase 12. The public site shows the latest generated board per type,
   not live rates; it lives in the same app under the (public) route group.

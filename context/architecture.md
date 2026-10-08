@@ -213,9 +213,11 @@ template, then inserts a RateBoardImage only.
 - Only the fields the page shows leave the server: snapshot rows,
   date/time labels, brand, contact details and the image URL. No ids
   of people (`createdById`), no history, no admin data.
-- Revalidation: `generateBoard` and `updateOrgSettings` revalidate
-  `/`. Saving a rate without generating does not, by design. A time-based
-  revalidate (1 hour) is the safety net.
+- Revalidation: `generateBoard`, `regenerateBoard` (a new image of the
+  newest board) and `updateOrgSettings` revalidate `/`. Saving a rate
+  without generating does not, by design. A time-based revalidate
+  (`export const revalidate = 3600`, classic segment config: the app does
+  not use Cache Components) is the safety net.
 - The phone screens show each latest board's newest PNG
   (`RateBoardImage.blobUrl`, via `next/image`), so the site shows
   exactly what was posted to WhatsApp. The share preview image (Open
@@ -232,7 +234,11 @@ template, then inserts a RateBoardImage only.
   every page query, action and route handler.
 - `/` (the landing page), `robots.txt` and `sitemap.xml` are public: they
   call no `requireMember()` and show only the public organization's
-  latest boards and contact details.
+  latest boards and contact details. The proxy matcher skips them (no
+  Clerk handshake for visitors), and `ClerkProvider` is mounted only by
+  the signed-in sections (`components/auth-provider.tsx` in the admin,
+  `(auth)` and `not-authorized` layouts), so the public page loads no
+  Clerk scripts.
 - A Clerk session is not enough. `requireMember()` in
   `lib/server/auth.ts` looks up a `Membership` for the Clerk user. It
   returns `{ userId, organizationId, role }` or throws, which the app
