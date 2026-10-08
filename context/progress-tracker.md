@@ -9,11 +9,28 @@ change.
 
 ## Current Goal
 
-- Phase 11, motion: check every animation against `landing.html`, the
-  loops stopping off-screen, and record them.
+- Phase 11, calculator and WhatsApp: check the calculator maths and every
+  link's prefilled message against the Settings number.
 
 ## Completed
 
+- 2026-10-08: Phase 11, motion. Shared hooks in
+  `features/public/motion/hooks.ts` (`useReducedMotion`, `useInView`,
+  `useScrollProgress`, `usePointer`, plus `useFrame`, `useFinePointer`,
+  `usePageVisible`); no animation library; `transform`/`opacity` only
+  except the globe's route draw (`stroke-dashoffset` on a 5-path SVG).
+  Recorded on a production build with the CDP screencast (MP4s:
+  `motion-1440-{hero,services,rates,globe,fees,steps,end}.mp4`,
+  `motion-390-{hero,services}.mp4`, `motion-1440-rm-{hero,services}.mp4`):
+  hero phone straightens with scroll and leans to the pointer, coins
+  orbit, notifications cycle, rotator; tickers speed up with scroll;
+  services step through four screens and background colours; rows slide
+  in and count up, tab pill slides; globe meridians turn and routes light
+  each city; tilt card follows the pointer, progress fills; steps
+  autoplay with the chat typing; marquee slides; FAQ answer fades; coin
+  rain. requestAnimationFrame callbacks per second: hero 33 (headless),
+  globe 60, FAQ 0, footer 0, hero with the tab hidden 0. Reduced motion:
+  0 running animations, everything in its final state.
 - 2026-10-08: Phase 11, static page. `features/public/components/Landing.tsx`
   (server) builds every section of `landing.html`: nav, hero with the 3D
   phone (newest Forex PNG via `next/image`, Blob host in `remotePatterns`
@@ -565,7 +582,7 @@ change.
 
 ## In Progress
 
-- Phase 11: Landing page (data and routing, static page done).
+- Phase 11: Landing page (data and routing, static page, motion done).
 
 ## Next Up
 
