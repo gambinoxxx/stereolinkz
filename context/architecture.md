@@ -21,13 +21,14 @@ need appears, add it to `progress-tracker.md` → Open Questions first.
 ```
 src/
   app/
+    (public)/                     Public landing page at / (no sign-in), its own layout
     (auth)/login/[[...login]]/    Clerk sign-in page
     admin/                        Protected pages: page, forex, pof, crypto, banks,
                                   templates, generator, history, settings
     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
   features/
     currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
-    boards/  settings/
+    boards/  settings/  public/
                                   Each has: schema.ts (Zod), queries.ts
                                   (server-only reads), actions.ts (server
                                   actions), components/ (feature UI)
@@ -54,6 +55,10 @@ proxy.ts                          Clerk route protection (Next 16 replacement fo
 docs/design/                      Page design HTML files (visual spec, read-only)
 ```
 
+- `features/public/` holds the landing page: `queries.ts` (server-only,
+  reads the latest board per type), `content.ts` (page copy, FAQ,
+  optional reviews and legal line) and `components/` (client motion
+  components). It never imports admin queries or actions.
 - `app/admin/*` pages are thin. They call `features/*/queries.ts` and
   render feature components. They hold no business logic.
 - `features/*/actions.ts` is the only place that writes to the database.
@@ -199,6 +204,25 @@ needs, copied at generation time:
 Regenerate runs steps 4–5 with the stored snapshot and a chosen
 template, then inserts a RateBoardImage only.
 
+## Public Landing Page
+
+- `/` is public and statically rendered. It reads, for the public
+  organization (`PUBLIC_ORG_SLUG`), the **newest RateBoard of each
+  type** and its newest RateBoardImage, parsed through
+  `boardSnapshotV1`. It never reads ForexRate, PofRate or CryptoRate.
+- Only the fields the page shows leave the server: snapshot rows,
+  date/time labels, brand, contact details and the image URL. No ids
+  of people (`createdById`), no history, no admin data.
+- Revalidation: `generateBoard` and `updateOrgSettings` revalidate
+  `/`. Saving a rate without generating does not, by design. A time-based
+  revalidate (1 hour) is the safety net.
+- The phone screens show each latest board's newest PNG
+  (`RateBoardImage.blobUrl`, via `next/image`), so the site shows
+  exactly what was posted to WhatsApp. The share preview image (Open
+  Graph) is the newest Forex board PNG.
+- Every WhatsApp link is `https://wa.me/<digits of contactLine>?text=…`.
+- `robots.txt` allows `/` and disallows `/admin` and `/api`; `sitemap.xml` lists `/`.
+
 ## Auth and Access Model
 
 - Every person signs in via Clerk. `src/proxy.ts` runs plain
@@ -206,6 +230,9 @@ template, then inserts a RateBoardImage only.
   (`createRouteMatcher` is deprecated). Signed-out visitors are sent to
   `/login` by `requireMember()`, called in the admin layout and again in
   every page query, action and route handler.
+- `/` (the landing page), `robots.txt` and `sitemap.xml` are public: they
+  call no `requireMember()` and show only the public organization's
+  latest boards and contact details.
 - A Clerk session is not enough. `requireMember()` in
   `lib/server/auth.ts` looks up a `Membership` for the Clerk user. It
   returns `{ userId, organizationId, role }` or throws, which the app
@@ -235,6 +262,9 @@ added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob (local auth; starts `vercel_blob_rw_`) | local (Vercel fallback only) |
 | `BLOB_STORE_ID` | Vercel Blob (OIDC auth on Vercel, with the function's `VERCEL_OIDC_TOKEN`) | Vercel (added by connecting the store); optional locally |
 | `SEED_OWNER_CLERK_USER_ID` | `prisma/seed.ts` | local, prod seed only |
+| `PUBLIC_ORG_SLUG` = `stereolinkz` | Landing page (which organization's boards to show) | local, Vercel |
+| `PUBLIC_SHOW_POF` = `true` | Landing page (show the POF tab and service) | local, Vercel |
+| `NEXT_PUBLIC_SITE_URL` | Landing page metadata, sitemap, Open Graph URLs | local, Vercel |
 
 ## Settled Decisions
 
@@ -275,6 +305,13 @@ the rest of this file. Decisions made during the build are recorded in
   Africa/Lagos time zone.
 - **Placeholder WhatsApp number** `+234 800 000 0000` until the owner
   sets the real one in Settings.
+- **The landing page shows the latest generated boards**, not live
+  rates. Why: Generate is the team's deliberate "publish" step, so
+  WhatsApp Status and the website always match and half-finished
+  edits never go public.
+- **The landing page lives in the same Next.js app** (route group
+  `(public)`), so it shares the database, brand and templates; there
+  is no public API.
 
 ## Invariants
 
@@ -304,3 +341,7 @@ the rest of this file. Decisions made during the build are recorded in
     (`Africa/Lagos`), never the server's UTC clock.
 12. Blob files are never overwritten. A replaced logo or image gets a
     new URL.
+13. Public pages read only the latest RateBoard snapshots and public
+    Organization fields, through `features/public/queries.ts`. They
+    never read rate tables, never run server actions, and never show
+    invented reviews, figures or licence claims.

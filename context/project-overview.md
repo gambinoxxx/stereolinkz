@@ -9,7 +9,9 @@ in a design tool, exports the graphic and posts it. RateBoard replaces
 that manual design step. The admin updates rates in a table, sees a
 live preview of the board and generates a sharp PNG ready to post. The
 app also keeps every rate change and every generated board, so a board
-from last Tuesday still shows last Tuesday's rates.
+from last Tuesday still shows last Tuesday's rates. A public landing
+page at `/` tells customers what Stereolinkz does and shows the latest
+published rates.
 
 It is a rate management, publishing and image generation system, not a
 rate calculator.
@@ -49,6 +51,26 @@ rate calculator.
     template) or reuse its rates in the generator.
 
 ## Features
+
+### Public landing page (`/`)
+
+- The public face of Stereolinkz: what we do, today's rates, and a fast
+  way into a WhatsApp chat. No sign-in.
+- Shows the rates from the **latest generated board of each type**
+  (Forex, Crypto, POF), never the live rate tables, so the website only
+  changes when the team presses Generate. Each section shows the
+  board's "Updated" time.
+- A calculator ("How much will I get?") estimates the naira amount from
+  those rates and opens WhatsApp with the amount, currency and rate
+  already written.
+- Sections: hero with a 3D phone showing the latest board, rate
+  tickers, services (pinned phone that changes screen per service),
+  rates and calculator, payments abroad (animated globe), school fees,
+  how it works, FAQ and a final call to action. Motion-led design in
+  the brand colours; a still version for people who prefer reduced motion.
+- WhatsApp number, email, logo and colours come from Settings.
+- Never shows invented reviews, figures or licence claims: those
+  sections stay hidden until real content is added.
 
 ### Authentication
 
@@ -152,6 +174,7 @@ rate calculator.
 - Generator with live preview, 1080 × 1920 PNG generation, and download
 - Board history with immutable snapshots, view, download and regenerate
 - Settings for company details and brand colours
+- A public landing page at `/` showing the latest published board rates
 - Responsive layout for desktop, tablet and phone; the generator must
   be fully usable on a phone
 
@@ -165,6 +188,9 @@ rate calculator.
 - Per-network or per-amount crypto rates (one buy/sell per coin)
 - Visual template editor; templates are code
 - Posting directly to WhatsApp (the admin downloads and posts)
+- Online ordering, customer accounts or payments on the website (every
+  deal starts in a WhatsApp chat)
+- A blog or CMS; landing page copy lives in code
 - Board drafts (a board exists only once generated)
 - Extra image formats (square feed, landscape)
 - React Flow, Liveblocks, Trigger.dev, Zustand, TanStack Query
@@ -194,3 +220,6 @@ rate calculator.
 11. A coin (for example TON) can be added with its rate and shown on a
     new crypto board without touching code or the Prisma schema, and a
     crypto board made before a rate change still shows the old rate.
+12. A signed-out visitor can open `/` on a phone and see the rates of
+    the latest generated boards. Generating a new board updates `/`
+    within a minute; editing a rate without generating does not.

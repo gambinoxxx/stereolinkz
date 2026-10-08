@@ -536,11 +536,11 @@ change.
 
 ## Next Up
 
-- Phase 10 on production: owner checks the coins on the live site (sample
-  coins seeded; replace rates, add icons, deactivate what isn't traded),
+- Phase 11: Landing page (`prompts/phase-11-landing.md`, design
+  `docs/design/landing.html`)
+- Phase 10 on production: owner checks the coins on the live site,
   generates a crypto board on a phone and posts it to WhatsApp Status
-- Phase 11: Hardening and launch (states, accessibility, security,
-  mobile and performance, launch). Open: the launch users' Clerk IDs
+- Phase 12: Hardening and launch. Open: the launch users' Clerk IDs
 - Phases 4–9 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
@@ -550,17 +550,26 @@ change.
   https://stereolinkz-czj8.vercel.app/admin and see `/not-authorized`.
 - Secrets pasted in chat (Neon `neondb_owner` password, Clerk secret
   key): the owner chose to rotate them at the end of the project. Must
-  be done in Phase 11 before launch, in `.env.local` and in Vercel (no
+  be done in Phase 12 before launch, in `.env.local` and in Vercel (no
   quotes), then redeploy.
 
 - Stereolinkz logo file: boards still use the wordmark. (The real
   WhatsApp number is set: +234 903 591 4544.)
 - Who else needs access at launch? Their Clerk user IDs are needed
-  for memberships. Needed by Phase 11.
+  for memberships. Needed by Phase 12.
+- Phase 11 (landing page): show POF rates on the public site? (default:
+  yes, `PUBLIC_SHOW_POF=true`)
+- Phase 11: real customer reviews (with permission), a real typical
+  payout time, and the registered business name / RC number / licence
+  line, if any. Until provided, those sections stay hidden.
+- Phase 11: custom domain for the site (can wait until Phase 12)
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-08: Landing page added as Phase 11; Hardening and launch moved to
+  Phase 12. The public site shows the latest generated board per type,
+  not live rates; it lives in the same app under the (public) route group.
 - 2026-10-02: Phase 10 decisions.
   - **Board type union** `FOREX | POF | CRYPTO` (`BoardType`,
     `TemplateType`) with exhaustive switches ending in `assertNever`, so
@@ -810,7 +819,7 @@ change.
   `remotePatterns` entry is needed for Blob).
 - 2026-09-29: The dev kit uses sample props (USD/GBP/EUR flag codes,
   made-up bank names), like the spike fixture: dev only, removed in
-  Phase 11.
+  Phase 12.
 - 2026-09-29: Shell: the sidebar content is one server component used
   twice (the fixed desktop aside and the phone menu drawer). Only
   `NavLinks`, `MobileTopBar`, `BottomTabBar` and `MobileMenuProvider`
@@ -1030,6 +1039,22 @@ change.
 
 ## Session Notes
 
+- 2026-10-08: Docs update for the landing page (no code). Applied
+  `docs/updates/landing-docs.patch` (from the owner's
+  `phase-11-landing-files`) to the five context files.
+  `project-overview.md` and `ui-context.md` applied cleanly, as did most
+  hunks elsewhere. By hand, because earlier phases had changed the
+  surrounding text: `architecture.md` (the new "Public Landing Page"
+  section before Auth; the public-routes note as its own bullet, since
+  this repo's proxy doesn't redirect; the three env rows after
+  `SEED_OWNER_CLERK_USER_ID`), `code-standards.md` and
+  `implementation-plan.md` (the branching notes, worded "revisit … in
+  Phase 12" here). Also renumbered to Phase 12: the dev-kit notes in
+  `ui-context.md`, the tracker and the dev-kit page comment, the secrets
+  rotation and the launch users question. `.env.example` gained
+  `PUBLIC_ORG_SLUG`, `PUBLIC_SHOW_POF` and `NEXT_PUBLIC_SITE_URL`.
+  `phase-10-complete` was tagged locally but not on GitHub; it goes up
+  with this commit's push.
 - 2026-10-02: Phase 10 complete and tagged `phase-10-complete` locally,
   not pushed. Production database already has the `crypto` migration and
   the 8 sample coins (+ TON added during the checks, with a test icon;
@@ -1061,7 +1086,7 @@ change.
   +234 800 000 0000, no email, no logo, "Rates can change without
   notice.". Two test logo files stay in Blob under `orgs/…/logo-*.png`
   (never deleted by design). USD sell went 1380 → 1381 → 1380 during the
-  dashboard check (two history rows). For Phase 11 (hardening): the dev kit now
+  dashboard check (two history rows). For Phase 12 (hardening): the dev kit now
   holds the empty-dashboard check (remove with the dev kit, or keep it
   as a component test), and every page with a regenerate path sets
   `maxDuration = 30` (`/admin`, `/admin/generator`, `/admin/history`).

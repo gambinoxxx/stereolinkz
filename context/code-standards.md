@@ -80,6 +80,22 @@
 - Mobile first. Every page must work at 390px wide. The generator's
   Generate bar stays visible on phones.
 
+## Public Site
+
+- The landing page is a server component that loads data through
+  `features/public/queries.ts` and passes plain props to small client
+  components for motion. Keep client JavaScript small: no animation,
+  carousel or scroll libraries.
+- Motion follows `ui-context.md` → Public Site Motion: `transform` and
+  `opacity` only, `requestAnimationFrame` loops that stop off-screen,
+  passive listeners, and a full `prefers-reduced-motion` fallback.
+- Copy lives in `features/public/content.ts`. Optional sections
+  (reviews, payout time, legal line) render only when their content
+  is set; never ship placeholders to production.
+- Calculator maths uses the decimal helpers (no floats on rates).
+- Budgets (mobile, Lighthouse): Performance ≥ 85, Accessibility ≥ 95,
+  SEO ≥ 95; LCP < 2.5s; CLS < 0.1.
+
 ## Server Actions and Route Handlers
 
 - The first line of logic is `const { organizationId, userId } = await requireMember();`.
@@ -140,7 +156,7 @@
 ## Git
 
 - Work directly on `main`; no branches or pull requests until launch
-  (revisit branches in Phase 11).
+  (revisit branches in Phase 12).
 - Commit each working piece with the tracker update, imperative and
   naming the phase: `phase 4: insert ForexRate on save`.
 - Push only when `npm run build`, `npm run lint`, `npx tsc --noEmit`,
@@ -159,6 +175,7 @@
 - `features/<domain>/` — `schema.ts`, `queries.ts`, `actions.ts`, `components/` for that domain
 - `features/boards/` — snapshot schema, generate/regenerate actions, history queries
 - `features/templates/` — template registry, template components, board theme tokens
+- `features/public/` — landing page queries (latest boards), copy and motion components
 - `lib/server/` — Prisma client, `requireMember`, Blob helpers (server-only)
 - `lib/render/` — fonts, asset embedding, SVG and PNG rendering (server-only, Node runtime)
 - `lib/format.ts` — number, percent, currency and Africa/Lagos date formatting

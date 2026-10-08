@@ -1,6 +1,6 @@
 # Implementation Plan
 
-The build plan for RateBoard, from an empty repo to production, in 11
+The build plan for RateBoard, from an empty repo to production, in 12
 phases. Each phase is one block of work: build everything it lists,
 check it, then move to the next phase. Progress is recorded in
 `progress-tracker.md` as the work happens.
@@ -265,7 +265,7 @@ template, Blob uploads, saving boards.
   - `EmptyState`, `Callout`
   - `EntityDrawer` (Enter submits)
 - A dev-only `/admin/dev-kit` page showing every component in every
-  state (removed in Phase 11)
+  state (removed in Phase 12)
 
 **App shell**
 - `src/components/shell/`:
@@ -774,11 +774,73 @@ a dashboard crypto panel, deleting coins.
 
 ---
 
-## Phase 11: Hardening and launch
+## Phase 11: Landing page
+
+- **Goal:** A public, motion-led landing page at `/` that explains
+  Stereolinkz and shows the rates of the latest generated boards, with
+  every call to action opening WhatsApp.
+- **Depends on:** Phases 6, 8, 9 and 10
+- **Read:** `project-overview.md` → Public landing page;
+  `architecture.md` → Public Landing Page, Settled Decisions,
+  Invariants 4, 5, 7, 11 and 13; `ui-context.md` → Theme, Public Site
+  Motion; `code-standards.md` → Public Site
+- **Design:** `landing.html`
+
+### Build
+
+**Data**
+- `features/public/queries.ts`: `getPublicLanding()` (the public org by
+  `PUBLIC_ORG_SLUG`, its public fields, and the newest board + image of
+  each type, parsed snapshots)
+- Revalidate `/` from `generateBoard` and `updateOrgSettings`; time-based
+  revalidate as a safety net
+- Helpers: `whatsappLink(contactLine, text)`, decimal `estimate(amount, rate)`
+
+**Page and sections**
+- `app/(public)/layout.tsx` and `page.tsx` at `/`, public in `proxy.ts`
+- Nav, hero (3D phone with the latest board, orbiting coins,
+  notifications), tickers, pinned services section, rates tabs and
+  calculator, globe, school fees tilt card, steps with chat, outline
+  marquee, FAQ, CTA, footer, floating WhatsApp button on phones
+- `features/public/content.ts`; optional reviews, payout time and legal
+  line hidden until set
+- Reduced-motion version
+
+**SEO and sharing**
+- Metadata, Open Graph image (newest Forex board PNG), `robots.txt`, `sitemap.xml`
+
+### Stop points
+
+- The owner confirms POF is shown publicly, and provides any real
+  reviews, payout time and registration/licence line
+- The owner checks the page on a real phone
+
+### Done when
+
+- [ ] A signed-out visitor sees `/`; `/admin` still redirects to `/login`
+- [ ] `/` shows the latest board of each type with its Updated time;
+  generating a board updates it, editing a rate alone does not
+- [ ] The page matches `landing.html` at 1440px and 390px, motion
+  included, and has a still version with reduced motion
+- [ ] Every WhatsApp link uses the Settings number with a prefilled message
+- [ ] Lighthouse mobile meets the budgets in `code-standards.md`
+- [ ] No placeholder reviews, figures or claims are visible in production
+
+### Verify
+
+Standard checks; Lighthouse on the production URL; a real phone test.
+
+### Not in this phase
+
+Online ordering, customer accounts, a blog or CMS, other languages.
+
+---
+
+## Phase 12: Hardening and launch
 
 - **Goal:** Production-ready and live for Stereolinkz, with every
   success criterion met.
-- **Depends on:** Phase 10
+- **Depends on:** Phase 11
 - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
 
 ### Build
@@ -793,7 +855,8 @@ a dashboard crypto panel, deleting coins.
 
 **Security**
 - `scripts/check-actions.ts`: fails if any action export or route
-  handler lacks `requireMember()` / `getMember()`
+  handler lacks `requireMember()` / `getMember()` (the public landing
+  page, `robots.txt` and `sitemap.xml` are an explicit allow-list)
 - Every query filters by `organizationId`; no Prisma text reaches the
   UI; blob uploads validated on the server; only the download route
   remains under `/api`
@@ -829,7 +892,7 @@ Completed in the tracker.
 ## Branching and review
 
 - No branches or pull requests until launch: all work happens on
-  `main` (revisit in Phase 11).
+  `main` (revisit in Phase 12).
 - Commit per logical piece, named for the phase:
   `phase 3: bank drawer with slug check`.
 - Push only after the standard checks pass locally, because every push
@@ -850,6 +913,7 @@ Completed in the tracker.
 | Templates are separate from data | 6 |
 | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
 | Live preview | 6, 7 |
-| Admin routes protected on the server | 1, 11 |
-| Phone-first generator | 2, 7, 11 |
-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10 |
+| Admin routes protected on the server | 1, 12 |
+| Public landing page with latest board rates | 11 |
+| Phone-first generator | 2, 7, 12 |
+| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11 |

@@ -1,0 +1,377 @@
+--- a/context/architecture.md
++++ b/context/architecture.md
+@@ -21,13 +21,14 @@
+ ```
+ src/
+   app/
++    (public)/                     Public landing page at / (no sign-in), its own layout
+     (auth)/login/[[...login]]/    Clerk sign-in page
+     admin/                        Protected pages: page, forex, pof, crypto, banks,
+                                   templates, generator, history, settings
+     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
+   features/
+     currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
+-    boards/  settings/
++    boards/  settings/  public/
+                                   Each has: schema.ts (Zod), queries.ts
+                                   (server-only reads), actions.ts (server
+                                   actions), components/ (feature UI)
+@@ -50,6 +51,10 @@
+ docs/design/                      Page design HTML files (visual spec, read-only)
+ ```
+ 
++- `features/public/` holds the landing page: `queries.ts` (server-only,
++  reads the latest board per type), `content.ts` (page copy, FAQ,
++  optional reviews and legal line) and `components/` (client motion
++  components). It never imports admin queries or actions.
+ - `app/admin/*` pages are thin. They call `features/*/queries.ts` and
+   render feature components. They hold no business logic.
+ - `features/*/actions.ts` is the only place that writes to the database.
+@@ -160,10 +165,30 @@
+ Regenerate runs steps 4–5 with the stored snapshot and a chosen
+ template, then inserts a RateBoardImage only.
+ 
++## Public Landing Page
++
++- `/` is public and statically rendered. It reads, for the public
++  organization (`PUBLIC_ORG_SLUG`), the **newest RateBoard of each
++  type** and its newest RateBoardImage, parsed through
++  `boardSnapshotV1`. It never reads ForexRate, PofRate or CryptoRate.
++- Only the fields the page shows leave the server: snapshot rows,
++  date/time labels, brand, contact details and the image URL. No ids
++  of people (`createdById`), no history, no admin data.
++- Revalidation: `generateBoard` and `updateOrgSettings` revalidate
++  `/`. Saving a rate without generating does not, by design. A time-based
++  revalidate (1 hour) is the safety net.
++- The phone screens show each latest board's newest PNG
++  (`RateBoardImage.blobUrl`, via `next/image`), so the site shows
++  exactly what was posted to WhatsApp. The share preview image (Open
++  Graph) is the newest Forex board PNG.
++- Every WhatsApp link is `https://wa.me/<digits of contactLine>?text=…`.
++- `robots.txt` allows `/` and disallows `/admin` and `/api`; `sitemap.xml` lists `/`.
++
+ ## Auth and Access Model
+ 
+ - Every person signs in via Clerk. `proxy.ts` redirects signed-out
+-  visitors from `/admin/*` to `/login`.
++  visitors from `/admin/*` to `/login`. `/` (the landing page),
++  `robots.txt` and `sitemap.xml` are public.
+ - A Clerk session is not enough. `requireMember()` in
+   `lib/server/auth.ts` looks up a `Membership` for the Clerk user. It
+   returns `{ userId, organizationId, role }` or throws, which the app
+@@ -191,6 +216,9 @@
+ | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` = `/admin` | Clerk | local, Vercel |
+ | `BLOB_READ_WRITE_TOKEN` | Vercel Blob | local, Vercel |
+ | `SEED_OWNER_CLERK_USER_ID` | `prisma/seed.ts` | local, prod seed only |
++| `PUBLIC_ORG_SLUG` = `stereolinkz` | Landing page (which organization's boards to show) | local, Vercel |
++| `PUBLIC_SHOW_POF` = `true` | Landing page (show the POF tab and service) | local, Vercel |
++| `NEXT_PUBLIC_SITE_URL` | Landing page metadata, sitemap, Open Graph URLs | local, Vercel |
+ 
+ ## Settled Decisions
+ 
+@@ -231,6 +259,13 @@
+   Africa/Lagos time zone.
+ - **Placeholder WhatsApp number** `+234 800 000 0000` until the owner
+   sets the real one in Settings.
++- **The landing page shows the latest generated boards**, not live
++  rates. Why: Generate is the team's deliberate "publish" step, so
++  WhatsApp Status and the website always match and half-finished
++  edits never go public.
++- **The landing page lives in the same Next.js app** (route group
++  `(public)`), so it shares the database, brand and templates; there
++  is no public API.
+ 
+ ## Invariants
+ 
+@@ -260,3 +295,7 @@
+     (`Africa/Lagos`), never the server's UTC clock.
+ 12. Blob files are never overwritten. A replaced logo or image gets a
+     new URL.
++13. Public pages read only the latest RateBoard snapshots and public
++    Organization fields, through `features/public/queries.ts`. They
++    never read rate tables, never run server actions, and never show
++    invented reviews, figures or licence claims.
+--- a/context/code-standards.md
++++ b/context/code-standards.md
+@@ -72,6 +72,22 @@
+ - Mobile first. Every page must work at 390px wide. The generator's
+   Generate bar stays visible on phones.
+ 
++## Public Site
++
++- The landing page is a server component that loads data through
++  `features/public/queries.ts` and passes plain props to small client
++  components for motion. Keep client JavaScript small: no animation,
++  carousel or scroll libraries.
++- Motion follows `ui-context.md` → Public Site Motion: `transform` and
++  `opacity` only, `requestAnimationFrame` loops that stop off-screen,
++  passive listeners, and a full `prefers-reduced-motion` fallback.
++- Copy lives in `features/public/content.ts`. Optional sections
++  (reviews, payout time, legal line) render only when their content
++  is set; never ship placeholders to production.
++- Calculator maths uses the decimal helpers (no floats on rates).
++- Budgets (mobile, Lighthouse): Performance ≥ 85, Accessibility ≥ 95,
++  SEO ≥ 95; LCP < 2.5s; CLS < 0.1.
++
+ ## Server Actions and Route Handlers
+ 
+ - The first line of logic is `const { organizationId, userId } = await requireMember();`.
+@@ -129,7 +145,7 @@
+ ## Git
+ 
+ - Work directly on `main`. No feature or phase branches until launch
+-  (revisit in Phase 11, once the site is in daily use).
++  (revisit in Phase 12, once the site is in daily use).
+ - Commit each working piece, imperative and naming the phase:
+   `phase 4: insert ForexRate on save`. Commit the tracker with the code.
+ - **Push only when the standard checks pass** (`build`, `lint`,
+@@ -149,6 +165,7 @@
+ - `features/<domain>/` — `schema.ts`, `queries.ts`, `actions.ts`, `components/` for that domain
+ - `features/boards/` — snapshot schema, generate/regenerate actions, history queries
+ - `features/templates/` — template registry, template components, board theme tokens
++- `features/public/` — landing page queries (latest boards), copy and motion components
+ - `lib/server/` — Prisma client, `requireMember`, Blob helpers (server-only)
+ - `lib/render/` — fonts, asset embedding, SVG and PNG rendering (server-only, Node runtime)
+ - `lib/format.ts` — number, percent, currency and Africa/Lagos date formatting
+--- a/context/implementation-plan.md
++++ b/context/implementation-plan.md
+@@ -1,6 +1,6 @@
+ # Implementation Plan
+ 
+-The build plan for RateBoard, from an empty repo to production, in 11
++The build plan for RateBoard, from an empty repo to production, in 12
+ phases. Each phase is one block of work: build everything it lists,
+ check it, then move to the next phase. Progress is recorded in
+ `progress-tracker.md` as the work happens.
+@@ -264,7 +264,7 @@
+   - `EmptyState`, `Callout`
+   - `EntityDrawer` (Enter submits)
+ - A dev-only `/admin/dev-kit` page showing every component in every
+-  state (removed in Phase 11)
++  state (removed in Phase 12)
+ 
+ **App shell**
+ - `src/components/shell/`:
+@@ -773,11 +773,73 @@
+ 
+ ---
+ 
+-## Phase 11: Hardening and launch
++## Phase 11: Landing page
++
++- **Goal:** A public, motion-led landing page at `/` that explains
++  Stereolinkz and shows the rates of the latest generated boards, with
++  every call to action opening WhatsApp.
++- **Depends on:** Phases 6, 8, 9 and 10
++- **Read:** `project-overview.md` → Public landing page;
++  `architecture.md` → Public Landing Page, Settled Decisions,
++  Invariants 4, 5, 7, 11 and 13; `ui-context.md` → Theme, Public Site
++  Motion; `code-standards.md` → Public Site
++- **Design:** `landing.html`
++
++### Build
++
++**Data**
++- `features/public/queries.ts`: `getPublicLanding()` (the public org by
++  `PUBLIC_ORG_SLUG`, its public fields, and the newest board + image of
++  each type, parsed snapshots)
++- Revalidate `/` from `generateBoard` and `updateOrgSettings`; time-based
++  revalidate as a safety net
++- Helpers: `whatsappLink(contactLine, text)`, decimal `estimate(amount, rate)`
++
++**Page and sections**
++- `app/(public)/layout.tsx` and `page.tsx` at `/`, public in `proxy.ts`
++- Nav, hero (3D phone with the latest board, orbiting coins,
++  notifications), tickers, pinned services section, rates tabs and
++  calculator, globe, school fees tilt card, steps with chat, outline
++  marquee, FAQ, CTA, footer, floating WhatsApp button on phones
++- `features/public/content.ts`; optional reviews, payout time and legal
++  line hidden until set
++- Reduced-motion version
++
++**SEO and sharing**
++- Metadata, Open Graph image (newest Forex board PNG), `robots.txt`, `sitemap.xml`
++
++### Stop points
++
++- The owner confirms POF is shown publicly, and provides any real
++  reviews, payout time and registration/licence line
++- The owner checks the page on a real phone
++
++### Done when
++
++- [ ] A signed-out visitor sees `/`; `/admin` still redirects to `/login`
++- [ ] `/` shows the latest board of each type with its Updated time;
++  generating a board updates it, editing a rate alone does not
++- [ ] The page matches `landing.html` at 1440px and 390px, motion
++  included, and has a still version with reduced motion
++- [ ] Every WhatsApp link uses the Settings number with a prefilled message
++- [ ] Lighthouse mobile meets the budgets in `code-standards.md`
++- [ ] No placeholder reviews, figures or claims are visible in production
++
++### Verify
++
++Standard checks; Lighthouse on the production URL; a real phone test.
++
++### Not in this phase
++
++Online ordering, customer accounts, a blog or CMS, other languages.
++
++---
++
++## Phase 12: Hardening and launch
+ 
+ - **Goal:** Production-ready and live for Stereolinkz, with every
+   success criterion met.
+-- **Depends on:** Phase 10
++- **Depends on:** Phase 11
+ - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
+ 
+ ### Build
+@@ -792,7 +854,8 @@
+ 
+ **Security**
+ - `scripts/check-actions.ts`: fails if any action export or route
+-  handler lacks `requireMember()` / `getMember()`
++  handler lacks `requireMember()` / `getMember()` (the public landing
++  page, `robots.txt` and `sitemap.xml` are an explicit allow-list)
+ - Every query filters by `organizationId`; no Prisma text reaches the
+   UI; blob uploads validated on the server; only the download route
+   remains under `/api`
+@@ -836,7 +899,7 @@
+ - At the end of each phase: the owner reviews the Done-when list and
+   screenshots at 1440px and 390px of every page touched, then the phase
+   is tagged `phase-<n>-complete` and pushed.
+-- Before launch (Phase 11), decide whether to switch to short-lived
++- Before launch (Phase 12), decide whether to switch to short-lived
+   branches with Vercel Preview checks once the site is in daily use.
+ 
+ ## Coverage map
+@@ -851,6 +914,7 @@
+ | Templates are separate from data | 6 |
+ | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
+ | Live preview | 6, 7 |
+-| Admin routes protected on the server | 1, 11 |
+-| Phone-first generator | 2, 7, 11 |
+-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10 |
++| Admin routes protected on the server | 1, 12 |
++| Public landing page with latest board rates | 11 |
++| Phone-first generator | 2, 7, 12 |
++| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11 |
+--- a/context/project-overview.md
++++ b/context/project-overview.md
+@@ -9,7 +9,9 @@
+ that manual design step. The admin updates rates in a table, sees a
+ live preview of the board and generates a sharp PNG ready to post. The
+ app also keeps every rate change and every generated board, so a board
+-from last Tuesday still shows last Tuesday's rates.
++from last Tuesday still shows last Tuesday's rates. A public landing
++page at `/` tells customers what Stereolinkz does and shows the latest
++published rates.
+ 
+ It is a rate management, publishing and image generation system, not a
+ rate calculator.
+@@ -50,6 +52,26 @@
+ 
+ ## Features
+ 
++### Public landing page (`/`)
++
++- The public face of Stereolinkz: what we do, today's rates, and a fast
++  way into a WhatsApp chat. No sign-in.
++- Shows the rates from the **latest generated board of each type**
++  (Forex, Crypto, POF), never the live rate tables, so the website only
++  changes when the team presses Generate. Each section shows the
++  board's "Updated" time.
++- A calculator ("How much will I get?") estimates the naira amount from
++  those rates and opens WhatsApp with the amount, currency and rate
++  already written.
++- Sections: hero with a 3D phone showing the latest board, rate
++  tickers, services (pinned phone that changes screen per service),
++  rates and calculator, payments abroad (animated globe), school fees,
++  how it works, FAQ and a final call to action. Motion-led design in
++  the brand colours; a still version for people who prefer reduced motion.
++- WhatsApp number, email, logo and colours come from Settings.
++- Never shows invented reviews, figures or licence claims: those
++  sections stay hidden until real content is added.
++
+ ### Authentication
+ 
+ - Sign-in with Clerk (Google or email). No custom password auth.
+@@ -152,6 +174,7 @@
+ - Generator with live preview, 1080 × 1920 PNG generation, and download
+ - Board history with immutable snapshots, view, download and regenerate
+ - Settings for company details and brand colours
++- A public landing page at `/` showing the latest published board rates
+ - Responsive layout for desktop, tablet and phone; the generator must
+   be fully usable on a phone
+ 
+@@ -165,6 +188,9 @@
+ - Per-network or per-amount crypto rates (one buy/sell per coin)
+ - Visual template editor; templates are code
+ - Posting directly to WhatsApp (the admin downloads and posts)
++- Online ordering, customer accounts or payments on the website (every
++  deal starts in a WhatsApp chat)
++- A blog or CMS; landing page copy lives in code
+ - Board drafts (a board exists only once generated)
+ - Extra image formats (square feed, landscape)
+ - React Flow, Liveblocks, Trigger.dev, Zustand, TanStack Query
+@@ -194,3 +220,6 @@
+ 11. A coin (for example TON) can be added with its rate and shown on a
+     new crypto board without touching code or the Prisma schema, and a
+     crypto board made before a rate change still shows the old rate.
++12. A signed-out visitor can open `/` on a phone and see the rates of
++    the latest generated boards. Generating a new board updates `/`
++    within a minute; editing a rate without generating does not.
+--- a/context/ui-context.md
++++ b/context/ui-context.md
+@@ -21,6 +21,7 @@
+ | Boards (full size) | `stereolinkz-rate-boards.html` (Forex, POF), `stereolinkz-crypto-board.html` (Crypto, both templates) |
+ | History | `history.html`, `history-board.html`, `history-regenerate.html` |
+ | Settings | `settings.html` |
++| Public landing page | `landing.html` (motion-led; scroll it slowly at 1440px and 390px) |
+ 
+ ## Theme
+ 
+@@ -33,6 +34,12 @@
+ use a deep purple gradient, a violet "buy" colour and a gold "sell"
+ colour, with their own token set (see Board Tokens).
+ 
++The public landing page is the most expressive surface: giant
++Archivo headlines (weight 900, tight tracking), soft purple and gold
++blurred blobs, large 28–56px radius cards, glossy coins, and motion
++throughout (see Public Site Motion). It uses the same brand colours
++and the admin tokens where they overlap.
++
+ ## Colors
+ 
+ All admin components use these tokens (defined in `app/globals.css`
+@@ -196,6 +203,28 @@
+ - **Motion:** only drawer/modal slide, toast entrance and the generate
+   spinner. Respect `prefers-reduced-motion`.
+ 
++## Public Site Motion
++
++Follow `landing.html`. The motion vocabulary:
++- Headline words slide up on load and on scroll into view (staggered ~60ms)
++- The hero phone starts tilted (rotateX ~26°) and straightens as the
++  page scrolls; it follows the pointer slightly on desktop
++- Coins orbit the hero phone; payment notifications fade in and out in turn
++- Rate tickers scroll continuously and speed up with scroll velocity
++- The services section pins a phone while four steps scroll past;
++  the screen and background colour change per step
++- Rate rows slide in and their numbers count up; tab and toggle
++  highlights slide
++- The globe's meridians rotate and payment routes draw from Lagos
++- The school-fees card tilts in 3D with the pointer and on scroll
++- Steps auto-advance with a progress bar; the chat types its replies
++- Magnetic buttons on fine pointers; the menu hides on scroll down
++
++Rules: animate `transform` and `opacity` only; pause loops when
++off-screen; passive scroll listeners; no animation libraries. With
++`prefers-reduced-motion: reduce`, everything is shown in its final
++state with no movement.
++
+ ## Icons
+ 
+ Lucide React, stroke icons only, `strokeWidth={1.9}`. Sizes:

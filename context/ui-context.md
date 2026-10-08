@@ -21,6 +21,7 @@ actions and rules. Match their layout, copy, spacing and states. Open
 | Boards (full size) | `stereolinkz-rate-boards.html` (Forex, POF), `stereolinkz-crypto-board.html` (Crypto, both templates) |
 | History | `history.html`, `history-board.html`, `history-regenerate.html` |
 | Settings | `settings.html` |
+| Public landing page | `landing.html` (motion-led; scroll it slowly at 1440px and 390px) |
 
 ## Theme
 
@@ -32,6 +33,12 @@ the active-nav marker, edited values, notes and the brand wordmark.
 The generated boards are the expressive, public-facing product. They
 use a deep purple gradient, a violet "buy" colour and a gold "sell"
 colour, with their own token set (see Board Tokens).
+
+The public landing page is the most expressive surface: giant
+Archivo headlines (weight 900, tight tracking), soft purple and gold
+blurred blobs, large 28–56px radius cards, glossy coins, and motion
+throughout (see Public Site Motion). It uses the same brand colours
+and the admin tokens where they overlap.
 
 ## Colors
 
@@ -240,7 +247,7 @@ Project components (not shadcn):
   `EmptyState` (the dashed "More designs" card from `templates.html`:
   icon, title, one line, optional action), `EntityDrawer` (Sheet with a
   `<form>` body, Cancel and a primary action)
-- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 11)
+- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 12)
 
 ## Layout Patterns
 
@@ -283,6 +290,28 @@ Project components (not shadcn):
   reach paragraph.
 - **Motion:** only drawer/modal slide, toast entrance and the generate
   spinner. Respect `prefers-reduced-motion`.
+
+## Public Site Motion
+
+Follow `landing.html`. The motion vocabulary:
+- Headline words slide up on load and on scroll into view (staggered ~60ms)
+- The hero phone starts tilted (rotateX ~26°) and straightens as the
+  page scrolls; it follows the pointer slightly on desktop
+- Coins orbit the hero phone; payment notifications fade in and out in turn
+- Rate tickers scroll continuously and speed up with scroll velocity
+- The services section pins a phone while four steps scroll past;
+  the screen and background colour change per step
+- Rate rows slide in and their numbers count up; tab and toggle
+  highlights slide
+- The globe's meridians rotate and payment routes draw from Lagos
+- The school-fees card tilts in 3D with the pointer and on scroll
+- Steps auto-advance with a progress bar; the chat types its replies
+- Magnetic buttons on fine pointers; the menu hides on scroll down
+
+Rules: animate `transform` and `opacity` only; pause loops when
+off-screen; passive scroll listeners; no animation libraries. With
+`prefers-reduced-motion: reduce`, everything is shown in its final
+state with no movement.
 
 ## Icons
 

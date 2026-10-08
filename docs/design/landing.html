@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<!--
+Stereolinkz public landing page: design reference (motion-led)
+File: landing.html
+
+ROUTE: /   (public; no sign-in)
+PURPOSE: Tell customers what Stereolinkz does, show today's rates, and get them into a WhatsApp chat.
+STYLE: Graphic, motion-led fintech landing page (energy of jeton.com): giant type with word reveals, a 3D phone that
+  straightens as you scroll, orbiting coins, a pinned "scrollytelling" section where the phone screen changes per service,
+  scroll-velocity marquees, a spinning globe with payment routes, a 3D tilt card, an auto-playing steps timeline.
+  Stereolinkz purple and gold, Archivo. All motion uses transform/opacity only and switches off with prefers-reduced-motion.
+DATA (in the app):
+  - Rates come from the LATEST GENERATED BOARD per type (RateBoard.snapshot), not the live rate tables, so the site only
+    changes when the team presses Generate. "Updated 10:25 AM" = that board's timeLabel.
+  - The phone screens show the latest Forex, Crypto and POF boards (same template components as the PNGs).
+  - The calculator and the ticker use the same snapshot rates. WhatsApp number, colours and logo come from Settings.
+ACTIONS:
+  - Every WhatsApp button opens https://wa.me/<number>?text=<prefilled message>
+  - Calculator "Get this rate" prefills the amount, currency and rate
+RULES:
+  - Rates are indicative: always show the disclaimer and the Updated time
+  - No partner names or logos; no "licensed/regulated" claims unless true; only real reviews used with permission
+  - Testimonials, payout time and footer registration line are PLACEHOLDERS to replace before launch
+Data shown is sample data.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stereolinkz · One chat for all your money</title>
+<meta name="description" content="Sell forex and crypto at today's rates, get proof of funds, and pay school fees abroad the same day. Chat with Stereolinkz on WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1F0B3F; --ink2:#5E5577; --ink3:#8D84A3;
+  --violet:#6A35D9; --violet2:#8B5CF6; --deep:#2A0F58; --night:#150730;
+  --gold:#E9B949; --gold2:#F5D27A; --gold-soft:#FBF1D6;
+  --lav:#F4F0FB; --lav2:#E9E1F8; --line:#E6DFF2;
+  --up:#1F9D63;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{overflow-x:clip}
+body{font-family:"Archivo",system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.5;overflow-x:clip}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+.wrap{width:min(1240px,100% - 40px);margin-inline:auto}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px;border-radius:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* buttons */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:58px;padding:0 28px;border-radius:999px;font:750 16.5px "Archivo",sans-serif;border:0;cursor:pointer;white-space:nowrap;transition:background .2s,box-shadow .2s;will-change:transform}
+.btn svg{width:20px;height:20px}
+.btn.pri{background:var(--ink);color:#fff}
+.btn.pri:hover{background:var(--violet)}
+.btn.vio{background:var(--violet);color:#fff;box-shadow:0 18px 40px -16px rgba(106,53,217,.9)}
+.btn.gold{background:var(--gold);color:var(--ink)}
+.btn.ghost{background:rgba(255,255,255,.7);backdrop-filter:blur(10px);color:var(--ink);box-shadow:inset 0 0 0 2px rgba(31,11,63,.1)}
+.btn.sm{height:46px;padding:0 20px;font-size:15px}
+
+/* nav */
+.nav{position:fixed;top:16px;left:0;right:0;z-index:80;transition:transform .45s var(--ease)}
+.nav.hide{transform:translateY(-130%)}
+.nav .bar{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:8px 8px 8px 22px;box-shadow:0 12px 40px -18px rgba(42,15,88,.35)}
+.logo{display:flex;align-items:flex-end;gap:8px;font-weight:850;font-size:22px;letter-spacing:-.6px;line-height:1}
+.logo .bars{display:flex;align-items:flex-end;gap:3px;height:21px}
+.logo .bars i{width:4px;border-radius:2px;background:var(--gold);animation:eq 1.6s ease-in-out infinite}
+.logo .bars i:nth-child(2){animation-delay:-.4s}.logo .bars i:nth-child(3){animation-delay:-.8s}.logo .bars i:nth-child(4){animation-delay:-1.2s}
+@keyframes eq{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.55)}}
+.logo .bars i{transform-origin:bottom}
+.logo .wm{display:inline-block}.logo b{color:var(--gold);font-weight:850}
+.nav .links{display:flex;gap:2px;margin-left:auto}
+.nav .links a{position:relative;padding:11px 15px;border-radius:999px;font-weight:650;font-size:15px;color:var(--ink2);transition:color .2s,background .2s}
+.nav .links a:hover{color:var(--ink);background:rgba(106,53,217,.08)}
+.nav .bar>.btn{margin-left:8px}
+.nav .bar{transition:background .4s,border-color .4s}
+.nav.dark .bar{background:rgba(21,7,48,.72);border-color:rgba(255,255,255,.12)}
+.nav.dark .links a{color:#CFC2EC}.nav.dark .links a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.nav.dark .logo{color:#fff}
+.menu{display:none;margin-left:auto;width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:#fff;cursor:pointer;align-items:center;justify-content:center}
+
+/* ═══ HERO ═══ */
+.hero{position:relative;min-height:100vh;padding:130px 0 0;overflow:hidden;background:#FBF9FF}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.75;will-change:transform}
+.blob.b1{width:620px;height:620px;background:#D9C7FF;left:-160px;top:-120px;animation:drift1 18s ease-in-out infinite}
+.blob.b2{width:520px;height:520px;background:#FCE6AE;right:-140px;top:80px;animation:drift2 22s ease-in-out infinite}
+.blob.b3{width:460px;height:460px;background:#C9B2FF;left:35%;top:55%;animation:drift3 20s ease-in-out infinite;opacity:.5}
+@keyframes drift1{50%{transform:translate(120px,80px) scale(1.1)}}
+@keyframes drift2{50%{transform:translate(-100px,120px) scale(.9)}}
+@keyframes drift3{50%{transform:translate(-140px,-60px) scale(1.15)}}
+.grain{position:absolute;inset:0;background-image:radial-gradient(rgba(31,11,63,.06) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(#000,transparent 75%);-webkit-mask-image:linear-gradient(#000,transparent 75%)}
+.hero-in{position:relative;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:999px;padding:8px 16px 8px 9px;font-weight:650;font-size:14.5px;box-shadow:0 10px 30px -14px rgba(42,15,88,.35);opacity:0;animation:up .8s .1s var(--ease) forwards}
+.live{width:22px;height:22px;border-radius:50%;background:#E4F4EC;display:grid;place-items:center}
+.live::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--up);box-shadow:0 0 0 0 rgba(31,157,99,.6);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 8px rgba(31,157,99,0)}100%{box-shadow:0 0 0 0 rgba(31,157,99,0)}}
+h1{margin:22px auto 0;font-size:clamp(50px,8.4vw,128px);font-weight:900;letter-spacing:-.055em;line-height:.88;max-width:1100px}
+h1 .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.06em}
+h1 .w>span{display:inline-block;transform:translateY(105%);animation:wordUp 1s var(--ease) forwards}
+h1 .grad{background:linear-gradient(100deg,var(--violet) 10%,#A77CFF 50%,var(--gold) 95%);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:wordUp 1s var(--ease) forwards,shine 6s linear infinite}
+@keyframes wordUp{to{transform:none}}
+@keyframes shine{to{background-position:-200% 0}}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.rot{margin-top:22px;display:flex;justify-content:center;align-items:center;gap:12px;font-size:clamp(18px,2vw,24px);font-weight:600;color:var(--ink2);opacity:0;animation:up .8s .9s var(--ease) forwards}
+.rot .slot{position:relative;display:inline-block;height:1.35em;overflow:hidden;min-width:9.5em;text-align:left;color:var(--ink);font-weight:800}
+.rot .slot span{position:absolute;left:0;top:0;white-space:nowrap;transform:translateY(110%);transition:transform .6s var(--ease)}
+.rot .slot span.on{transform:none}
+.rot .slot span.out{transform:translateY(-110%)}
+.hero .ctas{display:flex;justify-content:center;gap:12px;margin-top:28px;flex-wrap:wrap;opacity:0;animation:up .8s 1.1s var(--ease) forwards}
+
+/* hero stage: 3D phone + orbit */
+.stage{position:relative;height:720px;margin-top:-20px;perspective:1400px}
+.phone{position:absolute;left:50%;top:30px;width:320px;height:660px;margin-left:-160px;background:#12062A;border-radius:52px;padding:12px;box-shadow:0 70px 120px -40px rgba(28,10,61,.65),inset 0 0 0 2px #33205a,inset 0 0 0 7px #12062A;transform-style:preserve-3d;will-change:transform}
+.phone::before{content:"";position:absolute;top:24px;left:50%;transform:translateX(-50%);width:96px;height:28px;background:#12062A;border-radius:20px;z-index:5}
+.phone .screen{position:relative;width:100%;height:100%;border-radius:41px;overflow:hidden;background:var(--deep)}
+.bscale{position:absolute;top:0;left:0;width:1080px;height:1920px;transform-origin:top left}
+.glare{position:absolute;inset:0;border-radius:41px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 35%);pointer-events:none;z-index:4}
+.orbit{position:absolute;inset:0;pointer-events:none}
+.coin{position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:32px;color:#fff;will-change:transform;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18),inset 0 4px 0 rgba(255,255,255,.35),0 22px 40px -16px rgba(28,10,61,.55)}
+.coin::after{content:"";position:absolute;inset:7px;border-radius:50%;border:2px dashed rgba(255,255,255,.35)}
+.coin.g{background:radial-gradient(circle at 35% 30%,#FFE7A3,#E9B949 55%,#C48E1E);color:#6B4A07}
+.coin.g::after{border-color:rgba(107,74,7,.25)}
+.coin.v{background:radial-gradient(circle at 35% 30%,#B79BFF,#6A35D9 60%,#4A1FB0)}
+.coin.t{background:radial-gradient(circle at 35% 30%,#6FE0B8,#1A9E77 60%,#0F7556)}
+.coin.o{background:radial-gradient(circle at 35% 30%,#FFC27A,#F7931A 60%,#C96F05)}
+.coin.b{background:radial-gradient(circle at 35% 30%,#A9B8FF,#627EEA 60%,#3F58C4)}
+.coin.s{width:58px;height:58px;margin:-29px;font-size:24px}
+.note{position:absolute;z-index:6;display:flex;align-items:center;gap:12px;background:#fff;border-radius:20px;padding:13px 18px 13px 13px;box-shadow:0 28px 60px -22px rgba(42,15,88,.45);font-weight:750;font-size:15px;text-align:left;opacity:0;transform:translateY(16px) scale(.94);animation:notif 9s var(--ease) infinite}
+.note small{display:block;font-weight:600;font-size:12.5px;color:var(--ink3)}
+.note .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+.note.n1{left:calc(50% - 400px);top:150px}
+.note.n2{left:calc(50% + 190px);top:300px;animation-delay:3s}
+.note.n3{left:calc(50% - 380px);top:450px;animation-delay:6s}
+@keyframes notif{0%{opacity:0;transform:translateY(16px) scale(.94)}6%,30%{opacity:1;transform:none}36%,100%{opacity:0;transform:translateY(-10px) scale(.96)}}
+
+/* ═══ TICKER ═══ */
+.ticker{position:relative;z-index:3;background:var(--ink);color:#fff;padding:20px 0;overflow:hidden;transform:rotate(-2deg) scale(1.04);margin:-30px 0 0}
+.ticker.alt{background:var(--gold);color:var(--ink);transform:rotate(1.5deg) scale(1.04);margin-top:-48px;z-index:2}
+.track{display:flex;gap:56px;width:max-content;will-change:transform}
+.track span{display:flex;align-items:center;gap:12px;font-weight:800;font-size:20px;white-space:nowrap}
+.track b{color:var(--gold)} .ticker.alt .track b{color:var(--violet)}
+.track em{font-style:normal;opacity:.6;font-weight:650;font-size:16px}
+.track i{width:10px;height:10px;border-radius:50%;background:currentColor;opacity:.4}
+
+/* ═══ SECTIONS ═══ */
+section{position:relative}
+.pad{padding:130px 0}
+.kicker{display:inline-flex;align-items:center;gap:10px;font-weight:750;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--violet)}
+.kicker::before{content:"";width:26px;height:2px;background:currentColor;border-radius:2px}
+h2{font-size:clamp(40px,6.4vw,96px);font-weight:900;letter-spacing:-.05em;line-height:.92;margin-top:14px}
+.sub{margin-top:20px;font-size:19px;color:var(--ink2);max-width:560px}
+.rv{opacity:0;transform:translateY(40px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.split .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em}
+.split .w>span{display:inline-block;transform:translateY(110%);transition:transform .9s var(--ease)}
+.split.in .w>span{transform:none}
+
+/* ═══ SCROLLY ═══ */
+.scrolly{height:420vh;background:var(--lav);transition:background .8s ease}
+.scrolly .pin{position:sticky;top:0;height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:40px;overflow:hidden}
+.sc-text{position:relative;height:420px}
+.sc-item{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:translateY(50px);transition:opacity .6s var(--ease),transform .7s var(--ease);pointer-events:none}
+.sc-item.on{opacity:1;transform:none;pointer-events:auto}
+.sc-item.past{opacity:0;transform:translateY(-50px)}
+.sc-item .tag{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;background:#fff;font-weight:750;font-size:14px;box-shadow:0 8px 20px -12px rgba(42,15,88,.4)}
+.sc-item h3{font-size:clamp(40px,5.4vw,80px);font-weight:900;letter-spacing:-.05em;line-height:.92;margin-top:18px}
+.sc-item p{margin-top:18px;font-size:19px;color:var(--ink2);max-width:470px}
+.sc-item .facts{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+.sc-item .facts span{background:rgba(255,255,255,.75);border-radius:14px;padding:10px 14px;font-weight:750;font-size:15px}
+.sc-item .facts small{display:block;font-weight:600;font-size:12px;color:var(--ink3)}
+.dots{display:flex;gap:8px;margin-top:34px}
+.dots i{width:34px;height:6px;border-radius:3px;background:rgba(31,11,63,.12);overflow:hidden;position:relative}
+.dots i b{position:absolute;inset:0;background:var(--violet);transform:scaleX(0);transform-origin:left}
+.sc-phone{position:relative;display:flex;justify-content:center;align-items:center;height:100%}
+.sc-phone .phone{position:relative;left:auto;top:auto;margin:0;transform:rotate(-4deg)}
+.screens{position:relative;width:100%;height:100%}
+.scr{position:absolute;inset:0;transition:transform .8s var(--ease),opacity .6s ease;opacity:0;transform:translateY(8%) scale(1.04)}
+.scr.on{opacity:1;transform:none}
+.scr.past{opacity:0;transform:translateY(-8%) scale(.96)}
+.sc-ring{position:absolute;width:560px;height:560px;border-radius:50%;border:2px dashed rgba(106,53,217,.25);animation:spin 40s linear infinite}
+.sc-ring.r2{width:420px;height:420px;border-style:solid;border-color:rgba(233,185,73,.35);animation-duration:28s;animation-direction:reverse}
+.sc-ring i{position:absolute;top:-9px;left:50%;width:18px;height:18px;border-radius:50%;background:var(--violet)}
+.sc-ring.r2 i{background:var(--gold)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.receipt{position:absolute;inset:0;background:linear-gradient(170deg,#F8F5FF,#EDE5FB);padding:70px 22px 22px;display:flex;flex-direction:column;gap:14px}
+.receipt .rh{display:flex;justify-content:space-between;align-items:center}
+.receipt .ok{width:64px;height:64px;border-radius:50%;background:var(--up);display:grid;place-items:center;margin:16px auto 4px;box-shadow:0 0 0 10px rgba(31,157,99,.15)}
+.receipt h4{text-align:center;font-size:20px;font-weight:850;letter-spacing:-.02em}
+.receipt .amt{text-align:center;font-size:36px;font-weight:900;letter-spacing:-.04em}
+.receipt .ln{display:flex;justify-content:space-between;background:#fff;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:650}
+.receipt .ln span:first-child{color:var(--ink3);font-weight:550}
+
+/* ═══ RATES ═══ */
+.rates{background:#fff}
+.rates-grid{display:grid;grid-template-columns:1.3fr .9fr;gap:24px;margin-top:56px;align-items:start}
+.panel{background:var(--lav);border-radius:36px;padding:28px}
+.tabs{position:relative;display:inline-flex;background:#fff;border-radius:999px;padding:5px}
+.tabs button{position:relative;z-index:1;border:0;background:transparent;height:44px;padding:0 22px;border-radius:999px;font:750 15px "Archivo",sans-serif;color:var(--ink2);cursor:pointer;transition:color .3s}
+.tabs button[aria-selected=true]{color:#fff}
+.tabs .pill{position:absolute;top:5px;left:5px;height:44px;border-radius:999px;background:var(--ink);transition:transform .45s var(--ease),width .45s var(--ease)}
+.ptop{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.upd{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;color:var(--ink2)}
+.rlist{margin-top:18px;display:grid;gap:10px}
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) 120px 120px;align-items:center;gap:12px;background:#fff;border-radius:22px;padding:14px 16px;transition:transform .35s var(--ease),box-shadow .35s;opacity:0;transform:translateY(16px)}
+.rrow.in{opacity:1;transform:none}
+.rrow:hover{transform:translateY(-3px);box-shadow:0 18px 30px -20px rgba(42,15,88,.45)}
+.rrow.pof{grid-template-columns:minmax(0,1fr) 140px}
+.rhead{display:grid;grid-template-columns:minmax(0,1fr) 120px 120px;gap:12px;padding:0 16px;margin-top:20px;font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.rhead.pof{grid-template-columns:minmax(0,1fr) 140px}
+.rhead span:not(:first-child){text-align:center}
+.ent{display:flex;align-items:center;gap:14px;min-width:0}
+.ent .f{width:46px;height:46px;border-radius:50%;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 3px #fff,0 6px 14px -4px rgba(31,11,63,.3)}
+.ent .f svg{width:100%;height:100%}
+.ent .cn{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:18px;color:#fff;flex-shrink:0;box-shadow:0 0 0 3px #fff,0 6px 14px -4px rgba(31,11,63,.3)}
+.ent b{display:block;font-size:19px;font-weight:850;line-height:1.1}
+.ent small{display:block;font-size:13.5px;color:var(--ink3);font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.val{height:52px;border-radius:16px;display:grid;place-items:center;font-weight:850;font-size:21px;letter-spacing:-.02em}
+.val.buy{background:var(--violet);color:#fff}.val.sell{background:var(--gold);color:var(--ink)}
+.disc{margin-top:16px;font-size:13.5px;color:var(--ink3)}
+[role=tabpanel][hidden]{display:none}
+.calc{position:sticky;top:110px;background:var(--night);color:#fff;border-radius:36px;padding:30px;overflow:hidden;isolation:isolate}
+.calc .glow{position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.55),transparent 65%);right:-120px;top:-120px;z-index:-1;animation:drift2 14s ease-in-out infinite}
+.calc h3{font-size:28px;font-weight:850;letter-spacing:-.03em}
+.mode{position:relative;display:flex;background:rgba(255,255,255,.08);border-radius:999px;padding:4px;margin-top:20px}
+.mode button{position:relative;z-index:1;flex:1;border:0;background:transparent;color:#CFC2EC;height:42px;border-radius:999px;font:750 15px "Archivo",sans-serif;cursor:pointer;transition:color .3s}
+.mode button[aria-pressed=true]{color:var(--ink)}
+.mode .pill{position:absolute;top:4px;left:4px;width:calc(50% - 4px);height:42px;border-radius:999px;background:#fff;transition:transform .45s var(--ease)}
+.mode.buy .pill{transform:translateX(100%)}
+.fld{margin-top:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:14px 16px}
+.fld label{display:block;font-size:13px;font-weight:650;color:#B9A9E0}
+.fld .row{display:flex;align-items:center;gap:10px;margin-top:4px}
+.fld input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#fff;font:850 34px "Archivo",sans-serif;letter-spacing:-.03em}
+.fld select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%231F0B3F' stroke-width='2.4' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;border:0;border-radius:999px;height:44px;padding:0 34px 0 16px;font:850 15px "Archivo",sans-serif;color:var(--ink);cursor:pointer}
+.swap{display:grid;place-items:center;margin:-8px auto;position:relative;z-index:2;width:44px;height:44px;border-radius:50%;background:var(--gold);color:var(--ink);border:4px solid var(--night);cursor:pointer;transition:transform .5s var(--ease)}
+.swap.spin{transform:rotate(180deg)}
+.out{font:900 38px "Archivo",sans-serif;letter-spacing:-.03em;color:var(--gold2)}
+.rate-line{margin-top:12px;font-size:14px;color:#CFC2EC}
+.calc .btn{width:100%;margin-top:18px}
+.calc .fine{margin-top:12px;font-size:12.5px;color:#A294C4}
+
+/* ═══ GLOBE ═══ */
+.world{background:var(--night);color:#fff;overflow:hidden}
+.world .grid2{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+.world h2{color:#fff}
+.world .sub{color:#CFC2EC}
+.world .kicker{color:var(--gold)}
+.globe-wrap{position:relative;aspect-ratio:1;max-width:560px;width:100%;margin-left:auto}
+.globe-wrap svg{width:100%;height:100%;overflow:visible}
+.city{position:absolute;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 12px 6px 6px;font-weight:750;font-size:13.5px;opacity:0;transform:scale(.8);transition:opacity .5s,transform .5s var(--ease)}
+.city.on{opacity:1;transform:none}
+.city .f{width:24px;height:24px;border-radius:50%;overflow:hidden}
+.city .f svg{width:100%;height:100%}
+.wstats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:36px}
+.wstat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:20px}
+.wstat b{display:block;font-size:40px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--gold2)}
+.wstat span{display:block;margin-top:8px;font-size:15px;color:#CFC2EC}
+
+/* ═══ SCHOOL FEES (tilt card) ═══ */
+.fees{background:linear-gradient(180deg,#fff,var(--lav))}
+.fees .grid2{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.ticks{margin-top:30px;display:grid;gap:14px;list-style:none}
+.ticks li{display:flex;gap:12px;align-items:flex-start;font-size:17.5px;font-weight:650}
+.ticks li span{width:30px;height:30px;border-radius:50%;background:var(--violet);color:#fff;display:grid;place-items:center;flex-shrink:0}
+.ticks svg{width:16px;height:16px}
+.tilt-stage{position:relative;perspective:1100px;display:flex;justify-content:center;padding:40px 0}
+.tilt{position:relative;width:min(440px,100%);transform-style:preserve-3d;transition:transform .25s ease-out;will-change:transform}
+.inv{position:relative;background:#fff;border-radius:32px;padding:28px;box-shadow:0 60px 100px -40px rgba(42,15,88,.55);transform:translateZ(0)}
+.inv .top{display:flex;justify-content:space-between;align-items:center}
+.inv .tag{background:var(--gold-soft);color:#86610F;font-weight:750;font-size:13px;padding:6px 11px;border-radius:999px}
+.inv h4{font-size:15px;color:var(--ink3);font-weight:650;margin-top:20px}
+.inv .amt{font-size:52px;font-weight:900;letter-spacing:-.04em;line-height:1.05}
+.inv .line{display:flex;justify-content:space-between;padding:13px 0;border-top:1px solid var(--line);font-size:15px;font-weight:650}
+.inv .line span:first-child{color:var(--ink2);font-weight:550}
+.inv .status{margin-top:12px;display:flex;align-items:center;gap:10px;background:#E4F4EC;color:var(--up);font-weight:750;border-radius:16px;padding:13px 15px}
+.inv .prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:14px}
+.inv .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--gold));border-radius:3px;transition:width 2.4s var(--ease)}
+.inv.go .prog i{width:100%}
+.float3d{position:absolute;transform:translateZ(80px);display:grid;place-items:center;border-radius:22px;box-shadow:0 30px 50px -20px rgba(42,15,88,.5)}
+.float3d.cap{width:84px;height:84px;background:var(--violet);right:-30px;top:-34px;animation:bob 5s ease-in-out infinite}
+.float3d.plane{width:72px;height:72px;background:var(--gold);left:-30px;bottom:30px;animation:bob 6s ease-in-out -2s infinite}
+@keyframes bob{50%{translate:0 -12px}}
+
+/* ═══ STEPS ═══ */
+.steps{background:var(--lav)}
+.steps .grid2{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;margin-top:56px}
+.slist{display:grid;gap:12px}
+.st{position:relative;display:flex;gap:18px;align-items:flex-start;background:rgba(255,255,255,.55);border-radius:26px;padding:22px 24px;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer;overflow:hidden;transition:background .35s,transform .35s var(--ease)}
+.st.on{background:#fff;transform:scale(1.02);box-shadow:0 24px 50px -30px rgba(42,15,88,.5)}
+.st .n{width:46px;height:46px;border-radius:15px;background:var(--lav2);color:var(--ink);display:grid;place-items:center;font-weight:900;font-size:18px;flex-shrink:0;transition:background .35s,color .35s}
+.st.on .n{background:var(--violet);color:#fff}
+.st h3{font-size:21px;font-weight:850;letter-spacing:-.02em}
+.st p{font-size:15.5px;color:var(--ink2);margin-top:4px}
+.st .bar{position:absolute;left:0;bottom:0;height:4px;width:100%;background:linear-gradient(90deg,var(--violet),var(--gold));transform:scaleX(0);transform-origin:left}
+.st.on .bar{animation:fill var(--dur,3.2s) linear forwards}
+@keyframes fill{to{transform:scaleX(1)}}
+.restart{margin-top:14px;display:inline-flex;align-items:center;gap:8px;border:0;background:none;font:750 15px "Archivo",sans-serif;color:var(--violet);cursor:pointer}
+.chat{position:relative;background:#fff;border-radius:40px;padding:24px;min-height:500px;display:flex;flex-direction:column;gap:12px;box-shadow:0 40px 80px -40px rgba(42,15,88,.5)}
+.chat .who{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.chat .av{width:44px;height:44px;border-radius:50%;background:var(--ink);display:grid;place-items:center}
+.chat .who b{display:block;font-size:16px}.chat .who small{color:var(--up);font-weight:750;font-size:13px}
+.msg{max-width:82%;padding:13px 16px;border-radius:20px;font-size:15.5px;line-height:1.4;opacity:0;transform:translateY(14px) scale(.96);transition:opacity .45s var(--ease),transform .45s var(--ease)}
+.msg.on{opacity:1;transform:none}
+.msg.me{align-self:flex-end;background:var(--violet);color:#fff;border-bottom-right-radius:6px}
+.msg.us{align-self:flex-start;background:var(--lav);border-bottom-left-radius:6px}
+.msg small{display:block;margin-top:4px;font-size:11.5px;opacity:.65}
+.msg.us b{color:var(--violet)}
+.typing{align-self:flex-start;display:none;gap:5px;background:var(--lav);border-radius:20px;padding:14px 16px}
+.typing.on{display:flex}
+.typing i{width:8px;height:8px;border-radius:50%;background:var(--ink3);animation:tdot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tdot{50%{transform:translateY(-5px);opacity:.4}}
+
+/* ═══ BIG OUTLINE MARQUEE ═══ */
+.mega{padding:90px 0;overflow:hidden;background:#fff}
+.mega .line{display:flex;gap:40px;width:max-content;font-size:clamp(70px,11vw,170px);font-weight:900;letter-spacing:-.05em;line-height:1;white-space:nowrap;will-change:transform}
+.mega .line span{color:transparent;-webkit-text-stroke:2px var(--ink)}
+.mega .line span.fill{color:var(--violet);-webkit-text-stroke:0}
+.mega .line span.star{color:var(--gold);-webkit-text-stroke:0}
+
+/* ═══ REVIEWS ═══ */
+.reviews{background:#fff;overflow:hidden;padding-bottom:130px}
+.rmq{display:flex;gap:18px;width:max-content;animation:mq 50s linear infinite;margin-top:18px}
+.rmq.rev{animation-direction:reverse;animation-duration:60s}
+.reviews:hover .rmq{animation-play-state:paused}
+@keyframes mq{to{transform:translateX(-50%)}}
+.rc{width:380px;background:var(--lav);border-radius:30px;padding:26px;display:flex;flex-direction:column;gap:16px}
+.rc p{font-size:17px;font-weight:650;line-height:1.45}
+.rc .by{display:flex;align-items:center;gap:12px;margin-top:auto}
+.rc .by>span:first-child{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:850;color:#fff;flex-shrink:0}
+.rc .by b{display:block}.rc .by small{color:var(--ink3)}
+.stars{color:var(--gold);letter-spacing:2px;font-size:16px}
+.sample{display:inline-block;margin-top:20px;font-size:13px;font-weight:750;color:#86610F;background:var(--gold-soft);border-radius:999px;padding:7px 13px}
+
+/* ═══ FAQ ═══ */
+.faq .grid2{display:grid;grid-template-columns:.85fr 1.15fr;gap:60px;align-items:start}
+.qa{border-bottom:1px solid var(--line)}
+.qa button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:26px 0;background:none;border:0;font:800 21px "Archivo",sans-serif;letter-spacing:-.02em;color:var(--ink);text-align:left;cursor:pointer}
+.qa .pm{width:40px;height:40px;border-radius:50%;background:var(--lav);display:grid;place-items:center;flex-shrink:0;transition:transform .4s var(--ease),background .3s,color .3s}
+.qa.open .pm{transform:rotate(135deg);background:var(--violet);color:#fff}
+.qa .ans{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+.qa.open .ans{grid-template-rows:1fr}
+.qa .ans>div{overflow:hidden}
+.qa .ans p{padding:0 50px 26px 0;color:var(--ink2);font-size:17px}
+
+/* ═══ CTA ═══ */
+.cta{padding:40px 0 130px;background:#fff}
+.cta .box{position:relative;background:var(--violet);color:#fff;border-radius:56px;padding:110px 40px;text-align:center;overflow:hidden;isolation:isolate}
+.cta .box::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 400px at 20% 0%,#8B5CF6,transparent 60%),radial-gradient(500px 400px at 90% 100%,rgba(233,185,73,.55),transparent 60%);z-index:-1}
+.cta h2{color:#fff;max-width:900px;margin:0 auto}
+.cta p{margin:20px auto 0;font-size:19px;color:#E4D9FF;max-width:520px}
+.cta .btn{margin-top:36px}
+.rain{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.rain .coin{animation:fall linear infinite;top:-90px}
+@keyframes fall{to{transform:translateY(900px) rotate(360deg)}}
+
+/* footer */
+footer{background:var(--night);color:#CFC2EC;padding:90px 0 40px}
+.fgrid{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:40px}
+footer .logo{color:#fff;font-size:28px}
+footer h5{color:#fff;font-size:15px;font-weight:750;margin-bottom:14px}
+footer ul{list-style:none;display:grid;gap:10px;font-size:15px}
+footer a:hover{color:#fff}
+.legal{margin-top:60px;padding-top:28px;border-top:1px solid rgba(255,255,255,.12);display:grid;gap:12px;font-size:13.5px;color:#A294C4}
+.legal .ph{background:rgba(233,185,73,.12);color:var(--gold);border-radius:12px;padding:10px 14px;font-weight:650}
+.fab{position:fixed;right:18px;bottom:18px;z-index:70;display:none}
+.fab .btn{height:60px;box-shadow:0 18px 40px -12px rgba(106,53,217,.9)}
+
+/* board CSS (same markup as the generated board) */
+.bd{width:1080px;height:1920px;display:flex;flex-direction:column;background-image:linear-gradient(165deg,#3B1675 0%,#2A0F58 45%,#1C0A3D 100%);color:#fff;padding:150px 72px 0;overflow:hidden;position:relative;font-family:"Archivo",sans-serif;line-height:1.2}
+.b-brand{display:flex;justify-content:space-between;align-items:center}
+.b-logo{display:flex;align-items:flex-end;gap:18px}
+.b-bars{display:flex;align-items:flex-end;gap:7px;height:64px}
+.b-bars span{width:12px;border-radius:6px;background:#E9B949}
+.b-word{font-size:60px;font-weight:800;font-stretch:112%;letter-spacing:-1.5px;line-height:1}
+.b-word b{color:#E9B949;font-weight:800}
+.b-date{display:flex;flex-direction:column;align-items:flex-end;font-size:28px;font-weight:500;color:#C4B6E3;line-height:1.3}
+.b-date strong{color:#fff;font-weight:700;font-size:30px}
+.b-hero{position:relative;display:flex;flex-direction:column;margin-top:60px}
+.b-eq{position:absolute;right:-72px;top:-20px;display:flex;align-items:flex-end;gap:14px;height:280px;opacity:.18}
+.b-eq span{width:26px;border-radius:13px 13px 0 0;background:#6A35D9}
+.b-eq span:nth-child(3n){background:#A77CFF}
+.b-h{position:relative;font-size:124px;font-weight:800;font-stretch:112%;letter-spacing:-4px;line-height:.92}
+.b-sub{position:relative;margin-top:20px;font-size:36px;font-weight:500;color:#D4C8EE}
+.b-card{margin-top:44px;display:flex;flex-direction:column;background:#F7F4FC;color:#1F0B3F;border-radius:44px;padding:36px 40px 34px;box-shadow:0 30px 60px rgba(0,0,0,.28)}
+.b-heads{display:flex;justify-content:flex-end;gap:16px;padding-bottom:14px}
+.b-heads span{width:232px;text-align:center;font-size:30px;font-weight:700;color:#6E6187}
+.b-heads.pof{justify-content:space-between}
+.b-heads.pof span{width:auto;text-align:left}
+.b-row{display:flex;align-items:center;gap:28px;padding:20px 0;border-top:3px solid #E6DFF2}
+.b-flag{width:108px;height:108px;border-radius:54px;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-flag svg{width:108px;height:108px;display:block}
+.b-ccy{display:flex;flex-direction:column;flex:1;min-width:0}
+.b-code{font-size:66px;font-weight:900;font-stretch:110%;letter-spacing:-1px;line-height:1}
+.b-name{white-space:nowrap;font-size:26px;font-weight:500;color:#6E6187;margin-top:6px}
+.b-prices{display:flex;gap:16px}
+.b-price{width:232px;height:112px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:68px;font-weight:800;font-stretch:105%;letter-spacing:-1.5px;font-variant-numeric:tabular-nums}
+.b-buy{background:#6A35D9;color:#fff}
+.b-sell{background:#E9B949;color:#1F0B3F}
+.b-note{display:flex;align-items:center;gap:16px;margin-top:6px;padding-top:24px;border-top:3px solid #E6DFF2;font-size:30px;font-weight:600}
+.b-note i{width:18px;height:18px;border-radius:9px;background:#6A35D9;flex-shrink:0}
+.b-row.pof{padding:16px 0;gap:24px}
+.b-mono{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;overflow:hidden}
+.b-mono img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-bank{display:flex;align-items:center;gap:18px;flex:1;min-width:0}
+.b-bname{font-size:48px;font-weight:800;letter-spacing:-.5px;line-height:1.05;white-space:nowrap}
+.b-pill{padding:6px 16px;border-radius:999px;white-space:nowrap;background:#E9B949;color:#1F0B3F;font-size:24px;font-weight:700}
+.b-pct{width:200px;height:88px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:#6A35D9;color:#fff;font-size:56px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.b-reach{margin-top:30px;font-size:31px;font-weight:500;line-height:1.35;color:#E8E0F7}
+.b-contact{margin-top:28px;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-radius:28px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.14)}
+.b-clabel{font-size:28px;font-weight:500;color:#C4B6E3}
+.b-cval{font-size:40px;font-weight:800;letter-spacing:-.5px}
+.b-cdot{width:64px;height:64px;border-radius:32px;background:#E9B949;display:flex;align-items:center;justify-content:center}
+.b-fine{margin-top:18px;font-size:23px;color:#A294C4;line-height:1.4}
+.b-band{position:absolute;left:0;right:0;bottom:0;height:22px;display:flex}
+.b-band span:first-child{flex:3;background:#6A35D9}
+.b-band span:last-child{flex:1;background:#E9B949}
+.bd.v-day{background-image:linear-gradient(170deg,#FFFFFF 0%,#F3EEFB 60%,#E9E1F7 100%);color:#1F0B3F}
+.v-day .b-word{color:#2A0F58}
+.v-day .b-date{color:#6E6187} .v-day .b-date strong{color:#1F0B3F}
+.v-day .b-h{color:#3B1675} .v-day .b-sub{color:#6E6187}
+.v-day .b-eq{opacity:.12}
+.v-day .b-card{background:#fff;box-shadow:0 24px 60px rgba(59,22,117,.14);border:2px solid #ECE5F7}
+.v-day .b-reach{color:#4A3D66}
+.v-day .b-contact{background:#2A0F58;border-color:#2A0F58;color:#fff}
+.v-day .b-fine{color:#7D7196}
+.b-heads.cx span{width:200px}
+.b-row.cx{padding:8px 0;gap:20px}
+.b-coin{width:80px;height:80px;border-radius:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 5px #fff,0 8px 18px rgba(31,11,63,.18)}
+.b-coin img{width:80px;height:80px;object-fit:cover;background:#fff}
+.b-row.cx .b-code{font-size:50px}
+.b-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
+.b-meta .b-name{margin-top:0;font-size:24px}
+.b-net{padding:2px 11px;border-radius:999px;background:#ECE4FA;color:#4B21A6;font-size:19px;font-weight:700;white-space:nowrap}
+.b-row.cx .b-price{width:200px;height:86px;border-radius:22px;font-size:56px}
+.v-day .b-net{background:#F1EBFB}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width:1080px){
+  .rates-grid,.world .grid2,.fees .grid2,.steps .grid2,.faq .grid2{grid-template-columns:1fr}
+  .calc{position:relative;top:auto}
+  .globe-wrap{margin:0 auto}
+  .note.n1{left:2%}.note.n2{left:auto;right:2%}.note.n3{left:4%}
+}
+@media (max-width:860px){
+  .nav .links,.nav .bar>.btn{display:none}
+  .menu{display:flex}
+  .nav .links.open{display:flex;position:absolute;top:72px;left:20px;right:20px;flex-direction:column;background:#fff;border-radius:26px;padding:12px;box-shadow:0 30px 60px -20px rgba(42,15,88,.45)}
+  .nav .links.open a{padding:15px 16px;font-size:18px}
+  .hero{padding-top:116px}
+  .eyebrow{font-size:13px}
+  .rot{flex-direction:column;gap:2px}
+  .rot .slot{min-width:0;width:100%;text-align:center}
+  .rot .slot span{left:0;right:0}
+  .stage{margin-top:-10px}
+  .stage{height:600px;margin-top:20px}
+  .phone{width:260px;height:536px;margin-left:-130px;border-radius:44px}
+  .phone .screen,.glare{border-radius:34px}
+  .coin{width:58px;height:58px;margin:-29px;font-size:24px}
+  .coin.s{width:44px;height:44px;margin:-22px;font-size:18px}
+  .note{font-size:13.5px;padding:10px 14px 10px 10px}
+  .note .ic{width:34px;height:34px}
+  .note.n1{top:70px}.note.n2{top:250px}.note.n3{top:420px}
+  .pad{padding:90px 0}
+  .scrolly .pin{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-content:start;gap:0;padding-top:86px}
+  .sc-phone{order:-1;height:auto}
+  .sc-phone .phone{width:168px;height:346px;border-radius:32px;padding:8px}
+  .sc-phone .phone::before{width:62px;height:18px;top:17px}
+  .sc-phone .phone .screen,.sc-phone .glare{border-radius:25px}
+  .sc-ring{width:300px;height:300px}.sc-ring.r2{width:230px;height:230px}
+  .scrolly .pin{padding-top:80px}
+  .sc-text{height:290px;margin-top:18px}
+  .sc-item h3{font-size:34px}
+  .sc-item .tag{height:30px;font-size:13px}
+  .sc-item p{font-size:16px;margin-top:10px}
+  .sc-item .facts{margin-top:14px}
+  .sc-item .facts span{font-size:13.5px;padding:8px 11px}
+  .dots{margin-top:14px}
+  .fab{display:block}
+  .cta .box{border-radius:36px;padding:80px 24px}
+  .fgrid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){
+  .wrap{width:calc(100% - 32px)}
+  .rrow,.rhead{grid-template-columns:minmax(0,1fr) 78px 78px;gap:8px;padding-inline:12px}
+  .rrow.pof,.rhead.pof{grid-template-columns:minmax(0,1fr) 96px}
+  .val{height:44px;font-size:16px;border-radius:13px}
+  .ent{gap:10px}.ent .f,.ent .cn{width:36px;height:36px;font-size:15px}
+  .ent b{font-size:16px}.ent small{font-size:12px}
+  .panel,.calc{padding:20px;border-radius:30px}
+  .hero .ctas .btn{flex:1 1 0;height:52px;padding:0 12px;font-size:14.5px;gap:7px}
+  .hero .ctas .btn svg{width:17px;height:17px}
+  .hide-sm{display:none}
+  .wstats{grid-template-columns:1fr 1fr}
+  .wstat b{font-size:30px}
+  .rc{width:300px}
+  .qa button{font-size:18px}
+  .qa .ans p{padding-right:0}
+  .fgrid{grid-template-columns:1fr}
+  .tilt-stage{padding:30px 10px}
+  .float3d.cap{right:-6px}.float3d.plane{left:-6px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv,.rrow,.msg,.note,.eyebrow,.rot,.hero .ctas{opacity:1!important;transform:none!important}
+  h1 .w>span,.split .w>span{transform:none!important}
+  .city{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap bar">
+    <a class="logo" href="#top" aria-label="Stereolinkz home"><span class="bars"><i style="height:9px"></i><i style="height:15px"></i><i style="height:21px"></i><i style="height:12px"></i></span><span class="wm">stereo<b>linkz</b></span></a>
+    <nav class="links" id="links" aria-label="Main"><a href="#services">Services</a><a href="#rates">Rates</a><a href="#world">Pay abroad</a><a href="#how">How it works</a><a href="#faq">FAQ</a></nav>
+    <a class="btn vio sm mag" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Chat with us</a>
+    <button class="menu" id="menu" aria-label="Open menu" aria-expanded="false" aria-controls="links"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg></button>
+  </div>
+</header>
+
+<main id="top">
+<!-- ═════════ HERO ═════════ -->
+<section class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="grain"></div>
+  <div class="wrap hero-in">
+    <span class="eyebrow"><span class="live"></span><span class="hide-sm">Today’s rates are live ·&nbsp;</span>Updated 10:25 AM</span>
+    <h1 id="h1"><span class="w"><span style="animation-delay:.15s">One</span></span> <span class="w"><span style="animation-delay:.23s">chat</span></span> <span class="w"><span style="animation-delay:.31s">for</span></span><br><span class="w"><span style="animation-delay:.39s">all</span></span> <span class="w"><span style="animation-delay:.47s">your</span></span> <span class="w"><span class="grad" style="animation-delay:.55s">money.</span></span></h1>
+    <p class="rot">On WhatsApp, you can <span class="slot" id="slot" aria-live="polite"><span class="on">sell your dollars</span><span>sell USDT and BTC</span><span>pay school fees abroad</span><span>get proof of funds</span><span>pay suppliers in China</span></span></p>
+    <div class="ctas">
+      <a class="btn vio mag" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Chat on WhatsApp</a>
+      <a class="btn ghost mag" href="#rates">See today’s rates <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="orbit" id="orbit">
+      <span class="coin g" data-r="300" data-a="200" data-s=".22">₦</span>
+      <span class="coin v" data-r="330" data-a="330" data-s=".18">$</span>
+      <span class="coin g s" data-r="250" data-a="20" data-s=".26">£</span>
+      <span class="coin t" data-r="360" data-a="100" data-s=".15">₮</span>
+      <span class="coin o s" data-r="270" data-a="150" data-s=".2">₿</span>
+      <span class="coin b s" data-r="345" data-a="250" data-s=".24">Ξ</span>
+      <span class="coin v s" data-r="230" data-a="290" data-s=".3">€</span>
+    </div>
+    <div class="phone" id="heroPhone"><div class="screen"><div class="bscale" data-fit><div class="bd"><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Today’s<br>forex rates</div><div class="b-sub">Naira per unit, settled fast</div></div>
+  <div class="b-card"><div class="b-heads"><span>We buy</span><span>We sell</span></div>
+   <div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><g fill="#C8102E"><rect y="0" width="60" height="4.6"></rect><rect y="9.2" width="60" height="4.6"></rect><rect y="18.4" width="60" height="4.6"></rect><rect y="27.6" width="60" height="4.6"></rect><rect y="36.8" width="60" height="4.6"></rect><rect y="46" width="60" height="4.6"></rect><rect y="55.2" width="60" height="4.6"></rect></g><rect width="30" height="32.2" fill="#0A3161"></rect><g fill="#fff"><circle cx="6" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="24" cy="6" r="1.6"></circle><circle cx="10.5" cy="12" r="1.6"></circle><circle cx="19.5" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle><circle cx="24" cy="18" r="1.6"></circle><circle cx="10.5" cy="24" r="1.6"></circle><circle cx="19.5" cy="24" r="1.6"></circle></g></svg></div><div class="b-ccy"><div class="b-code">USD</div><div class="b-name">US dollar</div></div><div class="b-prices"><div class="b-price b-buy">1365</div><div class="b-price b-sell">1378</div></div></div><div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#012169"></rect><path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"></path><path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"></path><path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"></path><path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"></path></svg></div><div class="b-ccy"><div class="b-code">GBP</div><div class="b-name">British pound</div></div><div class="b-prices"><div class="b-price b-buy">1815</div><div class="b-price b-sell">1840</div></div></div><div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#003399"></rect><g fill="#FFCC00"><polygon points="30.00,10.00 30.74,11.98 32.85,12.07 31.20,13.39 31.76,15.43 30.00,14.26 28.24,15.43 28.80,13.39 27.15,12.07 29.26,11.98"></polygon><polygon points="38.50,12.28 39.24,14.26 41.35,14.35 39.70,15.67 40.26,17.70 38.50,16.54 36.74,17.70 37.30,15.67 35.65,14.35 37.76,14.26"></polygon><polygon points="44.72,18.50 45.46,20.48 47.58,20.57 45.92,21.89 46.49,23.93 44.72,22.76 42.96,23.93 43.52,21.89 41.87,20.57 43.98,20.48"></polygon><polygon points="47.00,27.00 47.74,28.98 49.85,29.07 48.20,30.39 48.76,32.43 47.00,31.26 45.24,32.43 45.80,30.39 44.15,29.07 46.26,28.98"></polygon><polygon points="44.72,35.50 45.46,37.48 47.58,37.57 45.92,38.89 46.49,40.93 44.72,39.76 42.96,40.93 43.52,38.89 41.87,37.57 43.98,37.48"></polygon><polygon points="38.50,41.72 39.24,43.70 41.35,43.80 39.70,45.11 40.26,47.15 38.50,45.98 36.74,47.15 37.30,45.11 35.65,43.80 37.76,43.70"></polygon><polygon points="30.00,44.00 30.74,45.98 32.85,46.07 31.20,47.39 31.76,49.43 30.00,48.26 28.24,49.43 28.80,47.39 27.15,46.07 29.26,45.98"></polygon><polygon points="21.50,41.72 22.24,43.70 24.35,43.80 22.70,45.11 23.26,47.15 21.50,45.98 19.74,47.15 20.30,45.11 18.65,43.80 20.76,43.70"></polygon><polygon points="15.28,35.50 16.02,37.48 18.13,37.57 16.48,38.89 17.04,40.93 15.28,39.76 13.51,40.93 14.08,38.89 12.42,37.57 14.54,37.48"></polygon><polygon points="13.00,27.00 13.74,28.98 15.85,29.07 14.20,30.39 14.76,32.43 13.00,31.26 11.24,32.43 11.80,30.39 10.15,29.07 12.26,28.98"></polygon><polygon points="15.28,18.50 16.02,20.48 18.13,20.57 16.48,21.89 17.04,23.93 15.28,22.76 13.51,23.93 14.08,21.89 12.42,20.57 14.54,20.48"></polygon><polygon points="21.50,12.28 22.24,14.26 24.35,14.35 22.70,15.67 23.26,17.70 21.50,16.54 19.74,17.70 20.30,15.67 18.65,14.35 20.76,14.26"></polygon></g></svg></div><div class="b-ccy"><div class="b-code">EUR</div><div class="b-name">Euro</div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1583</div></div></div>
+   <div class="b-note"><i></i>T+1 settlement to China and the rest of the world</div></div>
+   <p class="b-reach">Pay into the UK, US, Europe, Canada, China and more by wire, ACH or local bank transfer.</p>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to trade</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"></path></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Rates for large amounts are agreed on request.</p>
+  <div class="b-band"><span></span><span></span></div></div></div><div class="glare"></div></div></div>
+    <div class="note n1"><span class="ic" style="background:#E4F4EC"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F9D63" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span><span><small>Naira received</small><span class="num">₦682,500 · 9 min</span></span></div>
+    <div class="note n2"><span class="ic" style="background:var(--violet)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 9h5M9 15h5M12 7v10"/></svg></span><span><small>USDT received · TRC20</small><span class="num">$1,200 → ₦1,908,000</span></span></div>
+    <div class="note n3"><span class="ic" style="background:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></span><span><small>School fees · UK</small>Paid to the school ✓</span></div>
+  </div>
+</section>
+
+<div class="ticker"><div class="track" data-speed="0.6"><span>USD <b class="num">₦1,365</b> <em>we buy</em></span><i></i><span>GBP <b class="num">₦1,815</b> <em>we buy</em></span><i></i><span>EUR <b class="num">₦1,560</b> <em>we buy</em></span><i></i><span>USDT <b class="num">₦1,590</b> <em>per $1</em></span><i></i><span>USDC <b class="num">₦1,585</b> <em>per $1</em></span><i></i><span>BTC <b class="num">₦1,580</b> <em>per $1</em></span><i></i><span>ETH <b class="num">₦1,575</b> <em>per $1</em></span><i></i><span>USD <b class="num">₦1,365</b> <em>we buy</em></span><i></i><span>GBP <b class="num">₦1,815</b> <em>we buy</em></span><i></i><span>EUR <b class="num">₦1,560</b> <em>we buy</em></span><i></i><span>USDT <b class="num">₦1,590</b> <em>per $1</em></span><i></i><span>USDC <b class="num">₦1,585</b> <em>per $1</em></span><i></i><span>BTC <b class="num">₦1,580</b> <em>per $1</em></span><i></i><span>ETH <b class="num">₦1,575</b> <em>per $1</em></span><i></i><span>USD <b class="num">₦1,365</b> <em>we buy</em></span><i></i><span>GBP <b class="num">₦1,815</b> <em>we buy</em></span><i></i><span>EUR <b class="num">₦1,560</b> <em>we buy</em></span><i></i><span>USDT <b class="num">₦1,590</b> <em>per $1</em></span><i></i><span>USDC <b class="num">₦1,585</b> <em>per $1</em></span><i></i><span>BTC <b class="num">₦1,580</b> <em>per $1</em></span><i></i><span>ETH <b class="num">₦1,575</b> <em>per $1</em></span><i></i><span>USD <b class="num">₦1,365</b> <em>we buy</em></span><i></i><span>GBP <b class="num">₦1,815</b> <em>we buy</em></span><i></i><span>EUR <b class="num">₦1,560</b> <em>we buy</em></span><i></i><span>USDT <b class="num">₦1,590</b> <em>per $1</em></span><i></i><span>USDC <b class="num">₦1,585</b> <em>per $1</em></span><i></i><span>BTC <b class="num">₦1,580</b> <em>per $1</em></span><i></i><span>ETH <b class="num">₦1,575</b> <em>per $1</em></span><i></i></div></div>
+<div class="ticker alt"><div class="track" data-speed="-0.45"><span>School fees abroad <b>same day</b></span><i></i><span>Proof of funds from <b>2.1%</b> <em>per month</em></span><i></i><span>Payments to <b>UK · US · EU · Canada · China</b></span><i></i><span>Real people on <b>WhatsApp</b></span><i></i><span>School fees abroad <b>same day</b></span><i></i><span>Proof of funds from <b>2.1%</b> <em>per month</em></span><i></i><span>Payments to <b>UK · US · EU · Canada · China</b></span><i></i><span>Real people on <b>WhatsApp</b></span><i></i><span>School fees abroad <b>same day</b></span><i></i><span>Proof of funds from <b>2.1%</b> <em>per month</em></span><i></i><span>Payments to <b>UK · US · EU · Canada · China</b></span><i></i><span>Real people on <b>WhatsApp</b></span><i></i><span>School fees abroad <b>same day</b></span><i></i><span>Proof of funds from <b>2.1%</b> <em>per month</em></span><i></i><span>Payments to <b>UK · US · EU · Canada · China</b></span><i></i><span>Real people on <b>WhatsApp</b></span><i></i></div></div>
+
+<!-- ═════════ SCROLLY: SERVICES ═════════ -->
+<section class="scrolly" id="services" data-bg='["#F4F0FB","#FBF1D6","#EEE7FF","#E8F6EF"]'>
+  <div class="pin wrap">
+    <div>
+      <p class="kicker">What we do</p>
+      <div class="sc-text" id="scText">
+        <div class="sc-item on"><span class="tag">💵 Forex</span><h3>Sell dollars, pounds and euros.</h3><p>Cash or bank deposit, paid straight to your naira account at today’s rate.</p><div class="facts"><span><small>We buy USD</small>₦1,365</span><span><small>We buy GBP</small>₦1,815</span></div></div>
+        <div class="sc-item"><span class="tag">🪙 Crypto</span><h3>Sell USDT, BTC and alt coins.</h3><p>Rates in naira per $1. We confirm the network and address, you send, we pay.</p><div class="facts"><span><small>USDT · TRC20</small>₦1,590</span><span><small>BTC per $1</small>₦1,580</span></div></div>
+        <div class="sc-item"><span class="tag">📄 Proof of funds</span><h3>Statements for visas and schools.</h3><p>Proof of funds from partner banks, for visa, school and travel applications.</p><div class="facts"><span><small>From</small>2.1% / month</span><span><small>Banks</small>6 to choose from</span></div></div>
+        <div class="sc-item"><span class="tag">🌍 Pay abroad</span><h3>School fees and bills, sent today.</h3><p>Tuition, rent and suppliers in the UK, US, Europe, Canada, China and more. Low fees, same day.</p><div class="facts"><span><small>Delivery</small>Same day</span><span><small>China</small>T+1</span></div></div>
+      </div>
+      <div class="dots" id="scDots"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+    </div>
+    <div class="sc-phone">
+      <span class="sc-ring"><i></i></span><span class="sc-ring r2"><i></i></span>
+      <div class="phone"><div class="screen"><div class="screens" id="scScreens">
+        <div class="scr on"><div class="bscale" data-fit><div class="bd"><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Today’s<br>forex rates</div><div class="b-sub">Naira per unit, settled fast</div></div>
+  <div class="b-card"><div class="b-heads"><span>We buy</span><span>We sell</span></div>
+   <div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><g fill="#C8102E"><rect y="0" width="60" height="4.6"></rect><rect y="9.2" width="60" height="4.6"></rect><rect y="18.4" width="60" height="4.6"></rect><rect y="27.6" width="60" height="4.6"></rect><rect y="36.8" width="60" height="4.6"></rect><rect y="46" width="60" height="4.6"></rect><rect y="55.2" width="60" height="4.6"></rect></g><rect width="30" height="32.2" fill="#0A3161"></rect><g fill="#fff"><circle cx="6" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="24" cy="6" r="1.6"></circle><circle cx="10.5" cy="12" r="1.6"></circle><circle cx="19.5" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle><circle cx="24" cy="18" r="1.6"></circle><circle cx="10.5" cy="24" r="1.6"></circle><circle cx="19.5" cy="24" r="1.6"></circle></g></svg></div><div class="b-ccy"><div class="b-code">USD</div><div class="b-name">US dollar</div></div><div class="b-prices"><div class="b-price b-buy">1365</div><div class="b-price b-sell">1378</div></div></div><div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#012169"></rect><path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"></path><path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"></path><path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"></path><path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"></path></svg></div><div class="b-ccy"><div class="b-code">GBP</div><div class="b-name">British pound</div></div><div class="b-prices"><div class="b-price b-buy">1815</div><div class="b-price b-sell">1840</div></div></div><div class="b-row"><div class="b-flag"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#003399"></rect><g fill="#FFCC00"><polygon points="30.00,10.00 30.74,11.98 32.85,12.07 31.20,13.39 31.76,15.43 30.00,14.26 28.24,15.43 28.80,13.39 27.15,12.07 29.26,11.98"></polygon><polygon points="38.50,12.28 39.24,14.26 41.35,14.35 39.70,15.67 40.26,17.70 38.50,16.54 36.74,17.70 37.30,15.67 35.65,14.35 37.76,14.26"></polygon><polygon points="44.72,18.50 45.46,20.48 47.58,20.57 45.92,21.89 46.49,23.93 44.72,22.76 42.96,23.93 43.52,21.89 41.87,20.57 43.98,20.48"></polygon><polygon points="47.00,27.00 47.74,28.98 49.85,29.07 48.20,30.39 48.76,32.43 47.00,31.26 45.24,32.43 45.80,30.39 44.15,29.07 46.26,28.98"></polygon><polygon points="44.72,35.50 45.46,37.48 47.58,37.57 45.92,38.89 46.49,40.93 44.72,39.76 42.96,40.93 43.52,38.89 41.87,37.57 43.98,37.48"></polygon><polygon points="38.50,41.72 39.24,43.70 41.35,43.80 39.70,45.11 40.26,47.15 38.50,45.98 36.74,47.15 37.30,45.11 35.65,43.80 37.76,43.70"></polygon><polygon points="30.00,44.00 30.74,45.98 32.85,46.07 31.20,47.39 31.76,49.43 30.00,48.26 28.24,49.43 28.80,47.39 27.15,46.07 29.26,45.98"></polygon><polygon points="21.50,41.72 22.24,43.70 24.35,43.80 22.70,45.11 23.26,47.15 21.50,45.98 19.74,47.15 20.30,45.11 18.65,43.80 20.76,43.70"></polygon><polygon points="15.28,35.50 16.02,37.48 18.13,37.57 16.48,38.89 17.04,40.93 15.28,39.76 13.51,40.93 14.08,38.89 12.42,37.57 14.54,37.48"></polygon><polygon points="13.00,27.00 13.74,28.98 15.85,29.07 14.20,30.39 14.76,32.43 13.00,31.26 11.24,32.43 11.80,30.39 10.15,29.07 12.26,28.98"></polygon><polygon points="15.28,18.50 16.02,20.48 18.13,20.57 16.48,21.89 17.04,23.93 15.28,22.76 13.51,23.93 14.08,21.89 12.42,20.57 14.54,20.48"></polygon><polygon points="21.50,12.28 22.24,14.26 24.35,14.35 22.70,15.67 23.26,17.70 21.50,16.54 19.74,17.70 20.30,15.67 18.65,14.35 20.76,14.26"></polygon></g></svg></div><div class="b-ccy"><div class="b-code">EUR</div><div class="b-name">Euro</div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1583</div></div></div>
+   <div class="b-note"><i></i>T+1 settlement to China and the rest of the world</div></div>
+   <p class="b-reach">Pay into the UK, US, Europe, Canada, China and more by wire, ACH or local bank transfer.</p>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to trade</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"></path></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Rates for large amounts are agreed on request.</p>
+  <div class="b-band"><span></span><span></span></div></div></div></div>
+        <div class="scr"><div class="bscale" data-fit><div class="bd"><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Today’s<br>crypto rates</div><div class="b-sub">Naira per $1 of coin, paid in minutes</div></div>
+  <div class="b-card"><div class="b-heads cx"><span>We buy</span><span>We sell</span></div>
+   <div class="b-row cx"><div class="b-coin" style="background:#1A9E77;color:#fff">T</div><div class="b-ccy"><div class="b-code">USDT</div><div class="b-meta"><div class="b-name">Tether</div><div class="b-net">TRC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1590</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#2775CA;color:#fff">U</div><div class="b-ccy"><div class="b-code">USDC</div><div class="b-meta"><div class="b-name">USD Coin</div><div class="b-net">ERC20</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1585</div><div class="b-price b-sell">1612</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#F7931A;color:#fff">B</div><div class="b-ccy"><div class="b-code">BTC</div><div class="b-meta"><div class="b-name">Bitcoin</div><div class="b-net">Bitcoin</div></div></div><div class="b-prices"><div class="b-price b-buy">1580</div><div class="b-price b-sell">1620</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#627EEA;color:#fff">E</div><div class="b-ccy"><div class="b-code">ETH</div><div class="b-meta"><div class="b-name">Ethereum</div><div class="b-net">ERC20</div></div></div><div class="b-prices"><div class="b-price b-buy">1575</div><div class="b-price b-sell">1615</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#0F9D9A;color:#fff">S</div><div class="b-ccy"><div class="b-code">SOL</div><div class="b-meta"><div class="b-name">Solana</div><div class="b-net">Solana</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div><div class="b-row cx"><div class="b-coin" style="background:#E0A100;color:#1F0B3F">B</div><div class="b-ccy"><div class="b-code">BNB</div><div class="b-meta"><div class="b-name">BNB</div><div class="b-net">BEP20</div></div></div><div class="b-prices"><div class="b-price b-buy">1560</div><div class="b-price b-sell">1605</div></div></div>
+   <div class="b-note"><i></i>Also trading TRX, LTC and TON. Ask for a rate.</div></div>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to trade</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Always confirm the network before you send.</p>
+  <div class="b-band"><span></span><span></span></div></div></div></div>
+        <div class="scr"><div class="bscale" data-fit><div class="bd"><div class="b-brand"><div class="b-logo"><div class="b-bars"><span style="height:30px"></span><span style="height:52px"></span><span style="height:64px"></span><span style="height:40px"></span></div><div class="b-word">stereo<b>linkz</b></div></div><div class="b-date"><strong>Sun, 27 Sept 2026</strong>Updated 10:25 AM</div></div>
+  <div class="b-hero"><div class="b-eq"><span style="height:120px"></span><span style="height:200px"></span><span style="height:150px"></span><span style="height:260px"></span><span style="height:180px"></span><span style="height:230px"></span><span style="height:110px"></span><span style="height:170px"></span></div><div class="b-h">Proof of<br>funds rates</div><div class="b-sub">For visa, school and travel applications</div></div>
+  <div class="b-card"><div class="b-heads pof"><span>Bank</span><span style="width:200px;text-align:center">Per month</span></div>
+   <div class="b-row pof"><div class="b-mono" style="background:#6B2C91">W</div><div class="b-bank"><div class="b-bname">Wema</div></div><div class="b-pct">3.4%</div></div><div class="b-row pof"><div class="b-mono" style="background:#2A0F58">P</div><div class="b-bank"><div class="b-bname">Providus</div><div class="b-pill">New account</div></div><div class="b-pct">3.4%</div></div><div class="b-row pof"><div class="b-mono" style="background:#0B7A75">E</div><div class="b-bank"><div class="b-bname">Ecobank</div><div class="b-pill">New account</div></div><div class="b-pct">3.4%</div></div><div class="b-row pof"><div class="b-mono" style="background:#3E5BC9">F</div><div class="b-bank"><div class="b-bname">Fidelity</div><div class="b-pill">New account</div></div><div class="b-pct">3.4%</div></div><div class="b-row pof"><div class="b-mono" style="background:#B8327A">P</div><div class="b-bank"><div class="b-bname">Parallex</div></div><div class="b-pct">2.1%</div></div><div class="b-row pof"><div class="b-mono" style="background:#C77700">G</div><div class="b-bank"><div class="b-bname">Globus</div></div><div class="b-pct">2.3%</div></div></div>
+  <div class="b-contact"><div><div class="b-clabel">Send a message to apply</div><div class="b-cval">+234 800 000 0000</div></div><div class="b-cdot"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"></path></svg></div></div>
+  <p class="b-fine">Rates can change without notice. Terms and conditions apply.</p>
+  <div class="b-band"><span></span><span></span></div></div></div></div>
+        <div class="scr"><div class="bscale" data-fit="296" style="width:296px;height:612px"><div class="receipt">
+          <div class="rh"><span class="logo" style="font-size:16px"><span class="bars"><i style="height:7px"></i><i style="height:12px"></i><i style="height:16px"></i><i style="height:9px"></i></span><span class="wm">stereo<b>linkz</b></span></span><span style="font-size:12px;font-weight:700;color:var(--ink3)">Example</span></div>
+          <div class="ok"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></div>
+          <h4>Payment delivered</h4>
+          <div class="amt num">£4,500.00</div>
+          <div class="ln"><span>To</span><span>University · UK</span></div>
+          <div class="ln"><span>Rate</span><span class="num">₦1,840 / £1</span></div>
+          <div class="ln"><span>You paid</span><span class="num">₦8,280,000</span></div>
+          <div class="ln"><span>Delivered</span><span>Same day</span></div>
+        </div></div></div>
+      </div><div class="glare"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ RATES ═════════ -->
+<section class="rates pad" id="rates">
+  <div class="wrap">
+    <p class="kicker rv">Today’s rates</p>
+    <h2 class="split">Clear rates. No surprises.</h2>
+    <p class="sub rv">The same rates we post on our WhatsApp Status. Tell us your amount and we’ll confirm before you send.</p>
+    <div class="rates-grid">
+      <div class="panel rv">
+        <div class="ptop">
+          <div class="tabs" role="tablist" aria-label="Rate type" id="tabs">
+            <span class="pill" aria-hidden="true"></span>
+            <button role="tab" aria-selected="true" aria-controls="t-fx" id="b-fx">Forex</button>
+            <button role="tab" aria-selected="false" aria-controls="t-cx" id="b-cx" tabindex="-1">Crypto</button>
+            <button role="tab" aria-selected="false" aria-controls="t-pof" id="b-pof" tabindex="-1">POF</button>
+          </div>
+          <span class="upd"><span class="live"></span>Updated today, 10:25 AM</span>
+        </div>
+        <div role="tabpanel" id="t-fx" aria-labelledby="b-fx"><div class="rhead"><span>Currency</span><span>We buy</span><span>We sell</span></div><div class="rlist"><div class="rrow"><div class="ent"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><g fill="#C8102E"><rect y="0" width="60" height="4.6"></rect><rect y="9.2" width="60" height="4.6"></rect><rect y="18.4" width="60" height="4.6"></rect><rect y="27.6" width="60" height="4.6"></rect><rect y="36.8" width="60" height="4.6"></rect><rect y="46" width="60" height="4.6"></rect><rect y="55.2" width="60" height="4.6"></rect></g><rect width="30" height="32.2" fill="#0A3161"></rect><g fill="#fff"><circle cx="6" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="24" cy="6" r="1.6"></circle><circle cx="10.5" cy="12" r="1.6"></circle><circle cx="19.5" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle><circle cx="24" cy="18" r="1.6"></circle><circle cx="10.5" cy="24" r="1.6"></circle><circle cx="19.5" cy="24" r="1.6"></circle></g></svg></span><span><b>USD</b><small>US dollar</small></span></div><span class="val buy num" data-to="1365">1,365</span><span class="val sell num" data-to="1378">1,378</span></div><div class="rrow"><div class="ent"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#012169"></rect><path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"></path><path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"></path><path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"></path><path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"></path></svg></span><span><b>GBP</b><small>British pound</small></span></div><span class="val buy num" data-to="1815">1,815</span><span class="val sell num" data-to="1840">1,840</span></div><div class="rrow"><div class="ent"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#003399"></rect><g fill="#FFCC00"><polygon points="30.00,10.00 30.74,11.98 32.85,12.07 31.20,13.39 31.76,15.43 30.00,14.26 28.24,15.43 28.80,13.39 27.15,12.07 29.26,11.98"></polygon><polygon points="38.50,12.28 39.24,14.26 41.35,14.35 39.70,15.67 40.26,17.70 38.50,16.54 36.74,17.70 37.30,15.67 35.65,14.35 37.76,14.26"></polygon><polygon points="44.72,18.50 45.46,20.48 47.58,20.57 45.92,21.89 46.49,23.93 44.72,22.76 42.96,23.93 43.52,21.89 41.87,20.57 43.98,20.48"></polygon><polygon points="47.00,27.00 47.74,28.98 49.85,29.07 48.20,30.39 48.76,32.43 47.00,31.26 45.24,32.43 45.80,30.39 44.15,29.07 46.26,28.98"></polygon><polygon points="44.72,35.50 45.46,37.48 47.58,37.57 45.92,38.89 46.49,40.93 44.72,39.76 42.96,40.93 43.52,38.89 41.87,37.57 43.98,37.48"></polygon><polygon points="38.50,41.72 39.24,43.70 41.35,43.80 39.70,45.11 40.26,47.15 38.50,45.98 36.74,47.15 37.30,45.11 35.65,43.80 37.76,43.70"></polygon><polygon points="30.00,44.00 30.74,45.98 32.85,46.07 31.20,47.39 31.76,49.43 30.00,48.26 28.24,49.43 28.80,47.39 27.15,46.07 29.26,45.98"></polygon><polygon points="21.50,41.72 22.24,43.70 24.35,43.80 22.70,45.11 23.26,47.15 21.50,45.98 19.74,47.15 20.30,45.11 18.65,43.80 20.76,43.70"></polygon><polygon points="15.28,35.50 16.02,37.48 18.13,37.57 16.48,38.89 17.04,40.93 15.28,39.76 13.51,40.93 14.08,38.89 12.42,37.57 14.54,37.48"></polygon><polygon points="13.00,27.00 13.74,28.98 15.85,29.07 14.20,30.39 14.76,32.43 13.00,31.26 11.24,32.43 11.80,30.39 10.15,29.07 12.26,28.98"></polygon><polygon points="15.28,18.50 16.02,20.48 18.13,20.57 16.48,21.89 17.04,23.93 15.28,22.76 13.51,23.93 14.08,21.89 12.42,20.57 14.54,20.48"></polygon><polygon points="21.50,12.28 22.24,14.26 24.35,14.35 22.70,15.67 23.26,17.70 21.50,16.54 19.74,17.70 20.30,15.67 18.65,14.35 20.76,14.26"></polygon></g></svg></span><span><b>EUR</b><small>Euro</small></span></div><span class="val buy num" data-to="1560">1,560</span><span class="val sell num" data-to="1583">1,583</span></div></div><p class="disc">Naira per unit. Large amounts are agreed on request.</p></div>
+        <div role="tabpanel" id="t-cx" aria-labelledby="b-cx" hidden><div class="rhead"><span>Coin</span><span>We buy</span><span>We sell</span></div><div class="rlist"><div class="rrow"><div class="ent"><span class="cn" style="background:#1A9E77">T</span><span><b>USDT</b><small>Tether · TRC20, BEP20</small></span></div><span class="val buy num" data-to="1590">1,590</span><span class="val sell num" data-to="1615">1,615</span></div><div class="rrow"><div class="ent"><span class="cn" style="background:#2775CA">U</span><span><b>USDC</b><small>USD Coin · ERC20, BEP20</small></span></div><span class="val buy num" data-to="1585">1,585</span><span class="val sell num" data-to="1612">1,612</span></div><div class="rrow"><div class="ent"><span class="cn" style="background:#F7931A">B</span><span><b>BTC</b><small>Bitcoin · per $1</small></span></div><span class="val buy num" data-to="1580">1,580</span><span class="val sell num" data-to="1620">1,620</span></div><div class="rrow"><div class="ent"><span class="cn" style="background:#627EEA">E</span><span><b>ETH</b><small>Ethereum · per $1</small></span></div><span class="val buy num" data-to="1575">1,575</span><span class="val sell num" data-to="1615">1,615</span></div><div class="rrow"><div class="ent"><span class="cn" style="background:#0F9D9A">S</span><span><b>SOL</b><small>Solana · per $1</small></span></div><span class="val buy num" data-to="1560">1,560</span><span class="val sell num" data-to="1605">1,605</span></div><div class="rrow"><div class="ent"><span class="cn" style="background:#E0A100">B</span><span><b>BNB</b><small>BNB · BEP20</small></span></div><span class="val buy num" data-to="1560">1,560</span><span class="val sell num" data-to="1605">1,605</span></div></div><p class="disc">Naira per $1 of coin (per coin for USDT and USDC). Always confirm the network before you send.</p></div>
+        <div role="tabpanel" id="t-pof" aria-labelledby="b-pof" hidden><div class="rhead pof"><span>Bank</span><span>Per month</span></div><div class="rlist"><div class="rrow pof"><div class="ent"><span class="cn" style="background:#6B2C91">W</span><span><b>Wema</b><small>&nbsp;</small></span></div><span class="val buy num" data-to="3.4" data-suf="%">3.4%</span></div><div class="rrow pof"><div class="ent"><span class="cn" style="background:#1F0B3F">P</span><span><b>Providus</b><small>New account</small></span></div><span class="val buy num" data-to="3.4" data-suf="%">3.4%</span></div><div class="rrow pof"><div class="ent"><span class="cn" style="background:#0B7A75">E</span><span><b>Ecobank</b><small>New account</small></span></div><span class="val buy num" data-to="3.4" data-suf="%">3.4%</span></div><div class="rrow pof"><div class="ent"><span class="cn" style="background:#3E5BC9">F</span><span><b>Fidelity</b><small>New account</small></span></div><span class="val buy num" data-to="3.4" data-suf="%">3.4%</span></div><div class="rrow pof"><div class="ent"><span class="cn" style="background:#B8327A">P</span><span><b>Parallex</b><small>&nbsp;</small></span></div><span class="val buy num" data-to="2.1" data-suf="%">2.1%</span></div><div class="rrow pof"><div class="ent"><span class="cn" style="background:#C77700">G</span><span><b>Globus</b><small>&nbsp;</small></span></div><span class="val buy num" data-to="2.3" data-suf="%">2.3%</span></div></div><p class="disc">For visa, school and travel applications. Terms apply.</p></div>
+      </div>
+      <aside class="calc rv" aria-label="Rate calculator">
+        <span class="glow"></span>
+        <h3>How much will I get?</h3>
+        <div class="mode" id="mode" role="group" aria-label="Direction"><span class="pill"></span><button aria-pressed="true" data-mode="sell">I’m selling</button><button aria-pressed="false" data-mode="buy">I’m buying</button></div>
+        <div class="fld"><label for="amt" id="amtL">You send</label><div class="row"><input id="amt" inputmode="decimal" value="500"><select id="cur" aria-label="Currency"></select></div></div>
+        <button class="swap" id="swap" aria-label="Switch between selling and buying"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg></button>
+        <div class="fld"><label id="outL">You receive</label><div class="row"><span class="out num" id="out">₦682,500</span></div></div>
+        <p class="rate-line" id="rateLine">Rate: ₦1,365 per USD</p>
+        <a class="btn gold mag" id="calcCta" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Get this rate on WhatsApp</a>
+        <p class="fine">Indicative only. Your rate is confirmed in the chat before you send anything.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ WORLD ═════════ -->
+<section class="world pad" id="world">
+  <div class="wrap grid2">
+    <div>
+      <p class="kicker rv">Payments abroad</p>
+      <h2 class="split">Same day. Anywhere.</h2>
+      <p class="sub rv">Wire, ACH or local bank transfer into the UK, US, Europe, Canada, China and beyond. You pay in naira, they receive in their currency.</p>
+      <div class="wstats">
+        <div class="wstat rv"><b>Same day</b><span>Most payments abroad</span></div>
+        <div class="wstat rv"><b>T+1</b><span>Settlement to China and the rest of the world</span></div>
+        <div class="wstat rv"><b>Low</b><span>Fees, agreed before you pay</span></div>
+        <div class="wstat rv"><b class="num" data-count="9">0</b><span>Minute typical payout (sample, replace with your real figure)</span></div>
+      </div>
+    </div>
+    <div class="globe-wrap rv" id="globe">
+      <svg viewBox="-260 -260 520 520" aria-hidden="true">
+        <defs>
+          <radialGradient id="gG" cx="35%" cy="30%"><stop offset="0" stop-color="#4A2397"/><stop offset=".7" stop-color="#24104F"/><stop offset="1" stop-color="#170838"/></radialGradient>
+          <linearGradient id="arcG" x1="0" x2="1"><stop offset="0" stop-color="#E9B949"/><stop offset="1" stop-color="#B79BFF"/></linearGradient>
+        </defs>
+        <circle r="250" fill="none" stroke="rgba(183,155,255,.12)" stroke-width="40"/>
+        <circle r="200" fill="url(#gG)"/>
+        <g id="lats" fill="none" stroke="rgba(183,155,255,.22)" stroke-width="1"></g>
+        <g id="mers" fill="none" stroke="rgba(183,155,255,.22)" stroke-width="1"></g>
+        <circle r="200" fill="none" stroke="rgba(183,155,255,.5)" stroke-width="1.5"/>
+        <g id="arcs"></g>
+        <circle id="lagos" cx="-10" cy="40" r="7" fill="#E9B949"/>
+        <circle cx="-10" cy="40" r="7" fill="none" stroke="#E9B949" stroke-width="2"><animate attributeName="r" values="7;22" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="1.8s" repeatCount="indefinite"/></circle>
+      </svg>
+      <span class="city" data-city="0" style="left:30%;top:13%"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#012169"></rect><path d="M0 0 60 60M60 0 0 60" stroke="#fff" stroke-width="12"></path><path d="M0 0 60 60M60 0 0 60" stroke="#C8102E" stroke-width="4"></path><path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="18"></path><path d="M30 0v60M0 30h60" stroke="#C8102E" stroke-width="10"></path></svg></span>London</span>
+      <span class="city" data-city="1" style="left:1%;top:30%"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><g fill="#C8102E"><rect y="0" width="60" height="4.6"></rect><rect y="9.2" width="60" height="4.6"></rect><rect y="18.4" width="60" height="4.6"></rect><rect y="27.6" width="60" height="4.6"></rect><rect y="36.8" width="60" height="4.6"></rect><rect y="46" width="60" height="4.6"></rect><rect y="55.2" width="60" height="4.6"></rect></g><rect width="30" height="32.2" fill="#0A3161"></rect><g fill="#fff"><circle cx="6" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="24" cy="6" r="1.6"></circle><circle cx="10.5" cy="12" r="1.6"></circle><circle cx="19.5" cy="12" r="1.6"></circle><circle cx="6" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle><circle cx="24" cy="18" r="1.6"></circle><circle cx="10.5" cy="24" r="1.6"></circle><circle cx="19.5" cy="24" r="1.6"></circle></g></svg></span>New York</span>
+      <span class="city" data-city="2" style="left:8%;top:12%"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"></rect><rect width="15" height="60" fill="#D52B1E"></rect><rect x="45" width="15" height="60" fill="#D52B1E"></rect><path d="M30 15l2.6 5.4 4.4-2.2-1.6 8.6 4.8-1.2-1.2 3.6 5 3.2-7.2 1.4.8 3.4-6.6-.8V42h-2v-6.6l-6.6.8.8-3.4-7.2-1.4 5-3.2-1.2-3.6 4.8 1.2-1.6-8.6 4.4 2.2z" fill="#D52B1E"></path></svg></span>Toronto</span>
+      <span class="city" data-city="3" style="left:70%;top:24%"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#DE2910"></rect><polygon points="20.00,13.00 22.22,18.94 28.56,19.22 23.59,23.17 25.29,29.28 20.00,25.78 14.71,29.28 16.41,23.17 11.44,19.22 17.78,18.94" fill="#FFDE00"></polygon><polygon points="33.00,10.00 33.74,11.98 35.85,12.07 34.20,13.39 34.76,15.43 33.00,14.26 31.24,15.43 31.80,13.39 30.15,12.07 32.26,11.98" fill="#FFDE00"></polygon><polygon points="38.00,16.00 38.74,17.98 40.85,18.07 39.20,19.39 39.76,21.43 38.00,20.26 36.24,21.43 36.80,19.39 35.15,18.07 37.26,17.98" fill="#FFDE00"></polygon><polygon points="38.00,24.00 38.74,25.98 40.85,26.07 39.20,27.39 39.76,29.43 38.00,28.26 36.24,29.43 36.80,27.39 35.15,26.07 37.26,25.98" fill="#FFDE00"></polygon><polygon points="33.00,30.00 33.74,31.98 35.85,32.07 34.20,33.39 34.76,35.43 33.00,34.26 31.24,35.43 31.80,33.39 30.15,32.07 32.26,31.98" fill="#FFDE00"></polygon></svg></span>Shanghai</span>
+      <span class="city" data-city="4" style="left:54%;top:7%"><span class="f"><svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#003399"></rect><g fill="#FFCC00"><polygon points="30.00,10.00 30.74,11.98 32.85,12.07 31.20,13.39 31.76,15.43 30.00,14.26 28.24,15.43 28.80,13.39 27.15,12.07 29.26,11.98"></polygon><polygon points="38.50,12.28 39.24,14.26 41.35,14.35 39.70,15.67 40.26,17.70 38.50,16.54 36.74,17.70 37.30,15.67 35.65,14.35 37.76,14.26"></polygon><polygon points="44.72,18.50 45.46,20.48 47.58,20.57 45.92,21.89 46.49,23.93 44.72,22.76 42.96,23.93 43.52,21.89 41.87,20.57 43.98,20.48"></polygon><polygon points="47.00,27.00 47.74,28.98 49.85,29.07 48.20,30.39 48.76,32.43 47.00,31.26 45.24,32.43 45.80,30.39 44.15,29.07 46.26,28.98"></polygon><polygon points="44.72,35.50 45.46,37.48 47.58,37.57 45.92,38.89 46.49,40.93 44.72,39.76 42.96,40.93 43.52,38.89 41.87,37.57 43.98,37.48"></polygon><polygon points="38.50,41.72 39.24,43.70 41.35,43.80 39.70,45.11 40.26,47.15 38.50,45.98 36.74,47.15 37.30,45.11 35.65,43.80 37.76,43.70"></polygon><polygon points="30.00,44.00 30.74,45.98 32.85,46.07 31.20,47.39 31.76,49.43 30.00,48.26 28.24,49.43 28.80,47.39 27.15,46.07 29.26,45.98"></polygon><polygon points="21.50,41.72 22.24,43.70 24.35,43.80 22.70,45.11 23.26,47.15 21.50,45.98 19.74,47.15 20.30,45.11 18.65,43.80 20.76,43.70"></polygon><polygon points="15.28,35.50 16.02,37.48 18.13,37.57 16.48,38.89 17.04,40.93 15.28,39.76 13.51,40.93 14.08,38.89 12.42,37.57 14.54,37.48"></polygon><polygon points="13.00,27.00 13.74,28.98 15.85,29.07 14.20,30.39 14.76,32.43 13.00,31.26 11.24,32.43 11.80,30.39 10.15,29.07 12.26,28.98"></polygon><polygon points="15.28,18.50 16.02,20.48 18.13,20.57 16.48,21.89 17.04,23.93 15.28,22.76 13.51,23.93 14.08,21.89 12.42,20.57 14.54,20.48"></polygon><polygon points="21.50,12.28 22.24,14.26 24.35,14.35 22.70,15.67 23.26,17.70 21.50,16.54 19.74,17.70 20.30,15.67 18.65,14.35 20.76,14.26"></polygon></g></svg></span>Frankfurt</span>
+      <span class="city" style="left:43%;top:60%;opacity:1;transform:none;background:var(--gold);color:var(--ink);border-color:var(--gold)">🇳🇬 Lagos</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ SCHOOL FEES ═════════ -->
+<section class="fees pad" id="fees">
+  <div class="wrap grid2">
+    <div>
+      <p class="kicker rv">Students and parents</p>
+      <h2 class="split">School fees abroad, paid today.</h2>
+      <p class="sub rv">Send us the invoice. We pay the school directly at a clear rate and send you the confirmation.</p>
+      <ul class="ticks">
+        <li class="rv"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>Tuition, deposits, accommodation and application fees</li>
+        <li class="rv"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>UK, US, Canada, Europe, Australia and more</li>
+        <li class="rv"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>Proof of funds for your visa, from the same team</li>
+        <li class="rv"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>A payment confirmation you can forward to the school</li>
+      </ul>
+      <div class="rv" style="margin-top:34px"><a class="btn pri mag" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%20want%20to%20pay%20school%20fees%20abroad" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Send us your invoice</a></div>
+    </div>
+    <div class="tilt-stage rv" id="tiltStage">
+      <div class="tilt" id="tilt">
+        <div class="inv" id="inv">
+          <div class="top"><span class="logo" style="font-size:19px"><span class="bars"><i style="height:8px"></i><i style="height:13px"></i><i style="height:18px"></i><i style="height:10px"></i></span><span class="wm">stereo<b>linkz</b></span></span><span class="tag">Example</span></div>
+          <h4>Tuition payment · University in the UK</h4>
+          <div class="amt num">£4,500.00</div>
+          <div class="line"><span>Rate</span><span class="num">₦1,840 per £1</span></div>
+          <div class="line"><span>You pay</span><span class="num">₦8,280,000</span></div>
+          <div class="line"><span>Delivery</span><span>Same day</span></div>
+          <div class="prog"><i></i></div>
+          <div class="status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg> Paid to the school · confirmation sent</div>
+        </div>
+        <span class="float3d cap"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></span>
+        <span class="float3d plane"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1F0B3F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ STEPS ═════════ -->
+<section class="steps pad" id="how">
+  <div class="wrap">
+    <p class="kicker rv">How it works</p>
+    <h2 class="split">Simple, fast and safe.</h2>
+    <div class="grid2">
+      <div>
+        <div class="slist" id="slist">
+          <button class="st on"><span class="n">1</span><span><h3>Message us</h3><p>Tell us what you want to sell or pay, and how much.</p></span><span class="bar"></span></button>
+          <button class="st"><span class="n">2</span><span><h3>Confirm the rate</h3><p>We reply with today’s rate and exactly what you’ll receive.</p></span><span class="bar"></span></button>
+          <button class="st"><span class="n">3</span><span><h3>Send</h3><p>Transfer, deposit cash or send coins to the details we give you.</p></span><span class="bar"></span></button>
+          <button class="st"><span class="n">4</span><span><h3>Get paid</h3><p>Naira in your account, or your payment delivered abroad.</p></span><span class="bar"></span></button>
+        </div>
+        <button class="restart" id="restart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> Restart</button>
+      </div>
+      <div class="chat rv" aria-label="Example conversation">
+        <div class="who"><span class="av"><span class="logo" style="font-size:0"><span class="bars"><i style="height:9px"></i><i style="height:15px"></i><i style="height:20px"></i><i style="height:12px"></i></span></span></span><span><b>Stereolinkz</b><small>● online</small></span></div>
+        <div class="msg me" data-s="0">Hi, I want to sell $500 USD cash<small>10:31</small></div>
+        <div class="msg us" data-s="1">Hello! Today we buy USD at <b>₦1,365</b>. For $500 you get <b>₦682,500</b>. Shall we go ahead?<small>10:32</small></div>
+        <div class="msg me" data-s="2">Yes please. Deposit done ✅<small>10:36</small></div>
+        <div class="msg us" data-s="3">Received, thank you. <b>₦682,500</b> has been sent to your account 🎉<small>10:41</small></div>
+        <div class="typing" id="typing"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ MEGA MARQUEE ═════════ -->
+<div class="mega" aria-hidden="true">
+  <div class="line" id="mega1"><span>FOREX</span><span class="star">✦</span><span class="fill">CRYPTO</span><span class="star">✦</span><span>PROOF OF FUNDS</span><span class="star">✦</span><span class="fill">SCHOOL FEES</span><span class="star">✦</span><span>FOREX</span><span class="star">✦</span><span class="fill">CRYPTO</span><span class="star">✦</span><span>PROOF OF FUNDS</span><span class="star">✦</span><span class="fill">SCHOOL FEES</span><span class="star">✦</span></div>
+</div>
+
+<!-- ═════════ REVIEWS (SAMPLE) ═════════ -->
+<section class="reviews">
+  <div class="wrap">
+    <p class="kicker rv">Customers</p>
+    <h2 class="split">Hear it from our clients.</h2>
+    <span class="sample rv">Sample placeholders: replace with real reviews, used with permission</span>
+  </div>
+  <div style="margin-top:50px">
+    <div class="rmq"><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how fast the naira arrived after selling dollars.”</p><figcaption class="by"><span style="background:#6A35D9">A</span><span><b>Customer name</b><small>Sold USD · Lagos</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A parent describes paying tuition abroad and receiving the confirmation.”</p><figcaption class="by"><span style="background:#C77700">B</span><span><b>Customer name</b><small>School fees · UK</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how clear the rate and network were.”</p><figcaption class="by"><span style="background:#1A9E77">C</span><span><b>Customer name</b><small>Sold USDT · Abuja</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes getting proof of funds for a visa application.”</p><figcaption class="by"><span style="background:#3E5BC9">D</span><span><b>Customer name</b><small>Proof of funds</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A business owner describes paying a supplier in China.”</p><figcaption class="by"><span style="background:#B8327A">E</span><span><b>Customer name</b><small>Supplier · China</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes the service on WhatsApp.”</p><figcaption class="by"><span style="background:#0F9D9A">F</span><span><b>Customer name</b><small>Sold GBP · Port Harcourt</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how fast the naira arrived after selling dollars.”</p><figcaption class="by"><span style="background:#6A35D9">A</span><span><b>Customer name</b><small>Sold USD · Lagos</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A parent describes paying tuition abroad and receiving the confirmation.”</p><figcaption class="by"><span style="background:#C77700">B</span><span><b>Customer name</b><small>School fees · UK</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how clear the rate and network were.”</p><figcaption class="by"><span style="background:#1A9E77">C</span><span><b>Customer name</b><small>Sold USDT · Abuja</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes getting proof of funds for a visa application.”</p><figcaption class="by"><span style="background:#3E5BC9">D</span><span><b>Customer name</b><small>Proof of funds</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A business owner describes paying a supplier in China.”</p><figcaption class="by"><span style="background:#B8327A">E</span><span><b>Customer name</b><small>Supplier · China</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes the service on WhatsApp.”</p><figcaption class="by"><span style="background:#0F9D9A">F</span><span><b>Customer name</b><small>Sold GBP · Port Harcourt</small></span></figcaption></figure></div>
+    <div class="rmq rev"><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes getting proof of funds for a visa application.”</p><figcaption class="by"><span style="background:#3E5BC9">D</span><span><b>Customer name</b><small>Proof of funds</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A business owner describes paying a supplier in China.”</p><figcaption class="by"><span style="background:#B8327A">E</span><span><b>Customer name</b><small>Supplier · China</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes the service on WhatsApp.”</p><figcaption class="by"><span style="background:#0F9D9A">F</span><span><b>Customer name</b><small>Sold GBP · Port Harcourt</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how fast the naira arrived after selling dollars.”</p><figcaption class="by"><span style="background:#6A35D9">A</span><span><b>Customer name</b><small>Sold USD · Lagos</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A parent describes paying tuition abroad and receiving the confirmation.”</p><figcaption class="by"><span style="background:#C77700">B</span><span><b>Customer name</b><small>School fees · UK</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how clear the rate and network were.”</p><figcaption class="by"><span style="background:#1A9E77">C</span><span><b>Customer name</b><small>Sold USDT · Abuja</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes getting proof of funds for a visa application.”</p><figcaption class="by"><span style="background:#3E5BC9">D</span><span><b>Customer name</b><small>Proof of funds</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A business owner describes paying a supplier in China.”</p><figcaption class="by"><span style="background:#B8327A">E</span><span><b>Customer name</b><small>Supplier · China</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes the service on WhatsApp.”</p><figcaption class="by"><span style="background:#0F9D9A">F</span><span><b>Customer name</b><small>Sold GBP · Port Harcourt</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how fast the naira arrived after selling dollars.”</p><figcaption class="by"><span style="background:#6A35D9">A</span><span><b>Customer name</b><small>Sold USD · Lagos</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A parent describes paying tuition abroad and receiving the confirmation.”</p><figcaption class="by"><span style="background:#C77700">B</span><span><b>Customer name</b><small>School fees · UK</small></span></figcaption></figure><figure class="rc"><span class="stars" aria-hidden="true">★★★★★</span><p>“Placeholder review. A customer describes how clear the rate and network were.”</p><figcaption class="by"><span style="background:#1A9E77">C</span><span><b>Customer name</b><small>Sold USDT · Abuja</small></span></figcaption></figure></div>
+  </div>
+</section>
+
+<!-- ═════════ FAQ ═════════ -->
+<section class="faq pad" id="faq" style="padding-top:20px">
+  <div class="wrap grid2">
+    <div><p class="kicker rv">FAQ</p><h2 class="split">Questions, answered.</h2><p class="sub rv">Something else? Ask us on WhatsApp. We reply fast.</p></div>
+    <div id="qas"><div class="qa open"><button aria-expanded="true">How fast will I be paid?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>Most payouts arrive within minutes of us confirming your transfer, cash or coins. Large amounts can take a little longer, and we’ll tell you upfront.</p></div></div></div><div class="qa"><button aria-expanded="false">Are the rates on this page final?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>They’re today’s rates with the time they were last updated. Rates can change during the day, so we always confirm your exact rate in the chat before you send anything.</p></div></div></div><div class="qa"><button aria-expanded="false">Which crypto networks do you accept?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>The networks are listed beside each coin, for example TRC20 and BEP20 for USDT. Only send on the network we confirm, to the address we give you in the chat.</p></div></div></div><div class="qa"><button aria-expanded="false">What is proof of funds and who needs it?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>Many visa, school and travel applications ask for a bank statement showing enough funds. We arrange this with partner banks for a monthly rate, shown in the POF tab.</p></div></div></div><div class="qa"><button aria-expanded="false">Can you pay a school or supplier directly?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>Yes. Send us the invoice or payment details. We pay the recipient directly and send you the confirmation.</p></div></div></div><div class="qa"><button aria-expanded="false">Is there a minimum amount?<span class="pm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="ans"><div><p>Placeholder: state your real minimums here. Ask us about better rates for large amounts.</p></div></div></div></div>
+  </div>
+</section>
+
+<!-- ═════════ CTA ═════════ -->
+<section class="cta">
+  <div class="wrap">
+    <div class="box rv">
+      <div class="rain" id="rain"></div>
+      <h2 class="split">Get today’s rate in one message.</h2>
+      <p>Say hi on WhatsApp. A real person replies with the rate and what you’ll receive.</p>
+      <a class="btn gold mag" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Chat on WhatsApp</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div><span class="logo"><span class="bars"><i style="height:11px"></i><i style="height:18px"></i><i style="height:25px"></i><i style="height:14px"></i></span><span class="wm">stereo<b>linkz</b></span></span><p style="margin-top:16px;max-width:320px;font-size:15px">Forex, crypto, proof of funds and payments abroad, handled by real people on WhatsApp.</p></div>
+      <div><h5>Services</h5><ul><li><a href="#services">Sell forex</a></li><li><a href="#services">Sell crypto</a></li><li><a href="#services">Proof of funds</a></li><li><a href="#fees">School fees abroad</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="#how">How it works</a></li><li><a href="#faq">FAQ</a></li><li><a href="#">Terms</a></li><li><a href="#">Privacy</a></li></ul></div>
+      <div><h5>Contact</h5><ul><li><a href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener">+234 800 000 0000</a></li><li><a href="mailto:hello@example.com">hello@example.com</a></li><li>Lagos, Nigeria</li></ul></div>
+    </div>
+    <div class="legal">
+      <p>Rates shown are indicative and can change without notice. Your rate is confirmed before you send. Crypto prices are volatile; always confirm the network and address in the chat before sending coins.</p>
+      <p class="ph">Placeholder: registered business name, RC number and any licence or registration details. Only state what is true.</p>
+      <p>© 2026 Stereolinkz. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+<div class="fab"><a class="btn vio" href="https://wa.me/2348000000000?text=Hi%20Stereolinkz%2C%20I%27d%20like%20today%27s%20rate" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg> Chat</a></div>
+
+<script>
+(function(){
+  var RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var vh=innerHeight, $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return [].slice.call((r||document).querySelectorAll(s))};
+  var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+
+  /* fit boards inside phones */
+  function fitBoards(){$$('[data-fit]').forEach(function(b){var w=b.parentElement.clientWidth||b.parentElement.parentElement.clientWidth,base=+b.dataset.fit||1080;if(w)b.style.transform='scale('+(w/base)+')'})}
+  fitBoards(); addEventListener('resize',function(){vh=innerHeight;fitBoards()});
+
+  /* rotating line */
+  var slots=$$('#slot span'),si=0;
+  if(!RM)setInterval(function(){var a=slots[si];a.classList.remove('on');a.classList.add('out');si=(si+1)%slots.length;var b=slots[si];b.classList.remove('out');void b.offsetWidth;b.classList.add('on');setTimeout(function(){a.classList.remove('out')},650)},2400);
+
+  /* split headings into words */
+  $$('.split').forEach(function(h){h.innerHTML=h.textContent.trim().split(/\s+/).map(function(w,i){return '<span class="w"><span style="transition-delay:'+(i*60)+'ms">'+w+'</span></span>'}).join(' ')});
+
+  /* reveal */
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15});
+  $$('.rv,.split').forEach(function(el){io.observe(el)});
+
+  /* nav hide on scroll down */
+  var lastY=0,nav=$('#nav'),worldEl=$('#world');
+  /* mobile menu */
+  var menu=$('#menu'),links=$('#links');
+  menu.addEventListener('click',function(){var o=links.classList.toggle('open');menu.setAttribute('aria-expanded',o)});
+  links.addEventListener('click',function(e){if(e.target.tagName==='A'){links.classList.remove('open');menu.setAttribute('aria-expanded','false')}});
+
+  /* hero orbit + 3D phone + parallax */
+  var coins=$$('#orbit .coin'),phone=$('#heroPhone'),stage=$('#stage'),mx=0,my=0,tmx=0,tmy=0;
+  addEventListener('pointermove',function(e){tmx=(e.clientX/innerWidth-.5);tmy=(e.clientY/innerHeight-.5)});
+
+  /* tickers with scroll velocity */
+  var tracks=$$('.track').map(function(t){return {el:t,x:0,s:parseFloat(t.dataset.speed)}});
+  var vel=0;
+
+  /* scrolly */
+  var sc=$('#services'),items=$$('.sc-item'),scrs=$$('#scScreens .scr'),dots=$$('#scDots b'),bgs=JSON.parse(sc.dataset.bg),cur=-1;
+  function setStep(i){if(i===cur)return;cur=i;items.forEach(function(it,k){it.classList.toggle('on',k===i);it.classList.toggle('past',k<i)});scrs.forEach(function(s,k){s.classList.toggle('on',k===i);s.classList.toggle('past',k<i)});sc.style.background=bgs[i]}
+
+  /* mega marquee */
+  var mega=$('#mega1');
+
+  var t0=performance.now();
+  function frame(now){
+    var y=scrollY, t=(now-t0)/1000;
+    vel+= (y-lastY); vel*=.9;
+    nav.classList.toggle('hide',y>lastY+2&&y>300); if(y<lastY-2)nav.classList.remove('hide');
+    lastY=y;
+    var wr=worldEl.getBoundingClientRect(); nav.classList.toggle('dark',wr.top<60&&wr.bottom>60);
+    mx+=(tmx-mx)*.06; my+=(tmy-my)*.06;
+    // hero
+    var p=clamp(y/(vh*.7),0,1);
+    if(!RM){
+      phone.style.transform='translateY('+(90-90*p)+'px) rotateX('+(26-26*p+my*-6)+'deg) rotateY('+(mx*14)+'deg) rotateZ('+(-6+6*p)+'deg) scale('+(.88+.12*p)+')';
+      coins.forEach(function(c,k){var r=+c.dataset.r*(innerWidth<860?.62:1),a=(+c.dataset.a+t*+c.dataset.s*40)*Math.PI/180,sy=.42;
+        var x=Math.cos(a)*r+mx*(30+k*8), yy=Math.sin(a)*r*sy+my*(30+k*6)-y*(.15+k*.04)-90, z=Math.sin(a);
+        c.style.transform='translate('+x+'px,'+yy+'px) scale('+(.8+z*.25)+') rotate('+(t*20*(k%2?1:-1))+'deg)';c.style.zIndex=z>0?7:1;c.style.opacity=.55+.45*(z+1)/2});
+      tracks.forEach(function(tr){tr.x-=tr.s*(1+Math.abs(vel)*.08)*(tr.s>0?1:1);var w=tr.el.scrollWidth/2;if(tr.x<-w)tr.x+=w;if(tr.x>0)tr.x-=w;tr.el.style.transform='translateX('+tr.x+'px)'});
+      var mr=mega.getBoundingClientRect(); if(mr.top<vh&&mr.bottom>0){mega.style.transform='translateX('+(-((vh-mr.top)*.6))+'px)'}
+    }
+    // scrolly
+    var r=sc.getBoundingClientRect(), total=sc.offsetHeight-vh, sp=clamp(-r.top/total,0,.9999), idx=Math.floor(sp*4);
+    setStep(idx); dots.forEach(function(d,k){d.style.transform='scaleX('+clamp(sp*4-k,0,1)+')'});
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* rates tabs with sliding pill */
+  var tabs=$$('#tabs [role=tab]'),tpill=$('#tabs .pill');
+  function movePill(t){tpill.style.width=t.offsetWidth+'px';tpill.style.transform='translateX('+(t.offsetLeft-5)+'px)'}
+  function sel(t){tabs.forEach(function(x){var on=x===t;x.setAttribute('aria-selected',on);x.tabIndex=on?0:-1;var p=document.getElementById(x.getAttribute('aria-controls'));p.hidden=!on;if(on)animateRows(p)});movePill(t)}
+  tabs.forEach(function(t,i){t.addEventListener('click',function(){sel(t)});t.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];n.focus();sel(n)}})});
+  setTimeout(function(){movePill(tabs[0])},50); addEventListener('resize',function(){movePill(tabs.filter(function(t){return t.getAttribute('aria-selected')==='true'})[0])});
+
+  /* count-up numbers */
+  function countUp(el){var to=parseFloat(el.dataset.to),dec=(el.dataset.to.split('.')[1]||'').length,suf=el.dataset.suf||'',pre=el.dataset.pre||'',d=900,s=performance.now();
+    if(RM){el.textContent=pre+to.toLocaleString('en-NG',{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;return}
+    (function st(n){var k=clamp((n-s)/d,0,1),e=1-Math.pow(1-k,3);el.textContent=pre+(to*e).toLocaleString('en-NG',{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;if(k<1)requestAnimationFrame(st)})(s)}
+  function animateRows(panel){$$('.rrow',panel).forEach(function(r,i){r.classList.remove('in');setTimeout(function(){r.classList.add('in');$$('[data-to]',r).forEach(countUp)},80*i)})}
+  var ratesSeen=false,rio=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!ratesSeen){ratesSeen=true;animateRows($('#t-fx'))}},{threshold:.2});rio.observe($('#rates .panel'));
+  var wio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var el=e.target;el.dataset.to=el.dataset.count;countUp(el);wio.unobserve(el)}})});$$('[data-count]').forEach(function(el){wio.observe(el)});
+
+  /* calculator */
+  var RATES={USD:{b:1365,s:1378,u:'per USD'},GBP:{b:1815,s:1840,u:'per GBP'},EUR:{b:1560,s:1583,u:'per EUR'},USDT:{b:1590,s:1615,u:'per USDT'},BTC:{b:1580,s:1620,u:'per $1 of BTC'},ETH:{b:1575,s:1615,u:'per $1 of ETH'}};
+  var WA='2348000000000',mode='sell',cur$=$('#cur'),amt=$('#amt'),out=$('#out'),shown=682500;
+  Object.keys(RATES).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k+(k==='BTC'||k==='ETH'?' ($ value)':'');cur$.appendChild(o)});
+  function tween(to){var from=shown,s=performance.now();shown=to;if(RM){out.textContent='₦'+Math.round(to).toLocaleString('en-NG');return}(function st(n){var k=clamp((n-s)/500,0,1),e=1-Math.pow(1-k,3);out.textContent='₦'+Math.round(from+(to-from)*e).toLocaleString('en-NG');if(k<1)requestAnimationFrame(st)})(s)}
+  function calc(){var r=RATES[cur$.value],a=parseFloat(String(amt.value).replace(/,/g,''))||0,rate=mode==='sell'?r.b:r.s;tween(a*rate);
+    $('#amtL').textContent=mode==='sell'?'You send':'You want';$('#outL').textContent=mode==='sell'?'You receive':'You pay';
+    $('#rateLine').textContent='Rate: ₦'+rate.toLocaleString('en-NG')+' '+r.u;
+    $('#calcCta').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hi Stereolinkz, I want to '+(mode==='sell'?'sell ':'buy ')+(a||'')+' '+cur$.value+'. Is ₦'+rate.toLocaleString('en-NG')+' '+r.u+' still today’s rate?')}
+  function setMode(m){mode=m;$('#mode').classList.toggle('buy',m==='buy');$$('[data-mode]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.mode===m)});calc()}
+  $$('[data-mode]').forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.mode)})});
+  $('#swap').addEventListener('click',function(){this.classList.toggle('spin');setMode(mode==='sell'?'buy':'sell')});
+  amt.addEventListener('input',calc);cur$.addEventListener('change',calc);calc();
+
+  /* globe: rotating meridians + routes */
+  var NS='http://www.w3.org/2000/svg',mers=$('#mers'),lats=$('#lats'),arcsG=$('#arcs');
+  [-150,-100,-50,0,50,100,150].forEach(function(yy){var rx=Math.sqrt(200*200-yy*yy),e=document.createElementNS(NS,'ellipse');e.setAttribute('cx',0);e.setAttribute('cy',yy);e.setAttribute('rx',rx);e.setAttribute('ry',rx*.12);lats.appendChild(e)});
+  var M=[];for(var k=0;k<8;k++){var e=document.createElementNS(NS,'ellipse');e.setAttribute('cx',0);e.setAttribute('cy',0);e.setAttribute('ry',200);mers.appendChild(e);M.push(e)}
+  var routes=[[-60,-150],[-185,-70],[-150,-155],[150,-110],[40,-185]];
+  var paths=routes.map(function(p){var sx=-10,sy=40,mx2=(sx+p[0])/2,my2=(sy+p[1])/2-90,d='M'+sx+' '+sy+' Q'+mx2+' '+my2+' '+p[0]+' '+p[1];
+    var path=document.createElementNS(NS,'path');path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','url(#arcG)');path.setAttribute('stroke-width','2.5');path.setAttribute('stroke-linecap','round');arcsG.appendChild(path);
+    var L=path.getTotalLength();path.style.strokeDasharray=L;path.style.strokeDashoffset=L;
+    var dot=document.createElementNS(NS,'circle');dot.setAttribute('r',4.5);dot.setAttribute('fill','#fff');dot.style.opacity=0;arcsG.appendChild(dot);
+    var end=document.createElementNS(NS,'circle');end.setAttribute('cx',p[0]);end.setAttribute('cy',p[1]);end.setAttribute('r',5);end.setAttribute('fill','#B79BFF');arcsG.appendChild(end);
+    return {path:path,L:L,dot:dot}});
+  var cities=$$('.city[data-city]'),gStart=null,gVisible=false;
+  new IntersectionObserver(function(es){gVisible=es[0].isIntersecting;if(gVisible&&gStart===null)gStart=performance.now()},{threshold:.25}).observe($('#globe'));
+  (function gl(n){var t=n/1000;M.forEach(function(e,k){var ph=t*.35+k*Math.PI/8;e.setAttribute('rx',Math.abs(Math.cos(ph))*200)});
+    if(gStart!==null){var el=(n-gStart)/1000;paths.forEach(function(r,k){var cyc=(el-k*.7)%5.5;var pr=clamp(cyc/1.4,0,1);if(el<k*.7)pr=0;
+      r.path.style.strokeDashoffset=r.L*(1-pr);if(pr>0&&pr<1){var pt=r.path.getPointAtLength(r.L*pr);r.dot.setAttribute('cx',pt.x);r.dot.setAttribute('cy',pt.y);r.dot.style.opacity=1}else r.dot.style.opacity=0;
+      if(pr>=1&&cities[k])cities[k].classList.add('on')})}
+    if(RM){paths.forEach(function(r){r.path.style.strokeDashoffset=0});cities.forEach(function(c){c.classList.add('on')});return}
+    requestAnimationFrame(gl)})(performance.now());
+
+  /* tilt card */
+  var ts=$('#tiltStage'),tilt=$('#tilt'),inv=$('#inv');
+  if(!RM){ts.addEventListener('pointermove',function(e){var r=ts.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;tilt.style.transform='rotateY('+(x*22)+'deg) rotateX('+(-y*18)+'deg)'});
+    ts.addEventListener('pointerleave',function(){tilt.style.transform=''});
+    addEventListener('scroll',function(){var r=ts.getBoundingClientRect();if(r.top<vh&&r.bottom>0&&!ts.matches(':hover')){var k=(r.top+r.height/2-vh/2)/vh;tilt.style.transform='rotateX('+(k*16)+'deg) rotateY('+(-k*10)+'deg)'}},{passive:true})}
+  new IntersectionObserver(function(es){if(es[0].isIntersecting)inv.classList.add('go')},{threshold:.5}).observe(inv);
+
+  /* steps autoplay */
+  var sts=$$('#slist .st'),msgs=$$('.msg'),typing=$('#typing'),si2=0,stTimer=null,stStarted=false;
+  function showStep(i){si2=i;sts.forEach(function(s,k){s.classList.toggle('on',k===i);var b=$('.bar',s);b.style.animation='none';void b.offsetWidth;b.style.animation=''});
+    msgs.forEach(function(m){m.classList.toggle('on',+m.dataset.s<i)});typing.classList.add('on');
+    clearTimeout(stTimer);stTimer=setTimeout(function(){typing.classList.remove('on');msgs.forEach(function(m){m.classList.toggle('on',+m.dataset.s<=i)});stTimer=setTimeout(function(){if(i<3)showStep(i+1)},2400)},800)}
+  sts.forEach(function(s,k){s.addEventListener('click',function(){showStep(k)})});
+  $('#restart').addEventListener('click',function(){showStep(0)});
+  new IntersectionObserver(function(es){if(es[0].isIntersecting&&!stStarted){stStarted=true;RM?(msgs.forEach(function(m){m.classList.add('on')})):showStep(0)}},{threshold:.4}).observe($('#slist'));
+
+  /* FAQ */
+  $$('.qa button').forEach(function(b){b.addEventListener('click',function(){var q=b.parentElement,o=q.classList.toggle('open');b.setAttribute('aria-expanded',o)})});
+
+  /* coin rain in CTA */
+  var rain=$('#rain'),sym=['₦','$','£','€','₮','₿'],cls=['g','v','g','v','t','o'];
+  if(!RM)for(var i=0;i<12;i++){var c=document.createElement('span');var k2=i%6;c.className='coin s '+cls[k2];c.textContent=sym[k2];c.style.left=(5+i*8)+'%';c.style.animationDuration=(7+Math.random()*6)+'s';c.style.animationDelay=(-Math.random()*10)+'s';c.style.opacity=.35;rain.appendChild(c)}
+
+  /* magnetic buttons */
+  if(!RM&&matchMedia('(pointer:fine)').matches)$$('.mag').forEach(function(b){b.addEventListener('pointermove',function(e){var r=b.getBoundingClientRect();b.style.transform='translate('+((e.clientX-r.left-r.width/2)*.18)+'px,'+((e.clientY-r.top-r.height/2)*.25)+'px)'});b.addEventListener('pointerleave',function(){b.style.transform=''})});
+})();
+</script>
+</body>
+</html>
