@@ -67,9 +67,15 @@ export function Calculator({
     return () => cancelAnimationFrame(frame);
   }, [estimate, text, reduced]);
 
+  // A half-typed or invalid amount is left out of the message.
   const href = whatsappLink(
     contactLine,
-    calculatorMessage({ brand, mode, amount, option }),
+    calculatorMessage({
+      brand,
+      mode,
+      amount: estimate === null ? "" : amount.trim(),
+      option,
+    }),
   );
 
   return (

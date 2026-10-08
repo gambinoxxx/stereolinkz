@@ -219,4 +219,17 @@ describe("calculatorMessage", () => {
       "Hi Stereolinkz, I want to sell $50 of XT. Is ₦1,590 per $1 of XT still today’s rate?",
     );
   });
+
+  it("leaves an empty amount out", () => {
+    expect(
+      calculatorMessage({
+        brand: "Stereolinkz",
+        mode: "sell",
+        amount: "",
+        option: coin!,
+      }),
+    ).toBe(
+      "Hi Stereolinkz, I want to sell XT. Is ₦1,590 per $1 of XT still today’s rate?",
+    );
+  });
 });

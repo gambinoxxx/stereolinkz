@@ -9,11 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 11, calculator and WhatsApp: check the calculator maths and every
-  link's prefilled message against the Settings number.
+- Phase 11, SEO and performance: metadata, Open Graph from the newest
+  Forex PNG, robots and sitemap, Lighthouse mobile budgets.
 
 ## Completed
 
+- 2026-10-08: Phase 11, calculator and WhatsApp. Selling uses the board's
+  buy rate, buying its sell rate; coins are listed as "X ($ value)" with
+  "per $1 of X". Checked on a production build: sell 500 USD → ₦680,000,
+  message "Hi Stereolinkz, I want to sell 500 USD. Is ₦1,360 per USD still
+  today’s rate?"; buying → ₦690,000 at 1,380; swap returns to selling;
+  BTC $1,200.50 → ₦1,596,665; 0.1 → ₦133; "-5" and "abc" → "—" and the
+  message leaves the amount out (tested). All 7 `wa.me` links (nav, hero,
+  calculator, school fees, CTA, footer, phone button) go to
+  2349035914544 with a prefilled message, `target=_blank rel=noopener`.
 - 2026-10-08: Phase 11, motion. Shared hooks in
   `features/public/motion/hooks.ts` (`useReducedMotion`, `useInView`,
   `useScrollProgress`, `usePointer`, plus `useFrame`, `useFinePointer`,
@@ -582,7 +591,8 @@ change.
 
 ## In Progress
 
-- Phase 11: Landing page (data and routing, static page, motion done).
+- Phase 11: Landing page (data and routing, static page, motion,
+  calculator and WhatsApp done).
 
 ## Next Up
 
