@@ -5,14 +5,30 @@ change.
 
 ## Current Phase
 
-- Phase 10: Crypto, complete
+- Phase 11: Landing page
 
 ## Current Goal
 
-- None. Waiting for the owner's go to push Phase 10.
+- Phase 11, static page: every section of `landing.html` as server
+  components, with the empty states.
 
 ## Completed
 
+- 2026-10-08: Phase 11, data and routing. `features/public/queries.ts`
+  (`getPublicLanding()`, server-only): the org by `PUBLIC_ORG_SLUG` (public
+  fields + time zone; id dropped), then the newest FOREX, CRYPTO and (only
+  when `PUBLIC_SHOW_POF` is exactly "true") POF board, each with its
+  newest image (`take: 1`). `landing-data.ts` maps them to rows without
+  ids, `dateLabel`, `timeLabel`, `createdAt` and the image; an unreadable
+  snapshot logs and gives `null`. Pure helpers `whatsappLink`,
+  `estimateNaira` (decimal strings, whole naira, half up, rejects negative
+  or non-numeric input) and `updatedLabel`, all tested (26 tests, db
+  mocked for the query shape). `src/app/page.tsx` (redirect) replaced by
+  `src/app/(public)/{layout,page}.tsx`; `revalidate = 3600`; build shows
+  `○ /  1h`. `revalidatePath("/")` added to `generateBoard` (via
+  `revalidateBoardPages`), `regenerateBoard` and `updateOrgSettings`;
+  rate-saving actions untouched. Checked on a production build: `/` 200
+  (cache HIT) with today's boards, `/admin` signed out → 307 `/login`.
 - 2026-10-02: Phase 10 complete. All Done-when items checked, tagged
   phase-10-complete.
 - 2026-10-02: Phase 10, templates, generator, history, dashboard and
@@ -532,12 +548,10 @@ change.
 
 ## In Progress
 
-- Nothing in progress.
+- Phase 11: Landing page (data and routing done).
 
 ## Next Up
 
-- Phase 11: Landing page (`prompts/phase-11-landing.md`, design
-  `docs/design/landing.html`)
 - Phase 10 on production: owner checks the coins on the live site,
   generates a crypto board on a phone and posts it to WhatsApp Status
 - Phase 12: Hardening and launch. Open: the launch users' Clerk IDs

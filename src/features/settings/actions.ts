@@ -9,8 +9,10 @@ import { db } from "@/lib/server/db";
 
 // Pages that read the organization's settings. Saved boards don't change:
 // each keeps the brand copied into its snapshot (Invariants 3 and 5).
+// "/" reads the name, colours and WhatsApp number for its links.
 function revalidateSettingsPages() {
   for (const path of [
+    "/",
     "/admin",
     "/admin/settings",
     "/admin/generator",

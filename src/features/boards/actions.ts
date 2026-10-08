@@ -59,9 +59,12 @@ type Prepared<Row> =
       rateInserts: Prisma.PrismaPromise<unknown>[];
     };
 
-// Pages that show rates or boards.
+// Pages that show rates or boards. "/" is the public landing page, which
+// shows the newest board of each type (Invariant 13): it changes when a
+// board is generated, never when a rate is only saved.
 function revalidateBoardPages() {
   for (const path of [
+    "/",
     "/admin",
     "/admin/forex",
     "/admin/pof",
@@ -276,6 +279,8 @@ const regenerate = safeAction(
     }
 
     revalidatePath("/admin/history");
+    // A new image of the newest board is what the landing page shows.
+    revalidatePath("/");
     const { renderMs, uploadMs, saveMs } = stored.timings;
     console.info(
       `[regenerateBoard] ${template.key}: render ${renderMs} ms, upload ${uploadMs} ms, save ${saveMs} ms (${stored.image.byteSize} bytes)`,
