@@ -1061,7 +1061,7 @@
     grid-template-columns: 1fr 1fr;
   }
 }
-.dk .done {
+.dk .done-wrap {
   max-width: 640px;
   margin: 0 auto;
   text-align: center;
@@ -1086,13 +1086,13 @@
     opacity: 0;
   }
 }
-.dk .done h1 {
+.dk .done-wrap h1 {
   margin-top: 30px;
 }
-.dk .done .lead {
+.dk .done-wrap .lead {
   margin: 14px auto 0;
 }
-.dk .done .card {
+.dk .done-wrap .card {
   text-align: left;
   margin-top: 30px;
 }
@@ -1185,4 +1185,18 @@
   .dk .mbar .noq {
     font-size: 16px;
   }
+}
+.dk .status.off {
+  background: #eeeaf4;
+  color: var(--ink3);
+}
+.dk .ref button {
+  border: 0;
+  background: none;
+  color: var(--violet);
+  cursor: pointer;
+  display: inline-grid;
+}
+.dk .copyrow button span {
+  display: inline;
 }

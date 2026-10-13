@@ -9,11 +9,32 @@ change.
 
 ## Current Goal
 
-- Phase 12, tracking: `/deal/[ref]?t=…` (submitted and tracking states,
-  payment card, "I’ve paid" with receipt, 20 s refresh).
+- Phase 12, admin deals: `/admin/deals` queue and `/admin/deals/[ref]`
+  (transitions, agreed rate, payment account, WhatsApp, notes, activity),
+  "New deal", sidebar badge and Deals tab.
 
 ## Completed
 
+- 2026-10-14: Phase 12, tracking. `/deal/[ref]?t=…` (`force-dynamic`):
+  `?new=1` = deal-submitted (reference, status, "Continue on WhatsApp"
+  with reference, service and amount, open/copy my deal link, upload-failed
+  note); otherwise deal-track (status chip, payment card only in
+  AWAITING_PAYMENT with an account chosen: amount, bank, number, name,
+  narration = ref, copy buttons, safety warning; "I’ve paid" with optional
+  receipt → CUSTOMER_PAID event, once per deal, status unchanged; deal
+  details with estimate and agreed rate; progress from events; 20 s
+  refresh paused when hidden). `getDealForCustomer` returns customer-safe
+  fields only (no phone, email, hashes, notes, staff ids; account only
+  while awaiting payment). `features/deals/{format,messages,progress}.ts`
+  with tests. Checked on a production build (dev branch): no token, wrong
+  token, this token on another deal and an unknown ref all give the same
+  404; no payment details in the HTML at NEW or AGREED; shown at
+  AWAITING_PAYMENT; "I’ve paid" + receipt recorded (CUSTOMER_PAID +
+  FILE_UPLOADED RECEIPT), thanks note shown; file with the token 200,
+  same file under another ref or without the token 404; an open page
+  turned to "Payment received" by itself within 22 s and the payment card
+  went. Fixed: the submitted page's `.done` class clashed with the
+  timeline's `li.done` (renamed `done-wrap`).
 - 2026-10-13: Phase 12, customer forms. `/deal/new` (cards for enabled
   services, tags from the boards, cash → WhatsApp, closed state) and
   `/deal/new/[service]` (school-fees, pay-abroad, pof, forex; disabled or

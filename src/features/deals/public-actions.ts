@@ -257,3 +257,54 @@ export const attachDealFile = publicAction(
     return { ok: true, data: { id: created.id } };
   },
 );
+
+// ── "I’ve paid" (tracking page) ───────────────────────────────────────
+// A customer event only: the status never moves here. A team member marks
+// the payment received after checking the bank statement (Invariant 15).
+
+const paidRequest = z.object({
+  ref: z.string().max(20),
+  token: z.string().max(60),
+});
+
+export const markDealPaid = publicAction(
+  "markDealPaid",
+  async (raw: unknown): Promise<ActionResult<{ recorded: boolean }>> => {
+    const parsed = paidRequest.safeParse(raw);
+    if (!parsed.success) return { ok: false, error: GENERIC };
+    const ctx = await getDealDeskContext();
+    const dealId =
+      ctx &&
+      (await findDealIdByToken(ctx.org.id, parsed.data.ref, parsed.data.token));
+    if (!dealId) return { ok: false, error: NOT_FOUND };
+
+    const deal = await db.deal.findUniqueOrThrow({
+      where: { id: dealId },
+      select: { status: true },
+    });
+    if (deal.status !== "AWAITING_PAYMENT")
+      return {
+        ok: false,
+        error:
+          "This deal isn’t waiting for a payment. Message us on WhatsApp if you need help.",
+      };
+
+    // Once per deal: AWAITING_PAYMENT is reached only once (the state
+    // machine never goes back), so a second tap changes nothing.
+    const already = await db.dealEvent.findFirst({
+      where: { dealId, type: "CUSTOMER_PAID" },
+      select: { id: true },
+    });
+    if (already) return { ok: true, data: { recorded: false } };
+
+    await db.dealEvent.create({
+      data: {
+        dealId,
+        type: "CUSTOMER_PAID",
+        message: "Customer says they’ve paid",
+        actorType: "CUSTOMER",
+      },
+    });
+    return { ok: true, data: { recorded: true } };
+  },
+);
