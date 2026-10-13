@@ -9,11 +9,27 @@ change.
 
 ## Current Goal
 
-- Phase 12, admin settings: `/admin/settings/deal-desk` (services,
-  payment accounts, timings, team alerts).
+- Phase 12, customer forms: `/deal/new` and the four forms, `submitDeal`
+  with bot checks and rate limits, private uploads and the file route.
 
 ## Completed
 
+- 2026-10-13: Phase 12, admin settings. `/admin/settings/deal-desk`
+  (`features/deals/components/DealDeskSettings.tsx`,
+  `PaymentAccountDrawer.tsx`, `settings-actions.ts`,
+  `settings-schema.ts` with tests): services (the forex pair is one
+  switch; crypto shown disabled, "Coming in the next update"), payment
+  accounts (add/edit/deactivate in a drawer; NGN = 10 digits, other
+  currencies 6–34 letters/digits; name required; "Name differs from
+  Stereolinkz" warning in the drawer and on the row), timings (contact
+  SLA, reference prefix; crypto lock and payout shown read-only), team
+  alerts (email switch, notes when email isn't set up; default owner must
+  be a member of the org). "General | Deal desk" tabs on both settings
+  pages (`SettingsTabs`); the settings sections/select/error line moved
+  to `settings-parts.tsx` and shared. Checked on a production build
+  against the dev branch: services start off; a 5-digit number refused;
+  account added with the warning; school fees + forex switched on and SLA
+  20 persisted after reload; 1440 and 390 screenshots; no console errors.
 - 2026-10-13: Phase 12, data and rules. Migration
   `20261013120000_deal_desk` (Deal, DealEvent, DealFile, PaymentAccount,
   deal fields on Organization; CHECKs `deal_amount_positive`,
