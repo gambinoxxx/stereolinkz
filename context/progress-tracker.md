@@ -9,11 +9,35 @@ change.
 
 ## Current Goal
 
-- Phase 12, customer forms: `/deal/new` and the four forms, `submitDeal`
-  with bot checks and rate limits, private uploads and the file route.
+- Phase 12, tracking: `/deal/[ref]?t=…` (submitted and tracking states,
+  payment card, "I’ve paid" with receipt, 20 s refresh).
 
 ## Completed
 
+- 2026-10-13: Phase 12, customer forms. `/deal/new` (cards for enabled
+  services, tags from the boards, cash → WhatsApp, closed state) and
+  `/deal/new/[service]` (school-fees, pay-abroad, pof, forex; disabled or
+  unknown → 404), `force-dynamic`, `noindex`, `Referrer-Policy:
+  no-referrer` + `X-Robots-Tag` on `/deal/*`; the proxy skips `/deal/*`.
+  `DealForm` (one client component, design classes in
+  `src/app/(public)/deal/deal.css` scoped `.dk`), estimate panel + phone
+  bar from `quoteDeal`, calculator prefill (`?amount=&currency=&dir=`).
+  `public-actions.ts`: `submitDeal` (Zod, honeypot, signed 3 s timestamp,
+  service enabled, quote recomputed, `createDeal` with limits inside the
+  transaction), `requestDealUpload`, `attachDealFile`. Uploads go from the
+  browser straight to the private store with a token bound to one random
+  path, type and 10 MB (`lib/server/deal-files.ts`), then the server
+  checks the bytes; route `/api/deals/[ref]/files/[id]`. Checked on a
+  production build against the dev branch: every service submitted (1440
+  and 390); stored quote = on-screen estimate each time (₦8,280,000;
+  ₦4,400,000; POF ₦1,530,000; sell ₦1,350,000 at the buy rate; buy
+  ₦1,375,000 at the sell rate); invoice stored at
+  `deals/<org>/<deal>/<32 hex>.pdf` with a FILE_UPLOADED event; a text
+  file named .pdf refused and deleted (store 1 blob = 1 row); honeypot and
+  1.2 s submits refused, nothing written; 6th submit from one IP and 4th
+  open deal on one number → "Too many requests" (counter rolled back);
+  file route: signed out 404, bogus token 404, member 200 `%PDF`, other
+  ref 404; switched-off services leave `/deal/new` and 404.
 - 2026-10-13: Phase 12, admin settings. `/admin/settings/deal-desk`
   (`features/deals/components/DealDeskSettings.tsx`,
   `PaymentAccountDrawer.tsx`, `settings-actions.ts`,
@@ -719,7 +743,9 @@ change.
 - Phase 12: the business WhatsApp number for deals.
 - Phase 12: our payment accounts (bank, number, name, and which services
   each one is for).
-- Phase 12: which email address receives team alerts.
+- Phase 12: a verified sending domain in Resend for `DEAL_ALERT_FROM`
+  (until then `onboarding@resend.dev`, which only delivers to the Resend
+  account's own email).
 - Phase 13: legal advice for crypto.
 - Phase 13: the real receiving addresses for USDT/USDC on TRC20 and BEP20.
 - Phase 13: a small real test deposit.
@@ -775,6 +801,19 @@ change.
     access on a public store", tested 2026-10-13), so invoices and receipts
     go to a second store created with private access; files are read with
     `get(…, { access: "private" })` and streamed by the file route only.
+  - **Uploads go browser → private store directly.** Vercel functions
+    take at most ~4.5 MB per request, so 10 MB invoices can't pass through
+    a server action. The server issues a client token bound to one random
+    pathname (`deals/{org}/{deal}/{32 hex}.{ext}`), the declared type and
+    10 MB, valid 10 minutes, only for a valid tracking token and fewer than
+    3 files; after the upload it checks the stored bytes (PDF/JPEG/PNG
+    magic) and deletes anything else. Needs `DEAL_FILES_READ_WRITE_TOKEN`
+    in Vercel too. A failed upload never loses the deal (the customer is
+    told to send it on WhatsApp).
+  - **Alert recipients** (owner, 2026-10-13): ibehchristopher11@gmail.com
+    and gambinolinkz@gmail.com, kept in `DEAL_ALERT_TO` (comma-separated),
+    not in code. Gmail can't be a Resend sender; the sender stays
+    `onboarding@resend.dev` until a domain is verified.
 - 2026-10-13: Deal desk added as Phases 12 (non-crypto) and 13 (crypto
   deposits); Hardening moved to Phase 14. Deals start online without
   accounts and are agreed on WhatsApp; crypto is watch-only; services

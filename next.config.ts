@@ -24,6 +24,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Deal pages carry a private tracking token in the URL: never send it
+  // on as a referrer, and keep the pages out of search engines.
+  async headers() {
+    return [
+      {
+        source: "/deal/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // Logos are up to 1 MB; the default 1 MB limit would leave no room

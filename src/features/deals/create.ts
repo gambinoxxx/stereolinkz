@@ -26,8 +26,30 @@ export type NewDeal = {
   ipHash: string | null;
   actor: DealActorRef;
   message: string; // "Requested on the website" / "Added by the team"
+  // Website only: checked inside the transaction, after the counter row
+  // is locked, so parallel submits can't slip past the limit together.
+  limits?: { perIpPerHour: number; openPerPhone: number };
   now?: Date;
 };
+
+// Website submits: 5 new deals per IP per hour, 3 open deals per number.
+export const WEBSITE_LIMITS = { perIpPerHour: 5, openPerPhone: 3 } as const;
+
+// Statuses that count as "open" for the per-phone limit.
+export const OPEN_STATUSES = [
+  "NEW",
+  "AGREED",
+  "AWAITING_PAYMENT",
+  "PAYMENT_RECEIVED",
+  "PROCESSING",
+] as const;
+
+export class DealRateLimitError extends Error {
+  constructor(readonly reason: "ip" | "phone") {
+    super(`Deal rate limit (${reason})`);
+    this.name = "DealRateLimitError";
+  }
+}
 
 type Tx = Prisma.TransactionClient;
 
@@ -42,6 +64,27 @@ export async function insertDeal(
     data: { dealRefCounter: { increment: 1 } },
     select: { dealRefCounter: true, dealRefPrefix: true },
   });
+  if (input.limits) {
+    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const [fromIp, openForPhone] = await Promise.all([
+      input.ipHash
+        ? tx.deal.count({
+            where: { ipHash: input.ipHash, createdAt: { gt: hourAgo } },
+          })
+        : Promise.resolve(0),
+      tx.deal.count({
+        where: {
+          organizationId: input.organizationId,
+          customerWhatsapp: input.customer.whatsapp,
+          status: { in: [...OPEN_STATUSES] },
+        },
+      }),
+    ]);
+    // Throwing rolls the counter back too.
+    if (fromIp >= input.limits.perIpPerHour) throw new DealRateLimitError("ip");
+    if (openForPhone >= input.limits.openPerPhone)
+      throw new DealRateLimitError("phone");
+  }
   const ref = formatRef(org.dealRefPrefix, org.dealRefCounter);
   const { quote } = input;
   const deal = await tx.deal.create({
