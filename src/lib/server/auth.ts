@@ -9,6 +9,7 @@ import { db } from "@/lib/server/db";
 
 export type Member = {
   userId: string;
+  membershipId: string; // who did it, on deal events and owners
   organizationId: string;
   role: MemberRole;
 };
@@ -24,11 +25,18 @@ const lookupMember = cache(
     const membership = await db.membership.findFirst({
       where: { clerkUserId: userId },
       orderBy: { createdAt: "asc" },
-      select: { organizationId: true, role: true },
+      select: { id: true, organizationId: true, role: true },
     });
     return {
       userId,
-      member: membership ? { userId, ...membership } : null,
+      member: membership
+        ? {
+            userId,
+            membershipId: membership.id,
+            organizationId: membership.organizationId,
+            role: membership.role,
+          }
+        : null,
     };
   },
 );

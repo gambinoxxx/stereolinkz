@@ -315,6 +315,9 @@ added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 | `NEXT_PUBLIC_SITE_URL` | Landing page metadata, sitemap, Open Graph URLs | local, Vercel |
 | `RESEND_API_KEY` | Team email alerts for new deals and payouts due (Phase 12) | local, Vercel |
 | `DEAL_ALERT_FROM` | Sender address for alerts | local, Vercel |
+| `DEAL_SECRET` | Keys the deal form timestamps and the IP hash (32+ random characters; different per environment) | local, Vercel |
+| `DEAL_FILES_STORE_ID` | The private Blob store for deal files (OIDC on Vercel) | local, Vercel (added by connecting the store) |
+| `DEAL_FILES_READ_WRITE_TOKEN` | Read-write token for that store (local auth; Vercel fallback) | local, Vercel |
 | `CRON_SECRET` | Protects `/api/cron/*` (Phase 13) | Vercel |
 | `TRONGRID_API_KEY` | TRC20 deposit checks (Phase 13) | local, Vercel |
 | `ETHERSCAN_API_KEY` | BEP20 deposit checks (Phase 13) | local, Vercel |

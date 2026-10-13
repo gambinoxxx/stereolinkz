@@ -5,16 +5,31 @@ change.
 
 ## Current Phase
 
-- Phase 11: Landing page, complete
+- Phase 12: Deal desk, in progress
 
 ## Current Goal
 
-- None. Waiting for the owner: Vercel env vars, real content (POF public,
-  reviews, payout time, legal line, location), the go to push, then
-  Lighthouse on the production URL and the real phone test.
+- Phase 12, admin settings: `/admin/settings/deal-desk` (services,
+  payment accounts, timings, team alerts).
 
 ## Completed
 
+- 2026-10-13: Phase 12, data and rules. Migration
+  `20261013120000_deal_desk` (Deal, DealEvent, DealFile, PaymentAccount,
+  deal fields on Organization; CHECKs `deal_amount_positive`,
+  `deal_agreed_non_negative`; triggers `deal_quote_immutable` and
+  `deal_event_append_only`) applied to the Neon **dev branch**
+  (`ep-wild-block`), not production. `features/deals/`: `services`,
+  `schema` (`dealDetailsV1`, `submitDealInput`, customer and payout
+  input), `quote`, `transitions` (`transitionDeal`), `security`
+  (tracking tokens, signed form timestamps, IP hash), `refs`, `create`
+  (`createDeal`: counter + deal + REQUESTED event in one transaction).
+  `Member.membershipId` added. Tests: 44 pure + 4 database checks on the
+  dev branch (`create.db.test.ts`, opt-in with `DEAL_DB_TESTS=1`, refuses
+  the production endpoint): 20 parallel creates got 20 different,
+  consecutive references; updating quotedRate/quotedNaira, editing an
+  event and a zero amount are refused by the database. Private Blob store
+  checked: put, URL without auth → 403, `get()` with the token, delete.
 - 2026-10-08: Phase 11 complete. Tagged phase-11-complete. Done when:
   - [x] Signed out, `/` is public (200, static cache HIT); `/admin` → 307
     `/login`; `/robots.txt`, `/sitemap.xml` public.
@@ -689,7 +704,6 @@ change.
 - Phase 12: our payment accounts (bank, number, name, and which services
   each one is for).
 - Phase 12: which email address receives team alerts.
-- Phase 12: whether to use Resend for email (new dependency).
 - Phase 13: legal advice for crypto.
 - Phase 13: the real receiving addresses for USDT/USDC on TRC20 and BEP20.
 - Phase 13: a small real test deposit.
@@ -697,6 +711,54 @@ change.
 
 ## Architecture Decisions
 
+- 2026-10-13: Phase 12 data decisions.
+  - **Schema shape**: one Deal table for every service, with the
+    per-service fields in `details` (JSON, `dealDetailsV1`, versioned
+    like board snapshots) so crypto in Phase 13 adds columns and a union
+    member without a new table. Money: amount and rates `Decimal(18,4)`;
+    naira `Decimal(24,8)` so amount × rate is stored exactly (shown in
+    whole naira). DealEvent and DealFile hang off the deal; PaymentAccount
+    off the org.
+  - **Reference counter**: `Organization.dealRefCounter` incremented with
+    `update … increment` inside the create transaction (Postgres row lock),
+    so parallel creates queue and never share a reference; transactions
+    allow a 10 s wait (20 parallel creates overran Prisma's 2 s default).
+  - **Database guards**: CHECK `amount > 0`; agreed values ≥ 0; triggers
+    refuse any change to the quote columns and any UPDATE of DealEvent,
+    so Invariant 15 holds even against a bug or a crafted request.
+  - **Transition table** (`transitionDeal`): NEW → AGREED | CANCELLED;
+    AGREED → AWAITING_PAYMENT | CANCELLED; AWAITING_PAYMENT →
+    PAYMENT_RECEIVED | CANCELLED; PAYMENT_RECEIVED → PROCESSING |
+    COMPLETED; PROCESSING → COMPLETED. Members only in Phase 12. The
+    update is conditional on the status the member saw, so two people
+    acting at once can't double-move a deal. Phase 13 adds the crypto rows
+    (actor SYSTEM for the deposit watcher).
+  - **Quotes**: from the latest Forex/POF board snapshot (sell rate for
+    school fees, payments abroad and buying forex; buy rate for selling
+    forex; POF = amount × rate ÷ 100 × months), recomputed on the server.
+    A currency or bank missing from the board stores no quote and the page
+    says "We’ll quote on WhatsApp".
+  - **Tracking tokens**: 32 random bytes (base64url) in the link; only the
+    SHA-256 hash is stored; constant-time compare; a wrong token reads as
+    "not found".
+  - **Bot checks and limits**: a hidden honeypot field; a form timestamp
+    signed with `DEAL_SECRET` (HMAC), rejected under 3 s or over 24 h;
+    5 new deals per keyed IP hash per hour and 3 open deals per phone
+    number, counted from the Deal table (no extra table).
+  - **Services default to off** (`dealServicesEnabled` empty) until the
+    owner has legal advice.
+- 2026-10-13: Phase 12 choices by the owner.
+  - **Development database: a Neon branch**, not production; `.env.local`
+    points `DATABASE_URL` at the branch, production kept as
+    `PROD_DATABASE_URL`. The deal migration is applied there first.
+  - **Resend for team email: yes** (new dependency approved). Alerts carry
+    ref, service, amount and the admin link only; sent after commit; a
+    failed email never fails the deal.
+  - **Deal files in a separate private Vercel Blob store.** The existing
+    store is public and refuses `access: "private"` ("Cannot use private
+    access on a public store", tested 2026-10-13), so invoices and receipts
+    go to a second store created with private access; files are read with
+    `get(…, { access: "private" })` and streamed by the file route only.
 - 2026-10-13: Deal desk added as Phases 12 (non-crypto) and 13 (crypto
   deposits); Hardening moved to Phase 14. Deals start online without
   accounts and are agreed on WhatsApp; crypto is watch-only; services

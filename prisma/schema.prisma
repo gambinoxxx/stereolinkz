@@ -42,11 +42,25 @@ model Organization {
   defaultPofTemplateKey    String?
   defaultCryptoTemplateKey String?
 
-  memberships Membership[]
-  currencies  Currency[]
-  banks       Bank[]
-  coins       Coin[]
-  rateBoards  RateBoard[]
+  // Deal desk (Phase 12; Settings → Deal desk). Every service starts off:
+  // the owner switches each one on after legal advice.
+  dealServicesEnabled DealService[] @default([])
+  dealRefPrefix       String        @default("SLZ") // references read SLZ-1047
+  dealRefCounter      Int           @default(1000) // incremented in the same transaction as each insert
+  contactSlaMinutes   Int           @default(15) // NEW deals not contacted after this show amber/red
+  rateLockMinutes     Int           @default(30) // crypto (Phase 13)
+  payoutTargetMinutes Int           @default(10) // crypto (Phase 13)
+  dealDefaultOwnerId  String? // Membership that owns new deals; null = unassigned
+  dealDefaultOwner    Membership?   @relation("DealDefaultOwner", fields: [dealDefaultOwnerId], references: [id], onDelete: SetNull)
+  dealAlertEmails     Boolean       @default(false) // team email on new deals (only with Resend)
+
+  memberships     Membership[]
+  currencies      Currency[]
+  banks           Bank[]
+  coins           Coin[]
+  rateBoards      RateBoard[]
+  deals           Deal[]
+  paymentAccounts PaymentAccount[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,6 +82,11 @@ model Membership {
   clerkUserId    String
   role           MemberRole   @default(ADMIN)
   createdAt      DateTime     @default(now())
+
+  defaultOwnerOf Organization[] @relation("DealDefaultOwner")
+  ownedDeals     Deal[]         @relation("DealOwner")
+  agreedDeals    Deal[]         @relation("DealAgreedBy")
+  dealEvents     DealEvent[]
 
   @@unique([organizationId, clerkUserId])
   @@index([clerkUserId])
@@ -255,4 +274,194 @@ model CryptoRate {
   createdAt   DateTime @default(now())
 
   @@index([coinId, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Deal desk (Phase 12; crypto in Phase 13)
+// ─────────────────────────────────────────────────────────────
+
+enum DealService {
+  SCHOOL_FEES
+  INTL_PAYMENT
+  POF
+  FOREX_SELL
+  FOREX_BUY
+  CRYPTO_SELL // Phase 13
+}
+
+// Non-crypto: NEW → AGREED → AWAITING_PAYMENT → PAYMENT_RECEIVED →
+// PROCESSING → COMPLETED, or CANCELLED. The crypto statuses are used from
+// Phase 13. Every change goes through transitionDeal (features/deals).
+enum DealStatus {
+  NEW
+  AGREED
+  AWAITING_PAYMENT
+  PAYMENT_RECEIVED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  AWAITING_DEPOSIT // Phase 13
+  DEPOSIT_SEEN // Phase 13
+  DEPOSIT_COMPLETE // Phase 13
+  PAID_OUT // Phase 13
+  EXPIRED // Phase 13
+  FLAGGED // Phase 13
+}
+
+enum DealActor {
+  MEMBER
+  CUSTOMER
+  SYSTEM
+}
+
+enum DealEventType {
+  REQUESTED // the deal was created (website or team)
+  STATUS_CHANGED // fromStatus → toStatus, through transitionDeal
+  RATE_AGREED // agreed rate, fee and naira recorded
+  RATE_CHANGED // agreed values changed (with a reason once payment details were shared)
+  PAYMENT_DETAILS_SHARED // the account shown to the customer
+  CUSTOMER_PAID // the customer tapped "I’ve paid"
+  FILE_UPLOADED
+  OWNER_CHANGED
+  NOTE // internal, team only
+  ALERT_SENT
+}
+
+enum DealFileKind {
+  INVOICE
+  RECEIPT
+  CONFIRMATION
+  OTHER
+}
+
+model Deal {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  ref     String // "SLZ-1047", unique per org, from Organization.dealRefCounter
+  service DealService
+  status  DealStatus  @default(NEW)
+
+  customerName     String
+  customerWhatsapp String // normalised with normalizeWhatsAppNumber
+  customerEmail    String?
+
+  details        Json // validated by dealDetailsV1 (features/deals/schema.ts)
+  detailsVersion Int  @default(1)
+
+  currency String // ISO code of the amount, or NGN for POF
+  amount   Decimal @db.Decimal(18, 4) // CHECK (amount > 0) in the migration
+
+  // The website estimate, from the latest board snapshot at request time.
+  // Never changes after insert (trigger in the migration). Null when the
+  // board had no rate for the currency or bank: "We’ll quote on WhatsApp".
+  quotedRate    Decimal?  @db.Decimal(18, 4) // naira per unit; POF: % per month
+  quotedNaira   Decimal?  @db.Decimal(24, 8) // stored exactly; shown in whole naira
+  quotedBoardId String?
+  quotedAt      DateTime?
+
+  // Agreed on WhatsApp and recorded by the team.
+  agreedRate  Decimal?    @db.Decimal(18, 4)
+  feeNaira    Decimal?    @db.Decimal(24, 8)
+  agreedNaira Decimal?    @db.Decimal(24, 8)
+  agreedAt    DateTime?
+  agreedById  String?
+  agreedBy    Membership? @relation("DealAgreedBy", fields: [agreedById], references: [id], onDelete: SetNull)
+
+  // Our account the customer pays into (shown only from AWAITING_PAYMENT).
+  paymentAccountId String?
+  paymentAccount   PaymentAccount? @relation("DealPaymentAccount", fields: [paymentAccountId], references: [id], onDelete: Restrict)
+
+  // Where we pay the customer (FOREX_SELL; crypto in Phase 13).
+  payoutBank          String?
+  payoutAccountNumber String?
+  payoutAccountName   String?
+  payoutReference     String?
+  paidFromAccountId   String?
+  paidFromAccount     PaymentAccount? @relation("DealPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: Restrict)
+
+  ownerMembershipId String?
+  owner             Membership? @relation("DealOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  cancelReason      String?
+
+  trackingTokenHash String // SHA-256 of the customer's link token; the token itself is never stored
+  ipHash            String? // keyed hash of the submitting IP, for the rate limit only
+
+  statusChangedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  events DealEvent[]
+  files  DealFile[]
+
+  @@unique([organizationId, ref])
+  @@index([organizationId, status, statusChangedAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, customerWhatsapp])
+  @@index([ipHash, createdAt])
+}
+
+// Append-only (a trigger in the migration refuses UPDATE). No updatedAt.
+model DealEvent {
+  id     String @id @default(cuid())
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  type       DealEventType
+  fromStatus DealStatus?
+  toStatus   DealStatus?
+  message    String
+  data       Json?
+
+  actorType         DealActor
+  actorMembershipId String?
+  actorMembership   Membership? @relation(fields: [actorMembershipId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([dealId, createdAt])
+}
+
+// Private uploads: random pathnames, served only through
+// /api/deals/[ref]/files/[id]. The blob URL never reaches a browser.
+model DealFile {
+  id     String @id @default(cuid())
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  kind         DealFileKind
+  blobUrl      String // server-only
+  blobPathname String // deals/{orgId}/{dealId}/{random}.{ext}
+  contentType  String
+  byteSize     Int
+  originalName String
+  uploadedBy   DealActor // CUSTOMER or MEMBER
+
+  createdAt DateTime @default(now())
+
+  @@index([dealId, createdAt])
+}
+
+// Our accounts, and the services each may be shown for.
+model PaymentAccount {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  bank          String
+  accountNumber String
+  accountName   String
+  currency      String        @default("NGN")
+  services      DealService[] @default([])
+  active        Boolean       @default(true)
+  sortOrder     Int           @default(0)
+
+  shownOnDeals Deal[] @relation("DealPaymentAccount")
+  paidFrom     Deal[] @relation("DealPaidFrom")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, active, sortOrder])
 }
