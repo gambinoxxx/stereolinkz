@@ -96,6 +96,22 @@
 - Budgets (mobile, Lighthouse): Performance ≥ 85, Accessibility ≥ 95,
   SEO ≥ 95; LCP < 2.5s; CLS < 0.1.
 
+## Deal Desk
+
+- Public deal actions live only in `features/deals/public-actions.ts`
+  and use a `publicAction` wrapper: Zod parse, honeypot and minimum
+  fill time, rate limit (per IP hash and per phone), service enabled.
+  They return the same generic errors as `safeAction`.
+- Status changes go through one tested function
+  (`transitionDeal(deal, to, actor, data)`) that checks the allowed
+  transitions and writes the DealEvent in the same transaction.
+- Money: decimal strings and the decimal helpers end to end; naira
+  rounded to whole naira for display, stored exactly.
+- Phone numbers normalised with `normalizeWhatsAppNumber`; tracking
+  tokens are 32 random bytes (base64url), stored as SHA-256 hashes.
+- Uploads: PDF, JPG or PNG, ≤ 10 MB, checked on the server; random
+  pathnames; served only through the authenticated file route.
+
 ## Server Actions and Route Handlers
 
 - The first line of logic is `const { organizationId, userId } = await requireMember();`.
@@ -156,7 +172,7 @@
 ## Git
 
 - Work directly on `main`; no branches or pull requests until launch
-  (revisit branches in Phase 12).
+  (revisit branches in Phase 14).
 - Commit each working piece with the tracker update, imperative and
   naming the phase: `phase 4: insert ForexRate on save`.
 - Push only when `npm run build`, `npm run lint`, `npx tsc --noEmit`,

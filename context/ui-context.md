@@ -22,6 +22,8 @@ actions and rules. Match their layout, copy, spacing and states. Open
 | History | `history.html`, `history-board.html`, `history-regenerate.html` |
 | Settings | `settings.html` |
 | Public landing page | `landing.html` (motion-led; scroll it slowly at 1440px and 390px) |
+| Deal desk (customer) | `deal-start.html`, `deal-school-fees.html`, `deal-pay-abroad.html`, `deal-pof.html`, `deal-forex.html`, `deal-submitted.html`, `deal-track.html`, `deal-crypto.html`, `deal-crypto-deposit.html`, `deal-crypto-payout.html` |
+| Deal desk (admin) | `deals.html`, `deal-detail.html`, `deal-detail-crypto.html`, `settings-deal-desk.html` |
 
 ## Theme
 
@@ -247,7 +249,7 @@ Project components (not shadcn):
   `EmptyState` (the dashed "More designs" card from `templates.html`:
   icon, title, one line, optional action), `EntityDrawer` (Sheet with a
   `<form>` body, Cancel and a primary action)
-- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 12)
+- All of them are in the dev-only `/admin/dev-kit` page (removed in Phase 14)
 
 ## Layout Patterns
 
@@ -327,6 +329,7 @@ Mapping:
 | Forex | `ArrowLeftRight` |
 | POF | `Percent` |
 | Crypto | `Coins` |
+| Deals | `Inbox` |
 | Banks | `Landmark` |
 | Generator / Generate | `Sparkles` |
 | History | `History` |

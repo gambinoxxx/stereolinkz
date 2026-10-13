@@ -21,14 +21,14 @@ need appears, add it to `progress-tracker.md` → Open Questions first.
 ```
 src/
   app/
-    (public)/                     Public landing page at / (no sign-in), its own layout
+    (public)/                     Public landing page at / and the Deal desk at /deal/* (no sign-in)
     (auth)/login/[[...login]]/    Clerk sign-in page
     admin/                        Protected pages: page, forex, pof, crypto, banks,
                                   templates, generator, history, settings
     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
   features/
     currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
-    boards/  settings/  public/
+    boards/  settings/  public/  deals/
                                   Each has: schema.ts (Zod), queries.ts
                                   (server-only reads), actions.ts (server
                                   actions), components/ (feature UI)
@@ -225,6 +225,47 @@ template, then inserts a RateBoardImage only.
 - Every WhatsApp link is `https://wa.me/<digits of contactLine>?text=…`.
 - `robots.txt` allows `/` and disallows `/admin` and `/api`; `sitemap.xml` lists `/`.
 
+## Deal Desk
+
+- **Deal** (`features/deals/`): `ref` (`SLZ-1047`, unique per org,
+  from a per-org counter), `service` (SCHOOL_FEES, INTL_PAYMENT, POF,
+  FOREX_SELL, FOREX_BUY, CRYPTO_SELL), `status`, customer name /
+  WhatsApp / optional email, `details` (JSON validated by a Zod
+  union per service), amount and currency, `quotedRate` + the board it
+  came from (immutable), `agreedRate` / fee / agreed naira (set by the
+  team), chosen `paymentAccountId`, payout account (name, bank,
+  number) for deals we pay out, owner (Membership), and
+  `trackingTokenHash`.
+- **DealEvent**: append-only log of every change (actor = member,
+  customer or system). **DealFile**: private uploads (invoice,
+  receipt, confirmation). **PaymentAccount**: our accounts and the
+  services each may be shown for. Deal-desk settings live on the
+  Organization (services enabled, rate lock, payout target, contact
+  SLA, reference prefix).
+- **Statuses.** Non-crypto: NEW → AGREED → AWAITING_PAYMENT →
+  PAYMENT_RECEIVED → PROCESSING → COMPLETED | CANCELLED. Crypto:
+  AWAITING_DEPOSIT → DEPOSIT_SEEN → DEPOSIT_COMPLETE → PAID_OUT |
+  EXPIRED | FLAGGED | CANCELLED. Transitions are a tested state machine.
+- **Quotes are computed on the server** from the latest generated
+  board of the matching type (Forex for fees, payments and forex;
+  POF; Crypto), never from client numbers.
+- **Customer access** is by an unguessable tracking token in the
+  link (`/deal/<ref>?t=…`); only its hash is stored. Pages are
+  `noindex` with `Referrer-Policy: no-referrer`.
+- **Public writes** go only through `features/deals/public-actions.ts`:
+  Zod validation, honeypot + minimum fill time, rate limits per IP
+  and per phone number, and the service must be enabled.
+- **Private files**: stored under random paths and served only
+  through an authenticated route (team member, or the deal's tracking
+  token) that streams the file; blob URLs are never sent to browsers.
+- **Crypto deposits (Phase 13)**: our receiving addresses are
+  watched read-only through blockchain data APIs (TronGrid for TRC20,
+  an Etherscan-family API for BEP20). A protected cron route and the
+  customer's page trigger checks. A deposit is confirmed only when
+  destination, official token contract, network, amount and
+  confirmations all pass; ambiguous or failed checks are FLAGGED.
+  No private keys or seed phrases exist anywhere in the system.
+
 ## Auth and Access Model
 
 - Every person signs in via Clerk. `src/proxy.ts` runs plain
@@ -232,9 +273,10 @@ template, then inserts a RateBoardImage only.
   (`createRouteMatcher` is deprecated). Signed-out visitors are sent to
   `/login` by `requireMember()`, called in the admin layout and again in
   every page query, action and route handler.
-- `/` (the landing page), `robots.txt` and `sitemap.xml` are public: they
-  call no `requireMember()` and show only the public organization's
-  latest boards and contact details. The proxy matcher skips them (no
+- `/` (the landing page), `/deal/*`, `robots.txt` and `sitemap.xml`
+  are public: they call no `requireMember()`. The landing page shows only
+  the public organization's latest boards and contact details; `/deal/*`
+  follows the Deal Desk rules above. The proxy matcher skips them (no
   Clerk handshake for visitors), and `ClerkProvider` is mounted only by
   the signed-in sections (`components/auth-provider.tsx` in the admin,
   `(auth)` and `not-authorized` layouts), so the public page loads no
@@ -271,6 +313,11 @@ added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 | `PUBLIC_ORG_SLUG` = `stereolinkz` | Landing page (which organization's boards to show) | local, Vercel |
 | `PUBLIC_SHOW_POF` = `true` | Landing page (show the POF tab and service) | local, Vercel |
 | `NEXT_PUBLIC_SITE_URL` | Landing page metadata, sitemap, Open Graph URLs | local, Vercel |
+| `RESEND_API_KEY` | Team email alerts for new deals and payouts due (Phase 12) | local, Vercel |
+| `DEAL_ALERT_FROM` | Sender address for alerts | local, Vercel |
+| `CRON_SECRET` | Protects `/api/cron/*` (Phase 13) | Vercel |
+| `TRONGRID_API_KEY` | TRC20 deposit checks (Phase 13) | local, Vercel |
+| `ETHERSCAN_API_KEY` | BEP20 deposit checks (Phase 13) | local, Vercel |
 
 ## Settled Decisions
 
@@ -315,6 +362,13 @@ the rest of this file. Decisions made during the build are recorded in
   rates. Why: Generate is the team's deliberate "publish" step, so
   WhatsApp Status and the website always match and half-finished
   edits never go public.
+- **Deals start online but are agreed on WhatsApp.** The website
+  collects the request and shows an estimate; the team confirms the
+  final rate in the chat and records it. No customer accounts.
+- **Payment details are per deal**, chosen by the rep from our
+  accounts, and appear only after the deal is agreed.
+- **Crypto is watch-only**: the app reads the blockchain and never
+  holds keys; payouts are made by the team and recorded.
 - **The landing page lives in the same Next.js app** (route group
   `(public)`), so it shares the database, brand and templates; there
   is no public API.
@@ -347,7 +401,16 @@ the rest of this file. Decisions made during the build are recorded in
     (`Africa/Lagos`), never the server's UTC clock.
 12. Blob files are never overwritten. A replaced logo or image gets a
     new URL.
-13. Public pages read only the latest RateBoard snapshots and public
-    Organization fields, through `features/public/queries.ts`. They
-    never read rate tables, never run server actions, and never show
-    invented reviews, figures or licence claims.
+13. The landing page reads only the latest RateBoard snapshots and
+    public Organization fields, through `features/public/queries.ts`.
+    It never reads rate tables and never shows invented reviews,
+    figures or licence claims.
+14. The only unauthenticated writes are in
+    `features/deals/public-actions.ts` (rate-limited, validated, bot-checked).
+    A customer reaches a deal only with its tracking token, and sees
+    only that deal. Deal quotes come from board snapshots on the server.
+15. Deal history is append-only (DealEvent); quotedRate never changes;
+    a deal moves only through allowed transitions; payment received
+    and paid out are always set by a team member, never automatically.
+16. No private key or seed phrase is ever stored or accepted. Crypto
+    deposits are confirmed only by the full on-chain check.

@@ -72,6 +72,32 @@ rate calculator.
 - Never shows invented reviews, figures or licence claims: those
   sections stay hidden until real content is added.
 
+### Deal desk (`/deal/*` public, `/admin/deals` admin)
+
+- Customers start a deal on the website without an account: **school
+  fees abroad, international payment, proof of funds, sell or buy forex
+  (by transfer), and sell crypto (USDT/USDC).** Cash forex is never
+  offered online; customers are sent to WhatsApp.
+- Each form shows a live estimate from the latest generated board
+  (stored on the deal as the quoted rate). Submitting gives a reference
+  (`SLZ-1047`), a private tracking link and a "Continue on WhatsApp"
+  button with the reference prefilled.
+- Non-crypto deals: the rep agrees the final rate on WhatsApp and
+  records it (agreed rate kept next to the quoted rate), chooses which
+  of our accounts the customer sees, and moves the deal: Requested →
+  Agreed → Awaiting payment → Payment received (only after checking the
+  bank statement) → Sent / paid out → Completed, or Cancelled.
+- Crypto deals: the rate is locked (30 min by default), the customer
+  sends to our watched address, the app verifies the deposit on-chain
+  (address, official token contract, network, amount, confirmations)
+  and shows "Deposit complete" with a payout countdown (10 min target);
+  the rep pays and records the bank reference.
+- The team (3 people) works deals on `/admin/deals`: queue with
+  "needs action" and "payout due", deal detail with private uploads,
+  ready-made WhatsApp messages, owner, notes and a full activity log.
+- Settings → Deal desk: services on/off, our payment accounts, crypto
+  wallets (watch-only), confirmations, minimums, timings, team alerts.
+
 ### Authentication
 
 - Sign-in with Clerk (Google or email). No custom password auth.
@@ -175,6 +201,9 @@ rate calculator.
 - Board history with immutable snapshots, view, download and regenerate
 - Settings for company details and brand colours
 - A public landing page at `/` showing the latest published board rates
+- The Deal desk: customer deal requests with private tracking pages,
+  and the admin Deals queue (non-crypto in Phase 12, crypto deposits
+  verified on-chain in Phase 13)
 - Responsive layout for desktop, tablet and phone; the generator must
   be fully usable on a phone
 
@@ -188,8 +217,12 @@ rate calculator.
 - Per-network or per-amount crypto rates (one buy/sell per coin)
 - Visual template editor; templates are code
 - Posting directly to WhatsApp (the admin downloads and posts)
-- Online ordering, customer accounts or payments on the website (every
-  deal starts in a WhatsApp chat)
+- Customer accounts and passwords (customers use a private tracking
+  link); card or online payments on the website (customers transfer
+  from their banking app or send crypto); in-app chat (WhatsApp is the chat)
+- Cash forex arranged online; automatic naira payouts through a bank
+  API (payouts are made and recorded by the team)
+- BTC, ETH and other coins in the automated crypto flow (WhatsApp only)
 - A blog or CMS; landing page copy lives in code
 - Board drafts (a board exists only once generated)
 - Extra image formats (square feed, landscape)
@@ -223,3 +256,9 @@ rate calculator.
 12. A signed-out visitor can open `/` on a phone and see the rates of
     the latest generated boards. Generating a new board updates `/`
     within a minute; editing a rate without generating does not.
+13. A customer can start a school fees deal on a phone, get a
+    reference and tracking link, and see the status change as the team
+    moves the deal; payment details appear only after the deal is agreed.
+14. A USDT deposit to our watched address is confirmed automatically
+    only when address, token contract, network, amount and
+    confirmations all check out; anything else is flagged for the team.

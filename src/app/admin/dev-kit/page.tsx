@@ -42,7 +42,7 @@ import {
 } from "./demos";
 
 // Dev only: every primitive and project component in every state, with
-// sample props (no data). Removed in Phase 12.
+// sample props (no data). Removed in Phase 14.
 export default async function DevKitPage() {
   if (process.env.NODE_ENV === "production") notFound();
   await requireMember();

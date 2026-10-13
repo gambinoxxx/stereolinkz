@@ -500,6 +500,121 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   .t-cx .tr{align-items:start;grid-template-columns:1fr 1fr auto;grid-template-areas:"main main act" "a b st";gap:12px 14px;padding:14px 16px}
   .gr .coin{width:28px;height:28px;font-size:12px}
 }
+
+/* ═════════════════ Deal desk (admin) ═════════════════ */
+.nav a .badge{margin-left:auto;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--gold);color:var(--ink);font-size:12px;font-weight:800;display:grid;place-items:center}
+.tabs2{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-6px 0 22px}
+.tabs2 a{padding:10px 14px;font-weight:650;font-size:14.5px;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs2 a[aria-current=page]{color:var(--ink);border-color:var(--brand)}
+.dstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.dstat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden}
+.dstat .k{font-size:13px;color:var(--ink2);font-weight:550;display:flex;align-items:center;gap:6px}
+.dstat .v{font-size:28px;font-weight:750;letter-spacing:-.6px;line-height:1.15;margin-top:4px}
+.dstat .s{font-size:13px;color:var(--ink3)}
+.dstat.alert{border-color:#F1C9C5;background:#FFF8F7}
+.dstat.alert .v{color:var(--down)}
+.dstat.alert::after{content:"";position:absolute;right:16px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--down);animation:dpulse 1.6s infinite}
+@keyframes dpulse{0%{box-shadow:0 0 0 0 rgba(194,65,58,.5)}70%{box-shadow:0 0 0 10px rgba(194,65,58,0)}100%{box-shadow:0 0 0 0 rgba(194,65,58,0)}}
+.dtool{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.dtool .search{display:flex;align-items:center;gap:8px;height:40px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px;color:var(--ink3);min-width:240px}
+.dtool .search input{border:0;outline:0;font:inherit;color:var(--ink);width:100%}
+.dtool select{height:40px}
+.dtool .seg{max-width:100%;overflow-x:auto}
+.dtool .seg button{white-space:nowrap}
+.t-deals .tr{grid-template-columns:minmax(210px,1.5fr) minmax(130px,1fr) minmax(120px,.9fr) minmax(150px,1fr) 64px 110px 20px;cursor:pointer}
+.t-deals .tr:not(.th):hover{background:var(--tint)}
+.t-deals .tr.urgent{background:#FFF8F7}
+.svci{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;flex-shrink:0}
+.svci.k-fees{background:#6A35D9}.svci.k-pay{background:#1A9E77}.svci.k-pof{background:#0B7A75}.svci.k-fx{background:#2A0F58}.svci.k-cx{background:#C77700}
+.dref b{display:block;font-weight:700}.dref span{font-size:13px;color:var(--ink2)}
+.amt b{display:block;font-weight:700;font-variant-numeric:tabular-nums}.amt span{font-size:12.5px;color:var(--ink3)}
+.dchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.dchip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.dchip.s-new{background:var(--brand-soft);color:var(--brand)}
+.dchip.s-agreed{background:#FFF3D6;color:#86610F}
+.dchip.s-await{background:#FFF3D6;color:#86610F}
+.dchip.s-recv{background:#E6EEFD;color:#2457C5}
+.dchip.s-due{background:var(--down-soft);color:var(--down)}
+.dchip.s-due i{animation:dpulse 1.6s infinite}
+.dchip.s-done{background:var(--up-soft);color:var(--up)}
+.dchip.s-off{background:var(--line2);color:var(--ink3)}
+.sub2{display:block;font-size:12.5px;color:var(--ink3);margin-top:3px}
+.dav{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12.5px;background:var(--brand)}
+.dav.b{background:#0B7A75}.dav.c{background:#C77700}.dav.none{background:var(--line2);color:var(--ink3)}
+.sla{font-size:13.5px;font-weight:650;color:var(--ink2);font-variant-numeric:tabular-nums;text-align:right}
+.sla.s-late{color:var(--down)} .sla.s-soon{color:#B7791F}
+/* detail */
+.dback{display:inline-flex;align-items:center;gap:6px;color:var(--ink2);font-weight:600;font-size:14px;text-decoration:none;margin-bottom:12px}
+.dhd{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+.dhd h1{font-size:28px;font-weight:750;letter-spacing:-.6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dhd p{color:var(--ink2);margin-top:4px}
+.stepper{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:22px;overflow-x:auto}
+.stepper div{flex:1;min-width:120px;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:650;color:var(--ink3);white-space:nowrap}
+.stepper i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11.5px;font-weight:800;background:var(--line2);color:var(--ink3);flex-shrink:0}
+.stepper .ok{color:var(--ink)} .stepper .ok i{background:var(--up);color:#fff}
+.stepper .cur{background:var(--brand-soft);color:var(--brand)} .stepper .cur i{background:var(--brand);color:#fff}
+.dd{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px;align-items:start}
+.dd .panel+.panel{margin-top:18px}
+.pb{padding:18px 20px}
+.kv2{display:grid;grid-template-columns:150px 1fr;gap:10px 16px;font-size:14.5px}
+.kv2 dt{color:var(--ink2)} .kv2 dd{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.files{display:grid;gap:8px}
+.fileln{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.fileln b{font-weight:650}.fileln span{color:var(--ink3);font-size:12.5px}
+.fileln .btn{margin-left:auto}
+.rates2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rbox{border:1px solid var(--line);border-radius:12px;padding:14px}
+.rbox .k{font-size:12.5px;font-weight:650;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+.rbox .v{font-size:22px;font-weight:750;letter-spacing:-.4px;margin-top:2px;font-variant-numeric:tabular-nums}
+.rbox .s{font-size:13px;color:var(--ink2)}
+.rbox.agreed{border-color:var(--gold);background:#FFFCF3}
+.accts{display:grid;gap:8px}
+.acct{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.acct input{accent-color:var(--brand);width:18px;height:18px}
+.acct b{display:block;font-size:14.5px}.acct span{font-size:13px;color:var(--ink2)}
+.acct:has(input:checked){border-color:var(--brand);background:#FAF7FF}
+.acct .tagx{margin-left:auto}
+.acct>div{flex:1;min-width:160px}
+.waq{display:grid;gap:8px}
+.waq a{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-decoration:none;font-size:14px;color:var(--ink);font-weight:600}
+.waq a:hover{border-color:#25A162;background:#F3FBF6}
+.waq a svg{color:#1F9D63}
+.waq a span{display:block;font-weight:500;color:var(--ink3);font-size:12.5px}
+.act{list-style:none;position:relative}
+.act li{display:grid;grid-template-columns:30px 1fr;gap:12px;padding-bottom:16px;position:relative}
+.act li::before{content:"";position:absolute;left:14px;top:30px;bottom:0;width:2px;background:var(--line2)}
+.act li:last-child::before{display:none}
+.act .dav{width:30px;height:30px;font-size:11.5px}
+.act .sys{background:var(--line2);color:var(--ink2)}
+.act b{font-weight:650;font-size:14px}.act p{font-size:14px;color:var(--ink2)}.act time{font-size:12.5px;color:var(--ink3)}
+.checks{display:grid;gap:8px}
+.ck{display:flex;align-items:center;gap:10px;font-size:14.5px;flex-wrap:wrap}
+.ck .yes{width:24px;height:24px;border-radius:50%;background:var(--up);color:#fff;display:grid;place-items:center;flex-shrink:0}
+.ck .no{width:24px;height:24px;border-radius:50%;background:var(--down);color:#fff;display:grid;place-items:center;flex-shrink:0}
+.ck span:last-child{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums}
+.hash{font:600 13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}
+.hash span{flex:1;min-width:0}
+.payout{display:flex;align-items:center;gap:16px;background:var(--side);color:#fff;border-radius:14px;padding:16px 18px}
+.payout .ring{--p:.74;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--gold) calc(var(--p)*360deg),rgba(255,255,255,.14) 0);display:grid;place-items:center;flex-shrink:0}
+.payout .ring b{width:52px;height:52px;border-radius:50%;background:var(--side);display:grid;place-items:center;font-size:12px;font-weight:700}
+.payout .tm{font-size:30px;font-weight:800;letter-spacing:-.5px;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
+.payout small{display:block;color:#C4B6E3;font-size:13px;margin-top:3px}
+.setx .panel{padding:20px}
+.wallet{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.wallet+.wallet,.acctrow+.acctrow{margin-top:10px}
+.wallet code{font:600 13px ui-monospace,monospace;overflow-wrap:anywhere}
+.acctrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.acctrow b{display:block}.acctrow span{font-size:13px;color:var(--ink2)}
+@media (max-width:1100px){.t-deals .tr{grid-template-columns:minmax(190px,1.5fr) minmax(120px,.9fr) minmax(150px,1fr) 110px 20px}.t-deals .c-cust,.t-deals .c-own{display:none}.dd{grid-template-columns:minmax(0,1fr)}.dstats{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+ .t-deals .tr{grid-template-columns:1fr auto;grid-template-areas:"main st" "amt sla";gap:10px 12px;padding:14px 16px}
+ .t-deals .c-main{grid-area:main}.t-deals .c-st{grid-area:st;justify-self:end}.t-deals .c-amt{grid-area:amt}.t-deals .c-sla{grid-area:sla;align-self:end}
+ .t-deals .c-go{display:none}
+ .kv2{grid-template-columns:1fr;gap:2px 0}.kv2 dd{margin-bottom:10px}
+ .rates2{grid-template-columns:1fr}
+ .dtool .search{min-width:0;flex:1}
+ .acctrow{grid-template-columns:auto 1fr}.acctrow>:nth-child(n+3){grid-column:2}
+}
 </style>
 </head>
 <body>
@@ -510,7 +625,7 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
   <aside class="side" id="side" aria-label="Main navigation">
     <a class="brand" href="dashboard.html" aria-label="Stereolinkz RateBoard home"><span class="bars"><i style="height:11px"></i><i style="height:19px"></i><i style="height:24px"></i><i style="height:15px"></i></span><span class="wm">stereo<b>linkz</b></span></a>
     <div class="brand-sub">RateBoard</div>
-    <nav class="nav" id="nav"><a href="dashboard.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="forex.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="crypto.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>Crypto rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
+    <nav class="nav" id="nav"><a href="dashboard.html" aria-current="page"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Dashboard</a><a href="deals.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg>Deals<span class="badge">3</span></a><a href="forex.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex rates</a><a href="pof.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF rates</a><a href="crypto.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path><path d="M7 6h1v4"></path><path d="m16.71 13.88.7.71-2.82 2.82"></path></svg>Crypto rates</a><a href="banks.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21v-9M19 21v-9M9.5 21v-9M14.5 21v-9"></path><path d="M12 3 3 8.5h18z"></path></svg>Banks</a><div class="sep"></div><a href="generator.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg>Generator</a><a href="history.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3.5 2"></path></svg>History</a><a href="templates.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Templates</a><div class="sep"></div><a href="settings.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a></nav>
     <div class="side-foot">
       <div class="avatar">G</div>
       <div class="who"><b>Gambino</b><span>Owner</span></div>
@@ -589,7 +704,7 @@ select.inp{appearance:none;padding-right:36px;background:#fff url("data:image/sv
  </div></main>
   </div>
 </div>
-<nav class="mnav" id="mnav" aria-label="Quick navigation"><a href="dashboard.html" aria-current="page"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Home</a><a href="forex.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex</a><a href="pof.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5 5 19"></path><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>POF</a><a href="generator.html" class="gen-tab"><span class="ico"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg></span>Generate</a><button type="button" data-action="menu"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"></circle></svg>More</button></nav>
+<nav class="mnav" id="mnav" aria-label="Quick navigation"><a href="dashboard.html" aria-current="page"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Home</a><a href="forex.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>Forex</a><a href="deals.html"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg>Deals</a><a href="generator.html" class="gen-tab"><span class="ico"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 17v4M17 19h4"></path></svg></span>Generate</a><button type="button" data-action="menu"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"></circle></svg>More</button></nav>
 
 <div class="scrim" id="scrim" data-action="close"></div>
 

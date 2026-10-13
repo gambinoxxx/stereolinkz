@@ -1,6 +1,6 @@
 # Implementation Plan
 
-The build plan for RateBoard, from an empty repo to production, in 12
+The build plan for RateBoard, from an empty repo to production, in 14
 phases. Each phase is one block of work: build everything it lists,
 check it, then move to the next phase. Progress is recorded in
 `progress-tracker.md` as the work happens.
@@ -265,7 +265,7 @@ template, Blob uploads, saving boards.
   - `EmptyState`, `Callout`
   - `EntityDrawer` (Enter submits)
 - A dev-only `/admin/dev-kit` page showing every component in every
-  state (removed in Phase 12)
+  state (removed in Phase 14)
 
 **App shell**
 - `src/components/shell/`:
@@ -836,11 +836,120 @@ Online ordering, customer accounts, a blog or CMS, other languages.
 
 ---
 
-## Phase 12: Hardening and launch
+## Phase 12: Deal desk
+
+- **Goal:** Customers start school fees, international payment, POF and
+  forex deals on the website and track them privately; the team works
+  every deal from `/admin/deals`.
+- **Depends on:** Phases 9 and 11
+- **Read:** `project-overview.md` → Deal desk; `architecture.md` → Deal
+  Desk, Invariants 7, 10, 12, 14 and 15; `code-standards.md` → Deal Desk
+- **Design:** `deal-start.html`, `deal-school-fees.html`,
+  `deal-pay-abroad.html`, `deal-pof.html`, `deal-forex.html`,
+  `deal-submitted.html`, `deal-track.html`, `deals.html`,
+  `deal-detail.html`, `settings-deal-desk.html`
+
+### Build
+
+**Data**
+- Deal, DealEvent, DealFile, PaymentAccount, deal-desk fields on
+  Organization; per-org reference counter; `dealDetailsV1` Zod union
+- `transitionDeal` state machine; server-side quotes from board snapshots
+
+**Customer side**
+- `/deal/new` and the four forms with live estimates; `publicAction`
+  submit with bot checks and rate limits; private uploads
+- `/deal/[ref]?t=…` submitted and tracking states; "I've paid" with receipt
+- Landing page CTAs and calculator link to "Start a deal"
+
+**Admin side**
+- `/admin/deals` queue (stats, filters, search), deal detail (agreed
+  rate, payment account, transitions, WhatsApp messages, owner, notes,
+  files, activity), Settings → Deal desk (services, payment accounts,
+  timings, alerts), sidebar badge
+- Team email alerts for new deals
+
+### Stop points
+
+- The owner confirms legal advice before services are switched on in
+  production (all services default to off)
+- The owner sets the business WhatsApp number and payment accounts
+
+### Done when
+
+- [ ] A school fees deal goes from request to completed on a real phone,
+  with the customer page updating at each step
+- [ ] Payment details appear only after the deal is agreed, and only the chosen account
+- [ ] quotedRate never changes; every change is in the activity log
+- [ ] Spam submits are blocked by the honeypot and rate limits
+- [ ] Private files can't be opened without a team session or the tracking token
+
+### Verify
+
+Standard checks; a full deal walk-through on production with services
+enabled only for the owner's test.
+
+### Not in this phase
+
+Crypto deals (Phase 13), customer accounts, automatic payouts, cash forex online.
+
+---
+
+## Phase 13: Crypto deposits
+
+- **Goal:** Customers sell USDT/USDC (TRC20, BEP20) online; deposits are
+  verified on-chain automatically and the team pays out against a timer.
+- **Depends on:** Phase 12
+- **Read:** `architecture.md` → Deal Desk (crypto), Invariants 15 and
+  16; `project-overview.md` → Deal desk
+- **Design:** `deal-crypto.html`, `deal-crypto-deposit.html`,
+  `deal-crypto-payout.html`, `deal-detail-crypto.html`, crypto parts of
+  `deals.html` and `settings-deal-desk.html`
+
+### Build
+
+**Data**
+- CryptoWallet (watch-only), crypto fields on Deal, ObservedTransfer
+  (tx hash unique) ; rate lock and payout timers
+
+**Watcher**
+- Provider clients for TRC20 and BEP20 token transfers; the full deposit
+  check; matching by pasted TxID or amount + time window; FLAGGED on
+  any doubt; protected cron route plus on-demand checks from the
+  customer page
+
+**Customer and admin**
+- Sell crypto form, deposit page (address, QR, lock countdown, TxID,
+  live confirmations), payout countdown and paid state
+- Admin deposit-check panel, payout panel with timer and reference,
+  "payout due" alerts, wallet settings
+
+### Stop points
+
+- The owner confirms legal advice for crypto before enabling it in production
+- The owner adds the real receiving addresses and makes a small real test deposit
+
+### Done when
+
+- [ ] A real small USDT TRC20 deposit is detected and confirmed automatically
+- [ ] Wrong token, wrong network, underpayment and late deposits are flagged or expired, never confirmed
+- [ ] The payout timer and paid state show on the customer page
+
+### Verify
+
+Standard checks; fixture tests for every check; one real test deposit per network.
+
+### Not in this phase
+
+BTC/ETH, per-deal addresses, automatic payouts.
+
+---
+
+## Phase 14: Hardening and launch
 
 - **Goal:** Production-ready and live for Stereolinkz, with every
   success criterion met.
-- **Depends on:** Phase 11
+- **Depends on:** Phase 13
 - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
 
 ### Build
@@ -856,7 +965,9 @@ Online ordering, customer accounts, a blog or CMS, other languages.
 **Security**
 - `scripts/check-actions.ts`: fails if any action export or route
   handler lacks `requireMember()` / `getMember()` (the public landing
-  page, `robots.txt` and `sitemap.xml` are an explicit allow-list)
+  page, `robots.txt`, `sitemap.xml`, the deal public actions, the deal
+  file route with token check and the cron route with `CRON_SECRET` are an
+  explicit allow-list)
 - Every query filters by `organizationId`; no Prisma text reaches the
   UI; blob uploads validated on the server; only the download route
   remains under `/api`
@@ -892,7 +1003,7 @@ Completed in the tracker.
 ## Branching and review
 
 - No branches or pull requests until launch: all work happens on
-  `main` (revisit in Phase 12).
+  `main` (revisit in Phase 14).
 - Commit per logical piece, named for the phase:
   `phase 3: bank drawer with slug check`.
 - Push only after the standard checks pass locally, because every push
@@ -913,7 +1024,9 @@ Completed in the tracker.
 | Templates are separate from data | 6 |
 | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
 | Live preview | 6, 7 |
-| Admin routes protected on the server | 1, 12 |
+| Admin routes protected on the server | 1, 14 |
+| Deal desk (customer + admin) | 12 |
+| Crypto deposits verified on-chain | 13 |
 | Public landing page with latest board rates | 11 |
-| Phone-first generator | 2, 7, 12 |
-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11 |
+| Phone-first generator | 2, 7, 14 |
+| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11; deal desk 12; crypto deals 13 |

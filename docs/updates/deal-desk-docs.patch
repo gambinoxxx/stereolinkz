@@ -1,0 +1,418 @@
+--- a/context/architecture.md
++++ b/context/architecture.md
+@@ -21,14 +21,14 @@
+ ```
+ src/
+   app/
+-    (public)/                     Public landing page at / (no sign-in), its own layout
++    (public)/                     Public landing page at / and the Deal desk at /deal/* (no sign-in)
+     (auth)/login/[[...login]]/    Clerk sign-in page
+     admin/                        Protected pages: page, forex, pof, crypto, banks,
+                                   templates, generator, history, settings
+     api/boards/[id]/download/     Route handler that streams a board PNG with a download filename
+   features/
+     currencies/  forex-rates/  banks/  pof-rates/  coins/  crypto-rates/
+-    boards/  settings/  public/
++    boards/  settings/  public/  deals/
+                                   Each has: schema.ts (Zod), queries.ts
+                                   (server-only reads), actions.ts (server
+                                   actions), components/ (feature UI)
+@@ -184,11 +184,52 @@
+ - Every WhatsApp link is `https://wa.me/<digits of contactLine>?text=…`.
+ - `robots.txt` allows `/` and disallows `/admin` and `/api`; `sitemap.xml` lists `/`.
+ 
++## Deal Desk
++
++- **Deal** (`features/deals/`): `ref` (`SLZ-1047`, unique per org,
++  from a per-org counter), `service` (SCHOOL_FEES, INTL_PAYMENT, POF,
++  FOREX_SELL, FOREX_BUY, CRYPTO_SELL), `status`, customer name /
++  WhatsApp / optional email, `details` (JSON validated by a Zod
++  union per service), amount and currency, `quotedRate` + the board it
++  came from (immutable), `agreedRate` / fee / agreed naira (set by the
++  team), chosen `paymentAccountId`, payout account (name, bank,
++  number) for deals we pay out, owner (Membership), and
++  `trackingTokenHash`.
++- **DealEvent**: append-only log of every change (actor = member,
++  customer or system). **DealFile**: private uploads (invoice,
++  receipt, confirmation). **PaymentAccount**: our accounts and the
++  services each may be shown for. Deal-desk settings live on the
++  Organization (services enabled, rate lock, payout target, contact
++  SLA, reference prefix).
++- **Statuses.** Non-crypto: NEW → AGREED → AWAITING_PAYMENT →
++  PAYMENT_RECEIVED → PROCESSING → COMPLETED | CANCELLED. Crypto:
++  AWAITING_DEPOSIT → DEPOSIT_SEEN → DEPOSIT_COMPLETE → PAID_OUT |
++  EXPIRED | FLAGGED | CANCELLED. Transitions are a tested state machine.
++- **Quotes are computed on the server** from the latest generated
++  board of the matching type (Forex for fees, payments and forex;
++  POF; Crypto), never from client numbers.
++- **Customer access** is by an unguessable tracking token in the
++  link (`/deal/<ref>?t=…`); only its hash is stored. Pages are
++  `noindex` with `Referrer-Policy: no-referrer`.
++- **Public writes** go only through `features/deals/public-actions.ts`:
++  Zod validation, honeypot + minimum fill time, rate limits per IP
++  and per phone number, and the service must be enabled.
++- **Private files**: stored under random paths and served only
++  through an authenticated route (team member, or the deal's tracking
++  token) that streams the file; blob URLs are never sent to browsers.
++- **Crypto deposits (Phase 13)**: our receiving addresses are
++  watched read-only through blockchain data APIs (TronGrid for TRC20,
++  an Etherscan-family API for BEP20). A protected cron route and the
++  customer's page trigger checks. A deposit is confirmed only when
++  destination, official token contract, network, amount and
++  confirmations all pass; ambiguous or failed checks are FLAGGED.
++  No private keys or seed phrases exist anywhere in the system.
++
+ ## Auth and Access Model
+ 
+ - Every person signs in via Clerk. `proxy.ts` redirects signed-out
+   visitors from `/admin/*` to `/login`. `/` (the landing page),
+-  `robots.txt` and `sitemap.xml` are public.
++  `/deal/*`, `robots.txt` and `sitemap.xml` are public.
+ - A Clerk session is not enough. `requireMember()` in
+   `lib/server/auth.ts` looks up a `Membership` for the Clerk user. It
+   returns `{ userId, organizationId, role }` or throws, which the app
+@@ -219,6 +260,11 @@
+ | `PUBLIC_ORG_SLUG` = `stereolinkz` | Landing page (which organization's boards to show) | local, Vercel |
+ | `PUBLIC_SHOW_POF` = `true` | Landing page (show the POF tab and service) | local, Vercel |
+ | `NEXT_PUBLIC_SITE_URL` | Landing page metadata, sitemap, Open Graph URLs | local, Vercel |
++| `RESEND_API_KEY` | Team email alerts for new deals and payouts due (Phase 12) | local, Vercel |
++| `DEAL_ALERT_FROM` | Sender address for alerts | local, Vercel |
++| `CRON_SECRET` | Protects `/api/cron/*` (Phase 13) | Vercel |
++| `TRONGRID_API_KEY` | TRC20 deposit checks (Phase 13) | local, Vercel |
++| `ETHERSCAN_API_KEY` | BEP20 deposit checks (Phase 13) | local, Vercel |
+ 
+ ## Settled Decisions
+ 
+@@ -263,6 +309,13 @@
+   rates. Why: Generate is the team's deliberate "publish" step, so
+   WhatsApp Status and the website always match and half-finished
+   edits never go public.
++- **Deals start online but are agreed on WhatsApp.** The website
++  collects the request and shows an estimate; the team confirms the
++  final rate in the chat and records it. No customer accounts.
++- **Payment details are per deal**, chosen by the rep from our
++  accounts, and appear only after the deal is agreed.
++- **Crypto is watch-only**: the app reads the blockchain and never
++  holds keys; payouts are made by the team and recorded.
+ - **The landing page lives in the same Next.js app** (route group
+   `(public)`), so it shares the database, brand and templates; there
+   is no public API.
+@@ -295,7 +348,16 @@
+     (`Africa/Lagos`), never the server's UTC clock.
+ 12. Blob files are never overwritten. A replaced logo or image gets a
+     new URL.
+-13. Public pages read only the latest RateBoard snapshots and public
+-    Organization fields, through `features/public/queries.ts`. They
+-    never read rate tables, never run server actions, and never show
+-    invented reviews, figures or licence claims.
++13. The landing page reads only the latest RateBoard snapshots and
++    public Organization fields, through `features/public/queries.ts`.
++    It never reads rate tables and never shows invented reviews,
++    figures or licence claims.
++14. The only unauthenticated writes are in
++    `features/deals/public-actions.ts` (rate-limited, validated, bot-checked).
++    A customer reaches a deal only with its tracking token, and sees
++    only that deal. Deal quotes come from board snapshots on the server.
++15. Deal history is append-only (DealEvent); quotedRate never changes;
++    a deal moves only through allowed transitions; payment received
++    and paid out are always set by a team member, never automatically.
++16. No private key or seed phrase is ever stored or accepted. Crypto
++    deposits are confirmed only by the full on-chain check.
+--- a/context/code-standards.md
++++ b/context/code-standards.md
+@@ -88,6 +88,22 @@
+ - Budgets (mobile, Lighthouse): Performance ≥ 85, Accessibility ≥ 95,
+   SEO ≥ 95; LCP < 2.5s; CLS < 0.1.
+ 
++## Deal Desk
++
++- Public deal actions live only in `features/deals/public-actions.ts`
++  and use a `publicAction` wrapper: Zod parse, honeypot and minimum
++  fill time, rate limit (per IP hash and per phone), service enabled.
++  They return the same generic errors as `safeAction`.
++- Status changes go through one tested function
++  (`transitionDeal(deal, to, actor, data)`) that checks the allowed
++  transitions and writes the DealEvent in the same transaction.
++- Money: decimal strings and the decimal helpers end to end; naira
++  rounded to whole naira for display, stored exactly.
++- Phone numbers normalised with `normalizeWhatsAppNumber`; tracking
++  tokens are 32 random bytes (base64url), stored as SHA-256 hashes.
++- Uploads: PDF, JPG or PNG, ≤ 10 MB, checked on the server; random
++  pathnames; served only through the authenticated file route.
++
+ ## Server Actions and Route Handlers
+ 
+ - The first line of logic is `const { organizationId, userId } = await requireMember();`.
+@@ -145,7 +161,7 @@
+ ## Git
+ 
+ - Work directly on `main`. No feature or phase branches until launch
+-  (revisit in Phase 12, once the site is in daily use).
++  (revisit in Phase 14, once the site is in daily use).
+ - Commit each working piece, imperative and naming the phase:
+   `phase 4: insert ForexRate on save`. Commit the tracker with the code.
+ - **Push only when the standard checks pass** (`build`, `lint`,
+--- a/context/implementation-plan.md
++++ b/context/implementation-plan.md
+@@ -1,6 +1,6 @@
+ # Implementation Plan
+ 
+-The build plan for RateBoard, from an empty repo to production, in 12
++The build plan for RateBoard, from an empty repo to production, in 14
+ phases. Each phase is one block of work: build everything it lists,
+ check it, then move to the next phase. Progress is recorded in
+ `progress-tracker.md` as the work happens.
+@@ -264,7 +264,7 @@
+   - `EmptyState`, `Callout`
+   - `EntityDrawer` (Enter submits)
+ - A dev-only `/admin/dev-kit` page showing every component in every
+-  state (removed in Phase 12)
++  state (removed in Phase 14)
+ 
+ **App shell**
+ - `src/components/shell/`:
+@@ -835,11 +835,120 @@
+ 
+ ---
+ 
+-## Phase 12: Hardening and launch
++## Phase 12: Deal desk
++
++- **Goal:** Customers start school fees, international payment, POF and
++  forex deals on the website and track them privately; the team works
++  every deal from `/admin/deals`.
++- **Depends on:** Phases 9 and 11
++- **Read:** `project-overview.md` → Deal desk; `architecture.md` → Deal
++  Desk, Invariants 7, 10, 12, 14 and 15; `code-standards.md` → Deal Desk
++- **Design:** `deal-start.html`, `deal-school-fees.html`,
++  `deal-pay-abroad.html`, `deal-pof.html`, `deal-forex.html`,
++  `deal-submitted.html`, `deal-track.html`, `deals.html`,
++  `deal-detail.html`, `settings-deal-desk.html`
++
++### Build
++
++**Data**
++- Deal, DealEvent, DealFile, PaymentAccount, deal-desk fields on
++  Organization; per-org reference counter; `dealDetailsV1` Zod union
++- `transitionDeal` state machine; server-side quotes from board snapshots
++
++**Customer side**
++- `/deal/new` and the four forms with live estimates; `publicAction`
++  submit with bot checks and rate limits; private uploads
++- `/deal/[ref]?t=…` submitted and tracking states; "I've paid" with receipt
++- Landing page CTAs and calculator link to "Start a deal"
++
++**Admin side**
++- `/admin/deals` queue (stats, filters, search), deal detail (agreed
++  rate, payment account, transitions, WhatsApp messages, owner, notes,
++  files, activity), Settings → Deal desk (services, payment accounts,
++  timings, alerts), sidebar badge
++- Team email alerts for new deals
++
++### Stop points
++
++- The owner confirms legal advice before services are switched on in
++  production (all services default to off)
++- The owner sets the business WhatsApp number and payment accounts
++
++### Done when
++
++- [ ] A school fees deal goes from request to completed on a real phone,
++  with the customer page updating at each step
++- [ ] Payment details appear only after the deal is agreed, and only the chosen account
++- [ ] quotedRate never changes; every change is in the activity log
++- [ ] Spam submits are blocked by the honeypot and rate limits
++- [ ] Private files can't be opened without a team session or the tracking token
++
++### Verify
++
++Standard checks; a full deal walk-through on production with services
++enabled only for the owner's test.
++
++### Not in this phase
++
++Crypto deals (Phase 13), customer accounts, automatic payouts, cash forex online.
++
++---
++
++## Phase 13: Crypto deposits
++
++- **Goal:** Customers sell USDT/USDC (TRC20, BEP20) online; deposits are
++  verified on-chain automatically and the team pays out against a timer.
++- **Depends on:** Phase 12
++- **Read:** `architecture.md` → Deal Desk (crypto), Invariants 15 and
++  16; `project-overview.md` → Deal desk
++- **Design:** `deal-crypto.html`, `deal-crypto-deposit.html`,
++  `deal-crypto-payout.html`, `deal-detail-crypto.html`, crypto parts of
++  `deals.html` and `settings-deal-desk.html`
++
++### Build
++
++**Data**
++- CryptoWallet (watch-only), crypto fields on Deal, ObservedTransfer
++  (tx hash unique) ; rate lock and payout timers
++
++**Watcher**
++- Provider clients for TRC20 and BEP20 token transfers; the full deposit
++  check; matching by pasted TxID or amount + time window; FLAGGED on
++  any doubt; protected cron route plus on-demand checks from the
++  customer page
++
++**Customer and admin**
++- Sell crypto form, deposit page (address, QR, lock countdown, TxID,
++  live confirmations), payout countdown and paid state
++- Admin deposit-check panel, payout panel with timer and reference,
++  "payout due" alerts, wallet settings
++
++### Stop points
++
++- The owner confirms legal advice for crypto before enabling it in production
++- The owner adds the real receiving addresses and makes a small real test deposit
++
++### Done when
++
++- [ ] A real small USDT TRC20 deposit is detected and confirmed automatically
++- [ ] Wrong token, wrong network, underpayment and late deposits are flagged or expired, never confirmed
++- [ ] The payout timer and paid state show on the customer page
++
++### Verify
++
++Standard checks; fixture tests for every check; one real test deposit per network.
++
++### Not in this phase
++
++BTC/ETH, per-deal addresses, automatic payouts.
++
++---
++
++## Phase 14: Hardening and launch
+ 
+ - **Goal:** Production-ready and live for Stereolinkz, with every
+   success criterion met.
+-- **Depends on:** Phase 11
++- **Depends on:** Phase 13
+ - **Read:** `project-overview.md` → Success Criteria; `architecture.md` → Invariants
+ 
+ ### Build
+@@ -855,7 +964,9 @@
+ **Security**
+ - `scripts/check-actions.ts`: fails if any action export or route
+   handler lacks `requireMember()` / `getMember()` (the public landing
+-  page, `robots.txt` and `sitemap.xml` are an explicit allow-list)
++  page, `robots.txt`, `sitemap.xml`, the deal public actions, the deal
++  file route with token check and the cron route with `CRON_SECRET` are an
++  explicit allow-list)
+ - Every query filters by `organizationId`; no Prisma text reaches the
+   UI; blob uploads validated on the server; only the download route
+   remains under `/api`
+@@ -899,7 +1010,7 @@
+ - At the end of each phase: the owner reviews the Done-when list and
+   screenshots at 1440px and 390px of every page touched, then the phase
+   is tagged `phase-<n>-complete` and pushed.
+-- Before launch (Phase 12), decide whether to switch to short-lived
++- Before launch (Phase 14), decide whether to switch to short-lived
+   branches with Vercel Preview checks once the site is in daily use.
+ 
+ ## Coverage map
+@@ -914,7 +1025,9 @@
+ | Templates are separate from data | 6 |
+ | 1080 × 1920 server-rendered PNG | 1 (spike), 6, 7 |
+ | Live preview | 6, 7 |
+-| Admin routes protected on the server | 1, 12 |
++| Admin routes protected on the server | 1, 14 |
++| Deal desk (customer + admin) | 12 |
++| Crypto deposits verified on-chain | 13 |
+ | Public landing page with latest board rates | 11 |
+-| Phone-first generator | 2, 7, 12 |
+-| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11 |
++| Phone-first generator | 2, 7, 14 |
++| Design files | login 1; dashboard 2 (shell) and 9; banks 3; forex 4; pof 5; templates 6; generator 7; history 8; settings 9; crypto 10; landing 11; deal desk 12; crypto deals 13 |
+--- a/context/project-overview.md
++++ b/context/project-overview.md
+@@ -72,6 +72,32 @@
+ - Never shows invented reviews, figures or licence claims: those
+   sections stay hidden until real content is added.
+ 
++### Deal desk (`/deal/*` public, `/admin/deals` admin)
++
++- Customers start a deal on the website without an account: **school
++  fees abroad, international payment, proof of funds, sell or buy forex
++  (by transfer), and sell crypto (USDT/USDC).** Cash forex is never
++  offered online; customers are sent to WhatsApp.
++- Each form shows a live estimate from the latest generated board
++  (stored on the deal as the quoted rate). Submitting gives a reference
++  (`SLZ-1047`), a private tracking link and a "Continue on WhatsApp"
++  button with the reference prefilled.
++- Non-crypto deals: the rep agrees the final rate on WhatsApp and
++  records it (agreed rate kept next to the quoted rate), chooses which
++  of our accounts the customer sees, and moves the deal: Requested →
++  Agreed → Awaiting payment → Payment received (only after checking the
++  bank statement) → Sent / paid out → Completed, or Cancelled.
++- Crypto deals: the rate is locked (30 min by default), the customer
++  sends to our watched address, the app verifies the deposit on-chain
++  (address, official token contract, network, amount, confirmations)
++  and shows "Deposit complete" with a payout countdown (10 min target);
++  the rep pays and records the bank reference.
++- The team (3 people) works deals on `/admin/deals`: queue with
++  "needs action" and "payout due", deal detail with private uploads,
++  ready-made WhatsApp messages, owner, notes and a full activity log.
++- Settings → Deal desk: services on/off, our payment accounts, crypto
++  wallets (watch-only), confirmations, minimums, timings, team alerts.
++
+ ### Authentication
+ 
+ - Sign-in with Clerk (Google or email). No custom password auth.
+@@ -175,6 +201,9 @@
+ - Board history with immutable snapshots, view, download and regenerate
+ - Settings for company details and brand colours
+ - A public landing page at `/` showing the latest published board rates
++- The Deal desk: customer deal requests with private tracking pages,
++  and the admin Deals queue (non-crypto in Phase 12, crypto deposits
++  verified on-chain in Phase 13)
+ - Responsive layout for desktop, tablet and phone; the generator must
+   be fully usable on a phone
+ 
+@@ -188,8 +217,12 @@
+ - Per-network or per-amount crypto rates (one buy/sell per coin)
+ - Visual template editor; templates are code
+ - Posting directly to WhatsApp (the admin downloads and posts)
+-- Online ordering, customer accounts or payments on the website (every
+-  deal starts in a WhatsApp chat)
++- Customer accounts and passwords (customers use a private tracking
++  link); card or online payments on the website (customers transfer
++  from their banking app or send crypto); in-app chat (WhatsApp is the chat)
++- Cash forex arranged online; automatic naira payouts through a bank
++  API (payouts are made and recorded by the team)
++- BTC, ETH and other coins in the automated crypto flow (WhatsApp only)
+ - A blog or CMS; landing page copy lives in code
+ - Board drafts (a board exists only once generated)
+ - Extra image formats (square feed, landscape)
+@@ -223,3 +256,9 @@
+ 12. A signed-out visitor can open `/` on a phone and see the rates of
+     the latest generated boards. Generating a new board updates `/`
+     within a minute; editing a rate without generating does not.
++13. A customer can start a school fees deal on a phone, get a
++    reference and tracking link, and see the status change as the team
++    moves the deal; payment details appear only after the deal is agreed.
++14. A USDT deposit to our watched address is confirmed automatically
++    only when address, token contract, network, amount and
++    confirmations all check out; anything else is flagged for the team.
+--- a/context/ui-context.md
++++ b/context/ui-context.md
+@@ -22,6 +22,8 @@
+ | History | `history.html`, `history-board.html`, `history-regenerate.html` |
+ | Settings | `settings.html` |
+ | Public landing page | `landing.html` (motion-led; scroll it slowly at 1440px and 390px) |
++| Deal desk (customer) | `deal-start.html`, `deal-school-fees.html`, `deal-pay-abroad.html`, `deal-pof.html`, `deal-forex.html`, `deal-submitted.html`, `deal-track.html`, `deal-crypto.html`, `deal-crypto-deposit.html`, `deal-crypto-payout.html` |
++| Deal desk (admin) | `deals.html`, `deal-detail.html`, `deal-detail-crypto.html`, `settings-deal-desk.html` |
+ 
+ ## Theme
+ 
+@@ -239,6 +241,7 @@
+ | Forex | `ArrowLeftRight` |
+ | POF | `Percent` |
+ | Crypto | `Coins` |
++| Deals | `Inbox` |
+ | Banks | `Landmark` |
+ | Generator / Generate | `Sparkles` |
+ | History | `History` |

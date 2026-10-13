@@ -648,12 +648,14 @@ change.
 
 ## Next Up
 
-- Phase 11 on production (owner): set `PUBLIC_ORG_SLUG`, `PUBLIC_SHOW_POF`
-  and `NEXT_PUBLIC_SITE_URL` in Vercel, then push; Lighthouse mobile on
-  the production URL; real phone test of `/`.
+- Phase 12: Deal desk (`docs/design/deal*.html`, `settings-deal-desk.html`)
+- Phase 11 on production: the Vercel variables are set and `/` shows all
+  three tabs with the real number (checked 2026-10-13). Still open:
+  Lighthouse mobile on the production URL; the owner's real phone test.
 - Phase 10 on production: owner checks the coins on the live site,
   generates a crypto board on a phone and posts it to WhatsApp Status
-- Phase 12: Hardening and launch. Open: the launch users' Clerk IDs
+- Phase 13: Crypto deposits
+- Phase 14: Hardening and launch. Open: the launch users' Clerk IDs
 - Phases 4–9 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
@@ -663,13 +665,13 @@ change.
   https://stereolinkz-czj8.vercel.app/admin and see `/not-authorized`.
 - Secrets pasted in chat (Neon `neondb_owner` password, Clerk secret
   key): the owner chose to rotate them at the end of the project. Must
-  be done in Phase 12 before launch, in `.env.local` and in Vercel (no
+  be done in Phase 14 before launch, in `.env.local` and in Vercel (no
   quotes), then redeploy.
 
 - Stereolinkz logo file: boards still use the wordmark. (The real
   WhatsApp number is set: +234 903 591 4544.)
 - Who else needs access at launch? Their Clerk user IDs are needed
-  for memberships. Needed by Phase 12.
+  for memberships. Needed by Phase 14.
 - Phase 11 (landing page): show POF rates on the public site? The POF tab
   lists bank names from the board. (Built with `PUBLIC_SHOW_POF=true`.)
 - Phase 11: real customer reviews (with permission), a real typical
@@ -680,11 +682,25 @@ change.
 - Phase 11: confirm the service claims kept from the design copy: "Same
   day", "T+1" (China and the rest of the world), "Low fees, agreed before
   you pay", "Real people on WhatsApp".
-- Phase 11: custom domain for the site (can wait until Phase 12)
+- Phase 11: custom domain for the site (can wait until Phase 14)
+- Phase 12: legal advice before switching any deal service on in
+  production (services default to off).
+- Phase 12: the business WhatsApp number for deals.
+- Phase 12: our payment accounts (bank, number, name, and which services
+  each one is for).
+- Phase 12: which email address receives team alerts.
+- Phase 12: whether to use Resend for email (new dependency).
+- Phase 13: legal advice for crypto.
+- Phase 13: the real receiving addresses for USDT/USDC on TRC20 and BEP20.
+- Phase 13: a small real test deposit.
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
 
+- 2026-10-13: Deal desk added as Phases 12 (non-crypto) and 13 (crypto
+  deposits); Hardening moved to Phase 14. Deals start online without
+  accounts and are agreed on WhatsApp; crypto is watch-only; services
+  default to off in production.
 - 2026-10-08: Phase 11 decisions.
   - **Caching model**: classic segment config, as the rest of the app
     (no `cacheComponents`): `export const revalidate = 3600` on `/`, plus
@@ -1196,6 +1212,22 @@ change.
 
 ## Session Notes
 
+- 2026-10-13: Docs update for the deal desk (no code). Applied
+  `docs/updates/deal-desk-docs.patch` (from the owner's
+  `deal-desk-files`): `project-overview.md` and `ui-context.md` cleanly,
+  and most hunks of the others. By hand, because earlier phases had
+  changed the surrounding text: `architecture.md` (the new "Deal Desk"
+  section before Auth; `/deal/*` added to the public-paths bullet, keeping
+  the Phase 11 proxy/ClerkProvider wording), `code-standards.md` and
+  `implementation-plan.md` (the "revisit branches" notes, now Phase 14).
+  Also renumbered to Phase 14: the dev-kit removal note in `ui-context.md`
+  and the dev-kit page comment, the secrets rotation, launch users and
+  custom domain questions. `.env.example` gained `RESEND_API_KEY`,
+  `DEAL_ALERT_FROM`, `CRON_SECRET`, `TRONGRID_API_KEY`,
+  `ETHERSCAN_API_KEY` (names only). The owner's new and refreshed designs
+  (14 `deal*`/`settings-deal-desk` files and 25 admin designs with the
+  Deals sidebar item) were committed as provided (byte-identical to
+  `deal-desk-files/docs/design`).
 - 2026-10-08: Docs update for the landing page (no code). Applied
   `docs/updates/landing-docs.patch` (from the owner's
   `phase-11-landing-files`) to the five context files.
