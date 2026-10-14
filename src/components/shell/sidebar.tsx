@@ -18,7 +18,13 @@ export type SidebarUser = { name: string; role: MemberRole };
 
 // Brand, navigation and the signed-in user (dashboard.html .side). Used as
 // the fixed desktop sidebar and inside the phone menu drawer.
-export function SidebarContent({ user }: { user: SidebarUser }) {
+export function SidebarContent({
+  user,
+  badges,
+}: {
+  user: SidebarUser;
+  badges?: Record<string, number>;
+}) {
   return (
     <div className="flex h-full flex-col px-3.5 pt-[22px] pb-4 text-sidebar-text [&_:focus-visible]:outline-accent-gold">
       <Link
@@ -32,7 +38,7 @@ export function SidebarContent({ user }: { user: SidebarUser }) {
         RateBoard
       </div>
 
-      <NavLinks />
+      <NavLinks badges={badges} />
 
       <div className="mt-auto flex items-center gap-2.5 border-t border-sidebar-text-active/8 px-2.5 pt-3">
         <span
@@ -71,9 +77,11 @@ export function SidebarContent({ user }: { user: SidebarUser }) {
 // Fixed 248px sidebar from 900px up.
 export function Sidebar({
   user,
+  badges,
   className,
 }: {
   user: SidebarUser;
+  badges?: Record<string, number>;
   className?: string;
 }) {
   return (
@@ -84,7 +92,7 @@ export function Sidebar({
         className,
       )}
     >
-      <SidebarContent user={user} />
+      <SidebarContent user={user} badges={badges} />
     </aside>
   );
 }

@@ -9,7 +9,7 @@
 // "We’ll quote on WhatsApp". Values are exact decimal strings.
 import type { DealDetails } from "@/features/deals/schema";
 import type { DealService } from "@/generated/prisma/enums";
-import { multiplyDecimalStrings } from "@/lib/decimal";
+import { multiplyDecimalStrings, subtractDecimalStrings } from "@/lib/decimal";
 
 export type QuoteForexRow = { code: string; buy: string; sell: string };
 export type QuotePofRow = { bankId: string; name: string; rate: string };
@@ -95,4 +95,33 @@ function pofQuote(req: QuoteRequest, { pof }: QuoteBoards): Quote | null {
     side: "pof",
     bankName: row.name,
   };
+}
+
+// The agreed total, from the rate and fee the team agreed on WhatsApp.
+// The customer pays amount × rate + fee; selling forex, we pay them
+// amount × rate − fee; POF is amount × rate% × months + fee. Exact strings.
+export function agreedNairaFor(
+  service: DealService,
+  amount: string,
+  rate: string,
+  fee: string,
+  months = 1,
+): string {
+  const base =
+    service === "POF"
+      ? multiplyDecimalStrings(
+          multiplyDecimalStrings(
+            multiplyDecimalStrings(amount, rate),
+            String(months),
+          ),
+          "0.01",
+        )
+      : multiplyDecimalStrings(amount, rate);
+  return service === "FOREX_SELL"
+    ? subtractDecimalStrings(base, fee)
+    : addDecimalStrings(base, fee);
+}
+
+function addDecimalStrings(a: string, b: string): string {
+  return subtractDecimalStrings(a, b.startsWith("-") ? b.slice(1) : `-${b}`);
 }

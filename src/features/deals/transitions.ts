@@ -42,7 +42,10 @@ export type TransitionTx = {
 export type TransitionOptions = {
   message: string; // the activity line: "Payment received: ₦8,262,000 checked on the statement"
   data?: Prisma.InputJsonValue; // extra event detail
-  set?: Omit<Prisma.DealUpdateManyMutationInput, "status" | "statusChangedAt">; // fields that change with the status
+  set?: Omit<
+    Prisma.DealUncheckedUpdateManyInput,
+    "status" | "statusChangedAt" | "id" | "organizationId"
+  >; // fields that change with the status
   now?: Date;
 };
 

@@ -9,12 +9,45 @@ change.
 
 ## Current Goal
 
-- Phase 12, admin deals: `/admin/deals` queue and `/admin/deals/[ref]`
-  (transitions, agreed rate, payment account, WhatsApp, notes, activity),
-  "New deal", sidebar badge and Deals tab.
+- Phase 12, alerts and landing links: Resend team email (new deal, "I’ve
+  paid"), the customer's link email, dashboard line, "Start a deal" and
+  "Start this deal" on the landing page.
 
 ## Completed
 
+- 2026-10-14: Phase 12, admin deals. `/admin/deals` (`deals.html`): three
+  stat cards (Payout due hidden until Phase 13), Active / Needs action /
+  Completed / All, search by ref, name or phone digits, service and owner
+  filters (all in the URL), table with service icon, customer, amount and
+  naira, status chip + sub-line, owner avatar, waiting time (amber at ⅔
+  of the contact SLA, red past it; payment received amber after 30 min;
+  `waiting.ts`, tested), 20 per page with a cursor, "New deal" drawer
+  (team deals: same details, actor = member, the private link shown
+  once). `/admin/deals/[ref]` (`deal-detail.html`): primary action follows
+  the status (Mark agreed → Share payment details → Mark payment received
+  [confirm "Have you checked ₦… from … on the bank statement?"] → Mark
+  sent [optional reference] → Mark completed; completed straight from
+  payment received too), Cancel with a reason, stepper, request with
+  private files (Open via the file route), rate and amount (estimate
+  fixed; agreed rate + fee → agreed naira, `agreedNairaFor`, tested;
+  change after sharing needs a reason → RATE_CHANGED; locked after
+  payment), accounts (active + enabled for the service, name-differs
+  chip), customer (past deals by number, owner select), WhatsApp
+  messages per status (`messages.ts`), activity newest first with who
+  and when, internal notes. `features/deals/actions.ts` (safeAction,
+  org-scoped, `transitionDeal` in a transaction, revalidates the deal,
+  the queue and the admin layout). Sidebar "Deals" with the
+  needs-action badge; phone tab bar Home | Forex | Deals | Generate |
+  More. New tokens `--deal-*` and the `wide` (1100px) breakpoint.
+  Walk-through on a production build (dev branch): website deal SLZ-1052
+  NEW → AGREED (₦1,836, ₦8,262,000) → AWAITING_PAYMENT → PAYMENT_RECEIVED
+  → PROCESSING (FT-TEST-123) → COMPLETED, the customer page right at each
+  step, activity shows every step with who and when; team deal SLZ-1054
+  (sell forex): payout preview amount × rate − fee, rate change after
+  sharing refused without a reason and logged with one; crafted replays
+  of "agree" and "share" on the completed deal refused, status unchanged.
+  The dev branch dropped connections once (DatabaseNotReachable); the
+  action failed safely and the walk-through resumed.
 - 2026-10-14: Phase 12, tracking. `/deal/[ref]?t=…` (`force-dynamic`):
   `?new=1` = deal-submitted (reference, status, "Continue on WhatsApp"
   with reference, service and amount, open/copy my deal link, upload-failed

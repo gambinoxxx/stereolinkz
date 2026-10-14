@@ -94,6 +94,11 @@
   --bank-mark-4: #c77700;
   --bank-mark-5: #b3261e;
   --bank-mark-6: #b8327a;
+  /* Deal desk (deals.html): service icons, the payment-received chip, the late/soon waiting times */
+  --deal-pay: #1a9e77;
+  --deal-recv: #2457c5;
+  --deal-recv-soft: #e6eefd;
+  --deal-soon: #b7791f;
 
   /* shadcn/ui aliases (our tokens only) */
   --background: var(--bg-base);
@@ -157,6 +162,10 @@
   --color-bank-mark-4: var(--bank-mark-4);
   --color-bank-mark-5: var(--bank-mark-5);
   --color-bank-mark-6: var(--bank-mark-6);
+  --color-deal-pay: var(--deal-pay);
+  --color-deal-recv: var(--deal-recv);
+  --color-deal-recv-soft: var(--deal-recv-soft);
+  --color-deal-soon: var(--deal-soon);
 
   /* shadcn/ui names */
   --color-background: var(--background);
@@ -189,6 +198,7 @@
   /* Breakpoints (ui-context.md → Layout Patterns) */
   --breakpoint-sheet: 760px;
   --breakpoint-shell: 900px;
+  --breakpoint-wide: 1100px; /* deals queue: customer and owner columns */
 
   /*
    * --font-sans is set on <html> by next/font (Archivo, src/app/layout.tsx).

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { type QuoteBoards, quoteDeal } from "@/features/deals/quote";
+import {
+  agreedNairaFor,
+  type QuoteBoards,
+  quoteDeal,
+} from "@/features/deals/quote";
 import type { DealDetails } from "@/features/deals/schema";
 
 const boards: QuoteBoards = {
@@ -199,5 +203,24 @@ describe("quoteDeal", () => {
         boards,
       ),
     ).toBeNull();
+  });
+});
+
+describe("agreedNairaFor", () => {
+  it("adds the fee to what the customer pays", () => {
+    expect(agreedNairaFor("SCHOOL_FEES", "4500", "1836", "0")).toBe("8262000");
+    expect(agreedNairaFor("INTL_PAYMENT", "3200", "1378.5", "2500")).toBe(
+      "4413700",
+    );
+    expect(agreedNairaFor("FOREX_BUY", "100.50", "1378", "0")).toBe("138489");
+  });
+  it("takes the fee off what we pay a forex seller", () => {
+    expect(agreedNairaFor("FOREX_SELL", "1000", "1360", "1000")).toBe(
+      "1359000",
+    );
+  });
+  it("works POF out per month", () => {
+    expect(agreedNairaFor("POF", "15000000", "3.2", "0", 3)).toBe("1440000");
+    expect(agreedNairaFor("POF", "15000000", "3.2", "5000", 3)).toBe("1445000");
   });
 });

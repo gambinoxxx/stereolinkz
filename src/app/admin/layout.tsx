@@ -5,6 +5,7 @@ import { MobileTopBar } from "@/components/shell/mobile-top-bar";
 import { Sidebar, SidebarContent } from "@/components/shell/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { countDealsNeedingAction } from "@/features/deals/queries";
 import { getViewer, requireMember } from "@/lib/server/auth";
 
 // App shell (ui-context.md → Layout Patterns): a 248px sidebar from 900px
@@ -16,16 +17,22 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   // page query, server action and route handler must call requireMember()
   // itself (architecture.md → Invariant 7). This call only keeps
   // non-members from seeing the shell.
-  const { role } = await requireMember();
-  const { fullName } = await getViewer();
+  const { role, organizationId } = await requireMember();
+  const [{ fullName }, needsAction] = await Promise.all([
+    getViewer(),
+    countDealsNeedingAction(organizationId),
+  ]);
   const user = { name: fullName, role };
+  const badges = { "/admin/deals": needsAction };
 
   return (
     <AuthProvider>
       <TooltipProvider>
-        <MobileMenuProvider menu={<SidebarContent user={user} />}>
+        <MobileMenuProvider
+          menu={<SidebarContent user={user} badges={badges} />}
+        >
           <div className="min-h-screen shell:grid shell:grid-cols-[248px_minmax(0,1fr)]">
-            <Sidebar user={user} />
+            <Sidebar user={user} badges={badges} />
             <div className="min-w-0">
               <MobileTopBar />
               <main className="mx-auto w-full max-w-[1200px] px-4 pt-[22px] pb-[120px] shell:px-10 shell:pt-[34px] shell:pb-20">

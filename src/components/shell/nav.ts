@@ -2,6 +2,7 @@ import {
   ArrowLeftRight,
   Coins,
   History,
+  Inbox,
   Landmark,
   Layers,
   LayoutGrid,
@@ -17,6 +18,7 @@ export type NavItem = { href: string; label: string; icon: LucideIcon };
 export const NAV_GROUPS: NavItem[][] = [
   [
     { href: "/admin", label: "Dashboard", icon: LayoutGrid },
+    { href: "/admin/deals", label: "Deals", icon: Inbox },
     { href: "/admin/forex", label: "Forex rates", icon: ArrowLeftRight },
     { href: "/admin/pof", label: "POF rates", icon: Percent },
     { href: "/admin/crypto", label: "Crypto rates", icon: Coins },
@@ -30,11 +32,12 @@ export const NAV_GROUPS: NavItem[][] = [
   [{ href: "/admin/settings", label: "Settings", icon: SlidersHorizontal }],
 ];
 
-// Phone tab bar; "More" (the full menu) is added by BottomTabBar.
+// Phone tab bar; "More" (the full menu, which has POF) is added by
+// BottomTabBar. Deals took POF's place in Phase 12 (deals.html).
 export const TAB_ITEMS: (NavItem & { raised?: boolean })[] = [
   { href: "/admin", label: "Home", icon: LayoutGrid },
   { href: "/admin/forex", label: "Forex", icon: ArrowLeftRight },
-  { href: "/admin/pof", label: "POF", icon: Percent },
+  { href: "/admin/deals", label: "Deals", icon: Inbox },
   { href: "/admin/generator", label: "Generate", icon: Sparkles, raised: true },
 ];
 

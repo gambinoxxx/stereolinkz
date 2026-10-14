@@ -8,7 +8,8 @@ import { isActive, NAV_GROUPS } from "@/components/shell/nav";
 import { cn } from "@/lib/utils";
 
 // Sidebar navigation. The active item gets aria-current and the gold marker.
-export function NavLinks() {
+// `badges` puts a count on an item (Deals needing action).
+export function NavLinks({ badges = {} }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
 
   return (
@@ -40,6 +41,14 @@ export function NavLinks() {
                   strokeWidth={1.9}
                 />
                 {label}
+                {!!badges[href] && (
+                  <span
+                    className="ml-auto grid h-[22px] min-w-[22px] place-items-center rounded-full bg-accent-gold px-[7px] text-[12px] font-extrabold text-text-primary"
+                    aria-label={`${badges[href]} needing action`}
+                  >
+                    {badges[href]}
+                  </span>
+                )}
               </Link>
             );
           })}
