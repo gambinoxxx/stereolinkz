@@ -34,6 +34,7 @@ const org = {
   contactLine: "+234 903 591 4544",
   email: null,
   timezone: "Africa/Lagos",
+  dealServicesEnabled: [] as string[],
 };
 
 const render = (data: PublicLanding) =>
@@ -112,5 +113,28 @@ describe("Landing", () => {
       expect(html).not.toContain("Hear it from our clients");
       expect(html).not.toContain("How fast will I be paid?");
     }
+  });
+
+  it("links to the deal forms only when a service is on", () => {
+    const closed = render({
+      org,
+      forex: toForexBoard(raw(forexFixture())),
+      crypto: null,
+      pof: null,
+    });
+    expect(closed).not.toContain('href="/deal/new"');
+    expect(closed).not.toContain("Start a deal");
+    const open = render({
+      org: { ...org, dealServicesEnabled: ["SCHOOL_FEES"] },
+      forex: toForexBoard(raw(forexFixture())),
+      crypto: null,
+      pof: null,
+    });
+    expect(open).toContain('href="/deal/new"');
+    expect(open).toContain("Start a deal");
+    // WhatsApp is still the main call to action.
+    expect(open.indexOf("wa.me")).toBeLessThan(
+      open.indexOf('href="/deal/new"'),
+    );
   });
 });

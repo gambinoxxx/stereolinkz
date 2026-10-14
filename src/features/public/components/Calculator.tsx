@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUpDown, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { content } from "@/features/public/content";
@@ -22,10 +23,12 @@ export function Calculator({
   options,
   brand,
   contactLine,
+  forexDeals = { sell: false, buy: false },
 }: {
   options: CalcOption[];
   brand: string;
   contactLine: string | null;
+  forexDeals?: { sell: boolean; buy: boolean }; // website forms switched on
 }) {
   const id = useId();
   const [mode, setMode] = useState<"sell" | "buy">("sell");
@@ -164,6 +167,16 @@ export function Calculator({
         <MessageCircle strokeWidth={2.2} aria-hidden="true" />
         {c.cta}
       </a>
+      {/* The same deal on the website, amount and currency filled in.
+          Forex only (crypto deals come later), when that form is on. */}
+      {!option.coin && forexDeals[mode] && estimate !== null && (
+        <Link
+          className="start-deal"
+          href={`/deal/new/forex?${new URLSearchParams({ amount: amount.trim(), currency: option.code, dir: mode })}`}
+        >
+          {c.startDeal} →
+        </Link>
+      )}
       <p className="fine">{c.fine}</p>
     </aside>
   );

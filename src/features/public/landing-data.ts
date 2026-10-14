@@ -13,6 +13,9 @@ export type PublicOrg = {
   contactLine: string | null;
   email: string | null;
   timezone: string;
+  // Which website deal forms are open (Settings → Deal desk), for the
+  // "Start a deal" links. Names of services only.
+  dealServicesEnabled: string[];
 };
 
 export type PublicForexRow = {

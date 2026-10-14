@@ -2836,3 +2836,21 @@
 .lp .mega {
   contain-intrinsic-size: auto 360px;
 }
+
+/* Deal desk links (Phase 12): secondary to WhatsApp */
+.lp .calc .start-deal {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-weight: 750;
+  font-size: 15px;
+  color: var(--gold2);
+}
+.lp .cta .cta-deal {
+  margin-left: 10px;
+}
+@media (max-width: 560px) {
+  .lp .cta .cta-deal {
+    margin: 12px 0 0;
+  }
+}

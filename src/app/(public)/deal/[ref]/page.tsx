@@ -32,6 +32,7 @@ import { getDealDeskContext } from "@/features/deals/public-queries";
 import { SERVICE_LABELS } from "@/features/deals/services";
 import { formatAccountNumber } from "@/features/deals/settings-schema";
 import { whatsappLink } from "@/features/public/whatsapp";
+import { customerEmailReady } from "@/lib/server/email";
 import { formatBoardDay, formatBoardTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -107,10 +108,7 @@ export default async function DealPage({
         : det?.service === "POF" && det.bankName
           ? `Proof of funds · ${det.bankName}`
           : SERVICE_LABELS[deal.service];
-    const emailSent =
-      deal.hasEmail &&
-      !!process.env.RESEND_API_KEY &&
-      !!process.env.DEAL_ALERT_FROM;
+    const emailSent = deal.hasEmail && customerEmailReady();
     return (
       <main className="page">
         <div className="done-wrap">

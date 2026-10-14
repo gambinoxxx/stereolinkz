@@ -6,6 +6,7 @@ import {
   MessageCircle,
   Send,
 } from "lucide-react";
+import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { BoardScreen } from "@/features/public/components/BoardScreen";
@@ -149,6 +150,10 @@ export function Landing({ data }: { data: PublicLanding }) {
 
   const services = content.services;
   const hero = content.hero;
+  // The website deal forms (Settings → Deal desk); WhatsApp stays the
+  // main call to action.
+  const enabled = org?.dealServicesEnabled ?? [];
+  const dealsOpen = enabled.length > 0;
 
   return (
     <div className="lp" style={brandVars}>
@@ -213,10 +218,17 @@ export function Landing({ data }: { data: PublicLanding }) {
               <WhatsAppLink href={chat} variant="vio">
                 {hero.primaryCta}
               </WhatsAppLink>
-              <a className="btn ghost mag" href="#rates">
-                {hero.secondaryCta}
-                <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
-              </a>
+              {dealsOpen ? (
+                <Link className="btn ghost mag" href="/deal/new">
+                  {hero.startDeal}
+                  <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
+                </Link>
+              ) : (
+                <a className="btn ghost mag" href="#rates">
+                  {hero.secondaryCta}
+                  <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
+                </a>
+              )}
             </div>
           </div>
           <HeroStage
@@ -389,6 +401,10 @@ export function Landing({ data }: { data: PublicLanding }) {
                     options={view.calcOptions}
                     brand={brand}
                     contactLine={contact}
+                    forexDeals={{
+                      sell: enabled.includes("FOREX_SELL"),
+                      buy: enabled.includes("FOREX_BUY"),
+                    }}
                   />
                 )}
               </div>
@@ -579,6 +595,12 @@ export function Landing({ data }: { data: PublicLanding }) {
               <WhatsAppLink href={chat} variant="gold">
                 {content.cta.button}
               </WhatsAppLink>
+              {dealsOpen && (
+                <Link className="btn ghost mag cta-deal" href="/deal/new">
+                  {hero.startDeal}
+                  <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
+                </Link>
+              )}
             </div>
           </div>
         </section>

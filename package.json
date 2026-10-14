@@ -37,6 +37,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.89.0",
+    "resend": "^6.32.1",
     "satori": "^0.33.5",
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",

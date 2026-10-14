@@ -45,6 +45,7 @@ export const getPublicLanding = cache(async (): Promise<PublicLanding> => {
       contactLine: true,
       email: true,
       timezone: true,
+      dealServicesEnabled: true,
     },
   });
   if (!org) {
@@ -86,6 +87,7 @@ export const getPublicLanding = cache(async (): Promise<PublicLanding> => {
       contactLine: org.contactLine,
       email: org.email,
       timezone: org.timezone,
+      dealServicesEnabled: org.dealServicesEnabled,
     },
     forex: toForexBoard(forex),
     crypto: toCryptoBoard(crypto),

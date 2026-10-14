@@ -4,10 +4,12 @@
 // runs through publicAction: generic errors, nothing personal in the logs.
 // Customers reach an existing deal only with its tracking token.
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { findDealIdByToken } from "@/features/deals/access";
+import { notifyCustomerPaid, notifyNewDeal } from "@/features/deals/notify";
 import {
   createDeal,
   DealRateLimitError,
@@ -142,6 +144,8 @@ export const submitDeal = publicAction(
         message: "Requested on the website",
         limits: WEBSITE_LIMITS,
       });
+      // Emails go after the response; they never hold up or fail the deal.
+      after(() => notifyNewDeal(deal.id, token));
       return { ok: true, data: { ref: deal.ref, token } };
     } catch (error) {
       if (error instanceof DealRateLimitError)
@@ -305,6 +309,7 @@ export const markDealPaid = publicAction(
         actorType: "CUSTOMER",
       },
     });
+    after(() => notifyCustomerPaid(dealId));
     return { ok: true, data: { recorded: true } };
   },
 );

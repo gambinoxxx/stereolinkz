@@ -23,6 +23,7 @@ const ORG = {
   contactLine: "+234 800 000 0000",
   email: null,
   timezone: "Africa/Lagos",
+  dealServicesEnabled: [],
 };
 
 beforeEach(() => {
@@ -82,6 +83,7 @@ describe("getPublicLanding", () => {
       "accentColor",
       "backgroundColor",
       "contactLine",
+      "dealServicesEnabled",
       "email",
       "id",
       "logoUrl",

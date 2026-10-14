@@ -12,7 +12,12 @@ import { db } from "@/lib/server/db";
 // The settings tab, and the public pages that list services or show an
 // account (they render per request, but drop any cached copy too).
 function revalidateDealSettings() {
-  for (const path of ["/admin/settings/deal-desk", "/admin/deals", "/deal/new"])
+  for (const path of [
+    "/",
+    "/admin/settings/deal-desk",
+    "/admin/deals",
+    "/deal/new",
+  ])
     revalidatePath(path);
 }
 

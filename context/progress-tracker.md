@@ -9,12 +9,32 @@ change.
 
 ## Current Goal
 
-- Phase 12, alerts and landing links: Resend team email (new deal, "I’ve
-  paid"), the customer's link email, dashboard line, "Start a deal" and
-  "Start this deal" on the landing page.
+- Phase 12, end of phase: checks, Done-when with screenshots next to the
+  designs, tag. Then the owner's stop points (production migration and
+  Vercel variables before the push, legal go-ahead, phone walk-through).
 
 ## Completed
 
+- 2026-10-14: Phase 12, alerts and landing links. Resend (`resend`
+  6.32, approved): `lib/server/email.ts` (`sendEmail`, `sendEach` one
+  address at a time, `customerEmailReady` false while the sender is
+  `@resend.dev`), templates `features/deals/emails.ts` (ref, service,
+  amount, admin link; no phone numbers or files; tested), `notify.ts`
+  run with `after()` (after commit; failures logged by type only; each
+  send logged as a SYSTEM ALERT_SENT event, no addresses stored). New
+  deal → team (if the Settings switch is on) + the customer's link (only
+  with a verified domain); "I’ve paid" → team. Dashboard line "N deals
+  need action → Open the queue" (`/admin/deals?filter=needs`). Landing:
+  "Start a deal" beside the WhatsApp CTAs (hero, closing CTA) and the
+  calculator's "Start this deal" (`/deal/new/forex?amount=&currency=&dir=`,
+  forex only, when that direction is on); shown only when a service is
+  on (`dealServicesEnabled` added to the public org fields; saving deal
+  settings revalidates `/`). Checked (dev branch): links and prefill;
+  SLZ-1056 → "Team alerted: email sent to 1 of 2", after "I’ve paid"
+  "(email to 1 of 2)"; the Resend test sender reaches only
+  ibehchristopher11@gmail.com (the Resend account), so gambinolinkz@ and
+  customers wait for a verified domain; the submitted page no longer says
+  "We also sent it to your email" unless customer email can really go.
 - 2026-10-14: Phase 12, admin deals. `/admin/deals` (`deals.html`): three
   stat cards (Payout due hidden until Phase 13), Active / Needs action /
   Completed / All, search by ref, name or phone digits, service and owner
@@ -797,9 +817,10 @@ change.
 - Phase 12: the business WhatsApp number for deals.
 - Phase 12: our payment accounts (bank, number, name, and which services
   each one is for).
-- Phase 12: a verified sending domain in Resend for `DEAL_ALERT_FROM`
-  (until then `onboarding@resend.dev`, which only delivers to the Resend
-  account's own email).
+- Phase 12: a verified sending domain in Resend for `DEAL_ALERT_FROM`.
+  Until then the test sender `onboarding@resend.dev` only reaches the
+  Resend account (ibehchristopher11@gmail.com): gambinolinkz@gmail.com and
+  customers get no email (team still sees the badge and dashboard).
 - Phase 13: legal advice for crypto.
 - Phase 13: the real receiving addresses for USDT/USDC on TRC20 and BEP20.
 - Phase 13: a small real test deposit.

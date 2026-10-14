@@ -52,6 +52,7 @@ export const content = {
     ],
     primaryCta: "Chat on WhatsApp",
     secondaryCta: "See today’s rates",
+    startDeal: "Start a deal",
     schoolFeesNote: {
       title: "School fees abroad",
       body: "Paid to the school directly",
@@ -115,6 +116,7 @@ export const content = {
     youReceive: "You receive",
     youPay: "You pay",
     cta: "Get this rate on WhatsApp",
+    startDeal: "Start this deal",
     fine: "Indicative only. Your rate is confirmed in the chat before you send anything.",
   },
 
