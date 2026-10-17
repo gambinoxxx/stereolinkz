@@ -5,13 +5,39 @@ change.
 
 ## Current Phase
 
-- Phase 13: Crypto deposits, in progress
+- Phase 13: Crypto deposits, complete
 
 ## Current Goal
 
-- Phase 13: end-of-phase checks and Done-when.
+- None. Next: Phase 14 (Hardening and launch), after the owner's Phase 13
+  deploy steps below.
 
 ## Completed
+
+- 2026-10-17: Phase 13 complete. Tagged phase-13-complete. Done when:
+  - [x] A real USDT TRC20 deposit is detected and confirmed automatically:
+    on the dev branch, a real on-chain transfer (3.886426 USDT, tx
+    2c3a811b…0ae0b2, to a public test address) took SLZ-1010 from waiting
+    to Deposit complete by itself 18 s after the deposit page opened
+    (receipt checked, 22 confirmations, payout due +10 min). The owner's own
+    small deposit to our real address on production is the post-deploy
+    check (stop point).
+  - [x] Wrong token, wrong network, underpayment and late deposits are
+    flagged or expired, never confirmed: `check.test.ts` ("flags an
+    underpayment…", "flags the wrong token, even with the right amount",
+    "flags the wrong network", "expires a late deposit (the team
+    re-quotes)", "never completes when any single check fails"),
+    `plan.test.ts` ("flags an underpayment, a wrong token and a failed
+    transaction", "flags a wrong-network transfer", "expires a late
+    deposit, never completes it"), `match.test.ts` (ambiguous, TxID claims),
+    `tron.test.ts` (receipt disagreeing with the index fails), and on the
+    dev branch `watch.db.test.ts` (pasted underpaid and wrong-token TxIDs
+    flagged; someone else's TxID refused) and SLZ-1009 (ambiguous).
+  - [x] The payout timer and paid state show on the customer page: SLZ-1010
+    countdown (09:47 left) then "₦28,755 sent!" with the reference, at
+    1440 and 390 (`tmp/qa/out/c-payout-1440.png`, `c-paid-390.png`).
+  Checks: build, lint, tsc, 393 tests (+10 opt-in DB tests passing on the
+  dev branch), format:check.
 
 - 2026-10-17: Phase 13, Alerts and timers. `notifyDepositComplete` (team
   email when "Email when a crypto payout is due" is on: ref, amount, payout,
@@ -1558,6 +1584,25 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-17: Phase 13 complete and tagged `phase-13-complete`, committed
+  but NOT pushed. Production still needs, in order: (1) apply migration
+  `20261017120000_crypto_deposits` (additive; dev branch already has it);
+  (2) Vercel env: `TRONGRID_API_KEY` (free key from trongrid.io),
+  `CRON_SECRET` (32+ random characters); (3) an external scheduler (e.g.
+  cron-job.org, free) calling `GET /api/cron/crypto-watch` every minute
+  with header `Authorization: Bearer <CRON_SECRET>` (Hobby's Vercel cron in
+  `vercel.json` runs once a day as a backup); (4) Settings → Deal desk:
+  add the real USDT TRC20 receiving address, check it character by
+  character on Tronscan, tag a payout account "Crypto payouts"; crypto
+  stays OFF until legal go-ahead; (5) a small real test deposit through the
+  website. Dev branch test data: wallet `qa-wallet-trc20` (public address
+  of a stranger, now deactivated), deals SLZ-1008…1012, ~2,000 observed
+  transfers. Phase 14 must check: the cron route (secret, timing: a busy
+  wallet took 37 s from here), checkMyDeposit and submitCryptoDeal rate
+  limits, TronGrid quota with the key, the "Flag deal" open question.
+  Local submits are slow (≈10 s) because the dev database is in Frankfurt;
+  page loads are under a second when warm.
 
 - 2026-10-17: Phase 13 started. Preflight passed on the new dev branch
   (`ep-soft-haze`, copied from production with data; the old dev branch
