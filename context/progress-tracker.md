@@ -5,16 +5,41 @@ change.
 
 ## Current Phase
 
-- Phase 12: Deal desk, in progress
+- Phase 12: Deal desk, complete
 
 ## Current Goal
 
-- Phase 12, end of phase: checks, Done-when with screenshots next to the
-  designs, tag. Then the owner's stop points (production migration and
-  Vercel variables before the push, legal go-ahead, phone walk-through).
+- None. Next: Phase 13 (Crypto deposits), after the owner's open items
+  below.
 
 ## Completed
 
+- 2026-10-17: Phase 12 complete. Tagged phase-12-complete. Done when:
+  - [x] A school fees deal goes from request to completed with the
+    customer page updating at each step: locally SLZ-1052 through the
+    real buttons (page checked at every step, 20 s refresh seen); on
+    production the owner ran SLZ-1002 (invoice, agreed, payment details,
+    receipt + "I’ve paid", received, sent, completed) and POF SLZ-1001 /
+    SLZ-1007 to completed. Owner confirmed SLZ-1002 was done on a phone.
+  - [x] Payment details only after agreement, only the chosen account:
+    `getDealForCustomer` returns the account only in AWAITING_PAYMENT;
+    checked absent from the HTML at NEW and AGREED; only active accounts
+    enabled for the service can be shared.
+  - [x] quotedRate never changes; every change is logged: database
+    trigger `deal_quote_immutable` and `deal_event_append_only` (tested on
+    the dev branch); every status change via `transitionDeal` with its
+    event; rate changes after sharing need a reason (RATE_CHANGED);
+    crafted replays on a completed deal refused.
+  - [x] Spam blocked: honeypot and <3 s submits refused (nothing written);
+    6th submit from one IP and 4th open deal on one number refused.
+  - [x] Private files: separate private Blob store (URL without auth 403);
+    file route 404 signed out, with a wrong token, under another ref;
+    200 for a member or the deal's own token; fake PDFs deleted.
+  Checks: lint, tsc, 288 tests (+4 opt-in DB tests), format:check; build
+  passes (`○ /  1h`, deal routes ƒ) — run against production read-only
+  because the local dev-branch password no longer works (see Session
+  Notes). Screenshots next to the designs: `tmp/qa/compare/*-1440.png`,
+  `*-390.png` (10 pages × 2 widths).
 - 2026-10-14: Phase 12, alerts and landing links. Resend (`resend`
   6.32, approved): `lib/server/email.ts` (`sendEmail`, `sendEach` one
   address at a time, `customerEmailReady` false while the sender is
@@ -777,15 +802,14 @@ change.
 
 ## Next Up
 
-- Phase 12: Deal desk (`docs/design/deal*.html`, `settings-deal-desk.html`)
-- Phase 11 on production: the Vercel variables are set and `/` shows all
-  three tabs with the real number (checked 2026-10-13). Still open:
-  Lighthouse mobile on the production URL; the owner's real phone test.
-- Phase 10 on production: owner checks the coins on the live site,
-  generates a crypto board on a phone and posts it to WhatsApp Status
-- Phase 13: Crypto deposits
+- Phase 13: Crypto deposits (`deal-crypto*.html`, `deal-detail-crypto.html`)
+- Owner, Phase 12 in production: no legal advice yet ("just testing",
+  2026-10-17), so services go back off after testing; verify a sending
+  domain in Resend, set team email on, and the real payment accounts
+- A data policy (privacy notice) page, asked for by the owner 2026-10-17:
+  the deal forms' consent box should link to it. Wording needs the
+  owner's lawyer before it goes live.
 - Phase 14: Hardening and launch. Open: the launch users' Clerk IDs
-- Phases 4–9 on production: owner's live checks (asked, not yet confirmed)
 
 ## Open Questions
 
@@ -1404,6 +1428,24 @@ change.
 
 ## Session Notes
 
+- 2026-10-17: Phase 12 complete and tagged locally (`phase-12-complete`).
+  The Phase 12 commits were already pushed by the owner and are live; the
+  owner applied migration `20261013120000_deal_desk` to production and
+  switched all five services on; production has 7 website deals
+  (SLZ-1001…1007; two private files) and one payment account; team email
+  off. The local `.env.local` dev-branch `DATABASE_URL` now fails
+  password authentication (password likely reset); production
+  (`PROD_DATABASE_URL`) still connects. Fix the dev-branch string before
+  Phase 13 work. Minor design gaps left: the request panel's purpose chip
+  and ₦ / "per GBP" adornments on the agreed-rate input (deal-detail.html).
+  For Phase 13: add crypto columns to Deal (coin, network,
+  expectedAmount, receivedAmount, txHash, confirmations, lockExpiresAt,
+  payoutDueAt) plus CryptoWallet and ObservedTransfer (additive); add a
+  CRYPTO_SELL member to `dealDetailsV1`; add the crypto rows to
+  `TRANSITIONS` (AWAITING_DEPOSIT → DEPOSIT_SEEN → DEPOSIT_COMPLETE →
+  PAID_OUT | EXPIRED | FLAGGED | CANCELLED) with actor SYSTEM allowed only
+  for the deposit watcher's moves; the watcher calls `transitionDeal` in
+  its own transaction. `quoteDeal` returns null for CRYPTO_SELL today.
 - 2026-10-13: Docs update for the deal desk (no code). Applied
   `docs/updates/deal-desk-docs.patch` (from the owner's
   `deal-desk-files`): `project-overview.md` and `ui-context.md` cleanly,
