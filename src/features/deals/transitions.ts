@@ -1,22 +1,51 @@
 // The deal state machine (Invariant 15). Every status change goes through
 // transitionDeal, in the caller's transaction, together with its
-// DealEvent. Customers never move a status (they only add events), and in
-// Phase 12 neither does the system: payment received and completed are
-// always set by a team member after checking the bank statement.
+// DealEvent. Customers never move a status (they only add events). The
+// system (the crypto deposit watcher) makes only the deposit moves;
+// payment received, completed and paid out are always a team member's.
 import type { DealActor, DealStatus, Prisma } from "@/generated/prisma/client";
 
-// Allowed moves for non-crypto deals. Crypto statuses arrive in Phase 13,
-// where the deposit watcher (actor SYSTEM) gets its own rows here.
-export const TRANSITIONS: Partial<Record<DealStatus, readonly DealStatus[]>> = {
-  NEW: ["AGREED", "CANCELLED"],
-  AGREED: ["AWAITING_PAYMENT", "CANCELLED"],
-  AWAITING_PAYMENT: ["PAYMENT_RECEIVED", "CANCELLED"],
-  PAYMENT_RECEIVED: ["PROCESSING", "COMPLETED"],
-  PROCESSING: ["COMPLETED"],
+type Mover = "MEMBER" | "SYSTEM";
+
+// Allowed moves and who may make each one.
+export const TRANSITIONS: Partial<
+  Record<DealStatus, Partial<Record<DealStatus, Mover>>>
+> = {
+  // Non-crypto (Phase 12)
+  NEW: { AGREED: "MEMBER", CANCELLED: "MEMBER" },
+  AGREED: { AWAITING_PAYMENT: "MEMBER", CANCELLED: "MEMBER" },
+  AWAITING_PAYMENT: { PAYMENT_RECEIVED: "MEMBER", CANCELLED: "MEMBER" },
+  PAYMENT_RECEIVED: { PROCESSING: "MEMBER", COMPLETED: "MEMBER" },
+  PROCESSING: { COMPLETED: "MEMBER" },
+  // Crypto (Phase 13). The watcher sees, completes, expires and flags.
+  AWAITING_DEPOSIT: {
+    DEPOSIT_SEEN: "SYSTEM",
+    EXPIRED: "SYSTEM",
+    FLAGGED: "SYSTEM",
+    CANCELLED: "MEMBER",
+  },
+  DEPOSIT_SEEN: { DEPOSIT_COMPLETE: "SYSTEM", FLAGGED: "SYSTEM" },
+  DEPOSIT_COMPLETE: { PAID_OUT: "MEMBER" },
+  // Re-quote (new rate and lock), flag a late deposit for a look, or cancel.
+  EXPIRED: {
+    AWAITING_DEPOSIT: "MEMBER",
+    FLAGGED: "MEMBER",
+    CANCELLED: "MEMBER",
+  },
+  // Confirm manually (reason required), cancel (reason) or re-quote.
+  FLAGGED: {
+    DEPOSIT_COMPLETE: "MEMBER",
+    CANCELLED: "MEMBER",
+    AWAITING_DEPOSIT: "MEMBER",
+  },
 };
 
+export function moverFor(from: DealStatus, to: DealStatus): Mover | null {
+  return TRANSITIONS[from]?.[to] ?? null;
+}
+
 export function canTransition(from: DealStatus, to: DealStatus): boolean {
-  return TRANSITIONS[from]?.includes(to) ?? false;
+  return moverFor(from, to) !== null;
 }
 
 export type DealActorRef =
@@ -56,14 +85,17 @@ export async function transitionDeal(
   actor: DealActorRef,
   { message, data, set, now = new Date() }: TransitionOptions,
 ): Promise<void> {
-  if (!canTransition(deal.status, to))
+  const mover = moverFor(deal.status, to);
+  if (!mover)
     throw new DealTransitionError(
       `A deal can't move from ${deal.status} to ${to}.`,
       "NOT_ALLOWED",
     );
-  if (actor.type !== "MEMBER")
+  if (actor.type !== mover)
     throw new DealTransitionError(
-      "Only a team member can change a deal's status.",
+      mover === "MEMBER"
+        ? "Only a team member can change a deal's status."
+        : "Only the deposit check can make this change.",
       "ACTOR",
     );
 
@@ -88,7 +120,7 @@ export async function transitionDeal(
       message,
       data,
       actorType: actor.type,
-      actorMembershipId: actor.membershipId,
+      actorMembershipId: actor.type === "MEMBER" ? actor.membershipId : null,
       createdAt: now,
     },
   });

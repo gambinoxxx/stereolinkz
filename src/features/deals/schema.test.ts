@@ -203,3 +203,26 @@ describe("submitDealInput", () => {
     expect(submitDealInput.safeParse(pof).success).toBe(false);
   });
 });
+
+describe("crypto details (Phase 13)", () => {
+  const crypto = {
+    service: "CRYPTO_SELL",
+    ticker: "USDT",
+    network: "TRC20",
+    payoutNameCheck: "MATCH",
+  };
+
+  it("are part of the stored union", () => {
+    expect(dealDetailsV1.safeParse(crypto).success).toBe(true);
+    expect(
+      dealDetailsV1.safeParse({ ...crypto, network: "ERC20" }).success,
+    ).toBe(false);
+  });
+
+  it("can't be sent through the Phase 12 website form", () => {
+    expect(
+      submitDealInput.safeParse({ ...base, details: crypto, currency: "USD" })
+        .success,
+    ).toBe(false);
+  });
+});

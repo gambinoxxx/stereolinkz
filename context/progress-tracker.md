@@ -9,10 +9,26 @@ change.
 
 ## Current Goal
 
-- Phase 13: research done and plan posted; waiting for the owner's
-  answers (BEP20 provider, BEP20 tokens, cron scheduler, QR library).
+- Phase 13: Watcher and checks (TronGrid provider, check.ts, match.ts,
+  checkDeposits, cron route, checkMyDeposit).
 
 ## Completed
+
+- 2026-10-17: Phase 13, Data. Migration `20261017120000_crypto_deposits`
+  (additive; applied to the dev branch only): CryptoWallet (one active per
+  coin + network by partial unique index; coin/network/address immutable
+  by trigger; 1–200 confirmations), ObservedTransfer (unique network +
+  txHash + logIndex; one transfer → one deal), Deal crypto columns
+  (deposit copy immutable by trigger `deal_deposit_immutable`; quantity
+  CHECKs), Organization `cryptoMinQty` / `cryptoMaxUsd` /
+  `payoutAlertEmails`, events DEPOSIT_UPDATE and TXID_SUBMITTED. Guards
+  checked on the dev branch in a rolled-back transaction
+  (`tmp/p13-guards.mjs`). `tokens.ts` (USDT TRC20 only), `address.ts`
+  (Tron base58check, key / phrase refusal), CRYPTO_SELL in
+  `dealDetailsV1` (not accepted by the Phase 12 form), and the crypto rows
+  in `transitionDeal` with a mover per move (SYSTEM only for seen /
+  complete / expired / flagged). Tests: 8 address, 50 transitions, 2
+  schema.
 
 - 2026-10-17: Phase 12 complete. Tagged phase-12-complete. Done when:
   - [x] A school fees deal goes from request to completed with the
@@ -851,6 +867,24 @@ change.
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
+
+- 2026-10-17: Phase 13 decisions (owner, after the research).
+  - **Tokens: USDT on TRC20 only** (`TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`,
+    6 decimals; issuer-listed and checked on-chain). The BEP20 USDT/USDC
+    contracts are Binance-issued pegs not listed by Tether or Circle, so
+    BEP20 waits. USDC has no issuer contract on Tron, so USDC is off too.
+    `tokens.ts` is a vetted constant list keyed by network + ticker: the
+    security exception to "no hard-coded crypto data" (an admin never
+    types a contract). The schema keeps TRC20 | BEP20 so BEP20 is a data
+    change plus a provider later.
+  - **BEP20 provider (when enabled): plain BSC JSON-RPC `eth_getLogs`**
+    via `BSC_RPC_URL` (e.g. NodeReal MegaNode free tier), because
+    Etherscan API V2 is paid-only for chain 56. Not built this phase.
+  - **Scheduler: Vercel Hobby allows one cron a day**, so a free external
+    scheduler (e.g. cron-job.org) calls the protected
+    `/api/cron/crypto-watch` route every minute, with a daily Vercel cron
+    as a backup. The deposit page also checks on demand every 15 s.
+  - **QR: `qrcode` library** (approved), rendered to SVG on the server.
 
 - 2026-10-13: Phase 12 data decisions.
   - **Schema shape**: one Deal table for every service, with the

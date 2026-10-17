@@ -47,9 +47,22 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a date.")
   .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), "Choose a date.");
 
-// Deal.details, version 1. A discriminated union by service; crypto is
-// added in Phase 13 (additive, like the board snapshot).
-export const dealDetailsV1 = z.discriminatedUnion("service", [
+// How the payout account name the customer typed compares with their
+// name. We have no bank API to look the name up, so this is a soft check.
+export const NAME_CHECKS = ["MATCH", "CLOSE", "DIFFERENT"] as const;
+export type NameCheck = (typeof NAME_CHECKS)[number];
+
+// Crypto (Phase 13): the coin and network live on the deal's own columns
+// too (cryptoTicker, cryptoNetwork); details keep the form's extra facts.
+export const cryptoSellDetails = z.object({
+  service: z.literal("CRYPTO_SELL"),
+  ticker: z.string().regex(/^[A-Z0-9]{2,6}$/),
+  network: z.enum(["TRC20", "BEP20"]),
+  payoutNameCheck: z.enum(NAME_CHECKS),
+});
+
+// The website form's services (Phase 12). Crypto has its own action.
+const formDetails = z.discriminatedUnion("service", [
   z.object({
     service: z.literal("SCHOOL_FEES"),
     country: text(2, COUNTRY_MAX),
@@ -79,6 +92,13 @@ export const dealDetailsV1 = z.discriminatedUnion("service", [
   }),
   z.object({ service: z.literal("FOREX_SELL"), method: z.literal("TRANSFER") }),
   z.object({ service: z.literal("FOREX_BUY"), method: z.literal("TRANSFER") }),
+]);
+
+// Deal.details, version 1. A discriminated union by service; crypto was
+// added in Phase 13 (additive, like the board snapshot).
+export const dealDetailsV1 = z.discriminatedUnion("service", [
+  ...formDetails.options,
+  cryptoSellDetails,
 ]);
 export type DealDetails = z.infer<typeof dealDetailsV1>;
 
@@ -144,7 +164,7 @@ export const payoutInput = z.object({
 // POF). The server recomputes every figure; the client sends none.
 export const submitDealInput = z
   .object({
-    details: dealDetailsV1,
+    details: formDetails,
     currency: z.string().regex(/^[A-Z]{3}$/),
     amount: amountString,
     customer: customerInput,
