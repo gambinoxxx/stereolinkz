@@ -24,8 +24,10 @@ export async function fetchJson<T>(
   }: HttpOptions = {},
 ): Promise<T> {
   let lastError: ProviderError | null = null;
+  let limited = false;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) await sleep(500 * 2 ** (attempt - 1)); // 0.5 s, 1 s, 2 s
+    // 0.5 s, 1 s, 2 s; twice that after a rate-limit answer.
+    if (attempt > 0) await sleep((limited ? 1000 : 500) * 2 ** (attempt - 1));
     let response: Response;
     try {
       response = await fetchImpl(url, {
@@ -35,6 +37,12 @@ export async function fetchJson<T>(
       });
     } catch {
       lastError = new ProviderError("Provider unreachable or timed out", true);
+      continue;
+    }
+    limited = response.status === 429 || response.status === 403;
+    if (limited && response.status === 403) {
+      // TronGrid answers 403 when a key's quota is used up.
+      lastError = new ProviderError("Provider quota reached", true);
       continue;
     }
     if (response.status === 429 || response.status >= 500) {

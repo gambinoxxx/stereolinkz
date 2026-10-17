@@ -16,6 +16,23 @@ export const PHASE12_SERVICES = [
 ] as const satisfies readonly DealService[];
 export type Phase12Service = (typeof PHASE12_SERVICES)[number];
 
+// Every service Settings → Deal desk can switch on (crypto: Phase 13).
+export const DESK_SERVICES = [
+  ...PHASE12_SERVICES,
+  "CRYPTO_SELL",
+] as const satisfies readonly DealService[];
+export type DeskService = (typeof DESK_SERVICES)[number];
+
+// How a payment account's use reads in Settings: for crypto we pay out.
+export const ACCOUNT_SERVICE_LABELS: Record<DeskService, string> = {
+  SCHOOL_FEES: "School fees",
+  INTL_PAYMENT: "International payment",
+  POF: "Proof of funds",
+  FOREX_SELL: "Sell forex",
+  FOREX_BUY: "Buy forex",
+  CRYPTO_SELL: "Crypto payouts",
+};
+
 export const FORM_SLUGS = [
   "school-fees",
   "pay-abroad",
@@ -74,6 +91,7 @@ export const SETTINGS_SERVICES: {
     label: "Sell or buy forex (transfer)",
     services: ["FOREX_SELL", "FOREX_BUY"],
   },
+  { key: "crypto", label: "Sell crypto", services: ["CRYPTO_SELL"] },
 ];
 
 // A form is open when any of its services is enabled.

@@ -1,6 +1,13 @@
 // Small pieces of deals.html / deal-detail.html shared by the queue and
 // the detail page. No hooks: usable from server and client components.
-import { Banknote, FileText, Globe2, GraduationCap } from "lucide-react";
+import {
+  Banknote,
+  CircleDollarSign,
+  FileText,
+  Globe2,
+  GraduationCap,
+} from "lucide-react";
+import type { ReactNode } from "react";
 
 import { processingLabel } from "@/features/deals/progress";
 import type { DealService, DealStatus } from "@/generated/prisma/enums";
@@ -12,7 +19,7 @@ const ICON: Record<DealService, { Icon: typeof GraduationCap; bg: string }> = {
   POF: { Icon: FileText, bg: "bg-bank-mark-3" },
   FOREX_SELL: { Icon: Banknote, bg: "bg-bg-sidebar" },
   FOREX_BUY: { Icon: Banknote, bg: "bg-bg-sidebar" },
-  CRYPTO_SELL: { Icon: Banknote, bg: "bg-bank-mark-4" },
+  CRYPTO_SELL: { Icon: CircleDollarSign, bg: "bg-bank-mark-4" },
 };
 
 export function ServiceIcon({
@@ -43,6 +50,7 @@ const CHIP: Record<string, string> = {
   recv: "bg-deal-recv-soft text-deal-recv",
   done: "bg-state-success-soft text-state-success",
   off: "bg-border-subtle text-text-muted",
+  bad: "bg-state-error-soft text-state-error",
 };
 
 export function teamStatusLabel(
@@ -67,19 +75,33 @@ export function teamStatusLabel(
       return { label: "Completed", tone: "done" };
     case "CANCELLED":
       return { label: "Cancelled", tone: "off" };
-    default:
-      return { label: status, tone: "off" };
+    // Crypto (Phase 13)
+    case "AWAITING_DEPOSIT":
+      return { label: "Waiting for deposit", tone: "gold" };
+    case "DEPOSIT_SEEN":
+      return { label: "Deposit seen", tone: "recv" };
+    case "DEPOSIT_COMPLETE":
+      return { label: "Deposit complete", tone: "bad" };
+    case "PAID_OUT":
+      return { label: "Paid out", tone: "done" };
+    case "EXPIRED":
+      return { label: "Expired", tone: "off" };
+    case "FLAGGED":
+      return { label: "Flagged", tone: "bad" };
   }
 }
 
 export function DealChip({
   service,
   status,
+  label: override,
 }: {
   service: DealService;
   status: DealStatus;
+  label?: string; // e.g. "Payout due" on the crypto detail page
 }) {
-  const { label, tone } = teamStatusLabel(service, status);
+  const { label: base, tone } = teamStatusLabel(service, status);
+  const label = override ?? base;
   return (
     <span
       className={cn(
@@ -116,5 +138,46 @@ export function OwnerAvatar({
     >
       {owner ? owner.initial : "–"}
     </span>
+  );
+}
+
+// deal-detail*.html panels: a titled card and a key/value list.
+export function Panel({
+  title,
+  aside,
+  children,
+  id,
+}: {
+  title: string;
+  aside?: ReactNode;
+  children: ReactNode;
+  id?: string;
+}) {
+  return (
+    <section
+      id={id}
+      className="rounded-panel border border-border-default bg-bg-surface"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-5 py-3.5">
+        <h2 className="text-[16px] font-bold">{title}</h2>
+        {aside}
+      </div>
+      <div className="px-5 py-[18px]">{children}</div>
+    </section>
+  );
+}
+
+export function KV({ rows }: { rows: [string, ReactNode][] }) {
+  return (
+    <dl className="grid grid-cols-1 gap-x-4 gap-y-0.5 text-[14.5px] sheet:grid-cols-[150px_1fr] sheet:gap-y-2.5">
+      {rows.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="text-text-secondary">{k}</dt>
+          <dd className="mb-2.5 min-w-0 font-semibold break-words sheet:mb-0">
+            {v}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }

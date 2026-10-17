@@ -101,6 +101,7 @@ export function DealsToolbar({
           <option value="pay-abroad">International payment</option>
           <option value="pof">Proof of funds</option>
           <option value="forex">Forex</option>
+          <option value="crypto">Sell crypto</option>
         </Select>
       </div>
       <div className="w-auto">

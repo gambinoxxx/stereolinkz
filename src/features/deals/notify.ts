@@ -142,3 +142,8 @@ export async function notifyCustomerPaid(dealId: string) {
 export async function notifyDepositComplete(dealId: string) {
   void dealId;
 }
+
+// Placeholder until the Alerts part: the customer's receipt email.
+export async function notifyPaidOut(dealId: string) {
+  void dealId;
+}

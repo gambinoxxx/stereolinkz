@@ -13,6 +13,13 @@ import { type ReactNode, useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import type { TeamCrypto } from "@/features/crypto-deposits/admin-queries";
+import {
+  CryptoCheckPanel,
+  CryptoDealPanel,
+  CryptoPayoutPanel,
+  CryptoReviewPanel,
+} from "@/features/crypto-deposits/components/admin/CryptoPanels";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,7 +44,9 @@ import {
 } from "@/features/deals/actions";
 import {
   DealChip,
+  KV,
   OwnerAvatar,
+  Panel,
   ServiceIcon,
 } from "@/features/deals/components/admin/parts";
 import {
@@ -72,53 +81,22 @@ type Labels = { when: Record<string, string>; time: Record<string, string> };
 
 const lbl = (map: Record<string, string>, iso: string) => map[iso] ?? "";
 
-function Panel({
-  title,
-  aside,
-  children,
-}: {
-  title: string;
-  aside?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-panel border border-border-default bg-bg-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3.5">
-        <h2 className="text-[16px] font-bold">{title}</h2>
-        {aside}
-      </div>
-      <div className="px-5 py-[18px]">{children}</div>
-    </section>
-  );
-}
-
-function KV({ rows }: { rows: [string, ReactNode][] }) {
-  return (
-    <dl className="grid grid-cols-1 gap-x-4 gap-y-0.5 text-[14.5px] sheet:grid-cols-[150px_1fr] sheet:gap-y-2.5">
-      {rows.map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="text-text-secondary">{k}</dt>
-          <dd className="mb-2.5 min-w-0 font-semibold break-words sheet:mb-0">
-            {v}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 // deal-detail.html: work one deal from request to completed.
 export function DealDetail({
   deal,
   members,
   orgName,
   labels,
+  crypto = null,
+  currentCryptoRate = null,
 }: {
   deal: TeamDeal;
   members: Member[];
   orgName: string;
   labels: Labels;
   slaMinutes?: number;
+  crypto?: TeamCrypto | null; // CRYPTO_SELL deals (deal-detail-crypto.html)
+  currentCryptoRate?: string | null; // latest board, for re-quotes
 }) {
   const id = useId();
   const router = useRouter();
@@ -231,16 +209,54 @@ export function DealDetail({
                 }
               : null;
 
-  const steps = dealSteps(
-    deal.service,
-    deal.status,
-    new Date(deal.createdAt),
-    deal.events
-      .filter((e) => e.type === "STATUS_CHANGED")
-      .map((e) => ({ toStatus: e.toStatus, at: new Date(e.createdAt) }))
-      .reverse(),
-    TEAM_LABELS,
-  );
+  const cryptoPrimary =
+    crypto && deal.status === "DEPOSIT_COMPLETE"
+      ? {
+          label: "Mark paid out",
+          onClick: () => {
+            const panel = document.getElementById("payout");
+            panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+            panel?.querySelector("input")?.focus({ preventScroll: true });
+          },
+        }
+      : null;
+  const cryptoSteps = crypto
+    ? (() => {
+        const order = [
+          ["Deal created", true],
+          [
+            "Deposit seen",
+            !!crypto.depositSeenAt || !!crypto.depositCompletedAt,
+          ],
+          ["Deposit complete", !!crypto.depositCompletedAt],
+          ["Pay out", deal.status === "PAID_OUT"],
+          ["Paid out", deal.status === "PAID_OUT"],
+        ] as const;
+        const nowIndex = order.findIndex(([, done]) => !done);
+        return order.map(([label, done], i) => ({
+          status: label,
+          label,
+          state: (done
+            ? "done"
+            : i === nowIndex && !["CANCELLED", "EXPIRED"].includes(deal.status)
+              ? "now"
+              : "todo") as "done" | "now" | "todo",
+        }));
+      })()
+    : null;
+
+  const steps =
+    cryptoSteps ??
+    dealSteps(
+      deal.service,
+      deal.status,
+      new Date(deal.createdAt),
+      deal.events
+        .filter((e) => e.type === "STATUS_CHANGED")
+        .map((e) => ({ toStatus: e.toStatus, at: new Date(e.createdAt) }))
+        .reverse(),
+      TEAM_LABELS,
+    );
 
   const requestRows: [string, ReactNode][] = [];
   if (det?.service === "SCHOOL_FEES") {
@@ -289,7 +305,7 @@ export function DealDetail({
     status: deal.status,
     customerName: deal.customerName,
     agreedRate: deal.agreedRate,
-    agreedNaira: deal.agreedNaira,
+    agreedNaira: deal.agreedNaira ?? (crypto ? deal.quotedNaira : null),
     account: chosen
       ? {
           bank: chosen.bank,
@@ -323,12 +339,20 @@ export function DealDetail({
           <h1 className="flex flex-wrap items-center gap-3 text-[25px] font-[750] tracking-[-0.6px] shell:text-[28px]">
             <ServiceIcon service={deal.service} />
             {deal.ref} · {SERVICE_LABELS[deal.service]}
-            <DealChip service={deal.service} status={deal.status} />
+            <DealChip
+              service={deal.service}
+              status={deal.status}
+              label={
+                deal.status === "DEPOSIT_COMPLETE" ? "Payout due" : undefined
+              }
+            />
           </h1>
           <p className="mt-1 text-text-secondary">
             {deal.customerName}
-            {det?.service === "SCHOOL_FEES" ? ` · ${det.schoolName}` : ""} ·
-            requested {lbl(labels.when, deal.createdAt)}{" "}
+            {det?.service === "SCHOOL_FEES" ? ` · ${det.schoolName}` : ""}
+            {crypto ? ` · ${amount} on ${crypto.network}` : ""} ·{" "}
+            {crypto ? "started" : "requested"}{" "}
+            {lbl(labels.when, deal.createdAt)}{" "}
             {deal.events.at(-1)?.actorType === "MEMBER"
               ? "by the team"
               : "from the website"}
@@ -345,6 +369,9 @@ export function DealDetail({
             "CANCELLED",
             "PAYMENT_RECEIVED",
             "PROCESSING",
+            "DEPOSIT_SEEN",
+            "DEPOSIT_COMPLETE",
+            "PAID_OUT",
           ].includes(deal.status) && (
             <Button
               variant="outline"
@@ -365,13 +392,13 @@ export function DealDetail({
               Mark completed
             </Button>
           )}
-          {primary && (
+          {(cryptoPrimary ?? (crypto ? null : primary)) && (
             <Button
-              onClick={primary.onClick}
-              disabled={busy || primary.disabled}
+              onClick={(cryptoPrimary ?? primary)!.onClick}
+              disabled={busy || (!cryptoPrimary && primary?.disabled)}
             >
               {busy && <Loader2 aria-hidden="true" className="animate-spin" />}
-              {primary.label}
+              {(cryptoPrimary ?? primary)!.label}
             </Button>
           )}
         </div>
@@ -406,252 +433,272 @@ export function DealDetail({
       </ol>
 
       <div className="grid items-start gap-[22px] wide:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-[18px]">
-          <Panel
-            title={
-              det?.service === "POF"
-                ? "Proof of funds request"
-                : "Payment request"
-            }
-          >
-            <KV rows={requestRows} />
-            {deal.files.length > 0 && (
-              <div className="mt-4 grid gap-2">
-                {deal.files.map((f) => (
-                  <div
-                    key={f.id}
-                    className="flex items-center gap-2.5 rounded-control border border-border-default px-3 py-2.5 text-[14px]"
-                  >
-                    <FileText
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-text-muted"
-                      strokeWidth={1.9}
-                    />
-                    <div className="min-w-0">
-                      <b className="block truncate font-semibold">
-                        {f.originalName}
-                      </b>
-                      <span className="text-[12.5px] text-text-muted">
-                        {f.kind === "RECEIPT" ? "Receipt" : "Invoice"} ·{" "}
-                        {Math.max(1, Math.round(f.byteSize / 1024))} KB ·
-                        private ·{" "}
-                        {f.uploadedBy === "CUSTOMER"
-                          ? "from the customer"
-                          : "by the team"}{" "}
-                        {lbl(labels.time, f.createdAt)}
-                      </span>
-                    </div>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="ml-auto"
-                    >
-                      <a
-                        href={`/api/deals/${deal.ref}/files/${f.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink strokeWidth={1.9} />
-                        Open
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
+        {crypto ? (
+          <div className="flex flex-col gap-[18px]">
+            <CryptoCheckPanel deal={deal} crypto={crypto} labels={labels} />
+            {(deal.status === "DEPOSIT_COMPLETE" ||
+              deal.status === "PAID_OUT") && (
+              <CryptoPayoutPanel deal={deal} crypto={crypto} labels={labels} />
             )}
-          </Panel>
-
-          <Panel
-            title="Rate and amount"
-            aside={
-              <span className="text-[13px] text-text-muted">
-                Both are kept on the deal
-              </span>
-            }
-          >
-            <div className="grid gap-3 sheet:grid-cols-2">
-              <div className="rounded-[12px] border border-border-default p-3.5">
-                <div className="text-[12.5px] font-[650] tracking-[.04em] text-text-muted uppercase">
-                  Website estimate
-                </div>
-                <div className="mt-0.5 text-[22px] font-[750] tracking-[-0.4px] tabular-nums">
-                  {deal.quotedNaira
-                    ? nairaText(deal.quotedNaira)
-                    : "Not quoted"}
-                </div>
-                <div className="text-[13px] text-text-secondary">
-                  {deal.quotedRate
-                    ? `${rateText(deal.service, deal.quotedRate, deal.currency)}${deal.quotedBoardTime ? ` · board ${deal.quotedBoardTime}` : ""}`
-                    : "No rate on the latest board"}
-                </div>
-              </div>
-              <div
-                className={cn(
-                  "rounded-[12px] border p-3.5",
-                  deal.agreedRate
-                    ? "border-accent-gold bg-accent-gold-soft/40"
-                    : "border-border-default",
-                )}
-              >
-                <div className="text-[12.5px] font-[650] tracking-[.04em] text-text-muted uppercase">
-                  Agreed on WhatsApp
-                </div>
-                <div className="mt-0.5 text-[22px] font-[750] tracking-[-0.4px] tabular-nums">
-                  {deal.agreedNaira ? nairaText(deal.agreedNaira) : "Not yet"}
-                </div>
-                <div className="text-[13px] text-text-secondary">
-                  {deal.agreedRate
-                    ? `${rateText(deal.service, deal.agreedRate, deal.currency)}${deal.agreedById ? ` · by ${byId.get(deal.agreedById)?.name ?? "a team member"}` : ""}${deal.agreedAt ? `, ${lbl(labels.time, deal.agreedAt)}` : ""}`
-                    : "Record the rate you agree in the chat"}
-                </div>
-              </div>
-            </div>
-            {!rateLocked && (
-              <>
-                <div className="mt-3.5 grid grid-cols-2 gap-3.5">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`${id}-rate`}>
-                      {deal.service === "POF"
-                        ? "Agreed rate (% per month)"
-                        : "Agreed rate"}
-                    </Label>
-                    <Input
-                      id={`${id}-rate`}
-                      inputMode="decimal"
-                      value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      aria-invalid={errors.agreedRate ? true : undefined}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`${id}-fee`}>Fee (₦)</Label>
-                    <Input
-                      id={`${id}-fee`}
-                      inputMode="decimal"
-                      value={fee}
-                      onChange={(e) => setFee(e.target.value)}
-                      aria-invalid={errors.fee ? true : undefined}
-                    />
-                  </div>
-                </div>
-                {shared && (
-                  <div className="mt-3 flex flex-col gap-1.5">
-                    <Label htmlFor={`${id}-reason`}>
-                      Reason for the change
-                    </Label>
-                    <Input
-                      id={`${id}-reason`}
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder="Payment details were already shared"
-                      aria-invalid={errors.reason ? true : undefined}
-                    />
-                  </div>
-                )}
-                <p className="mt-2 text-[13px] text-text-muted">
-                  {preview
-                    ? `${deal.service === "FOREX_SELL" ? "Customer receives" : "Customer pays"} ${nairaText(preview)}. `
-                    : ""}
-                  Changing the rate after payment details are shared asks for a
-                  reason and is logged.
-                </p>
-                {deal.status !== "NEW" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    disabled={busy || !preview}
-                    onClick={agree}
-                  >
-                    Save rate
-                  </Button>
-                )}
-              </>
+            {(deal.status === "FLAGGED" || deal.status === "EXPIRED") && (
+              <CryptoReviewPanel
+                deal={deal}
+                crypto={crypto}
+                currentRate={currentCryptoRate}
+              />
             )}
-          </Panel>
-
-          <Panel
-            title={
-              deal.service === "FOREX_SELL"
-                ? "Our account the customer sends to"
-                : "Payment details shown to the customer"
-            }
-            aside={
-              <Link
-                href="/admin/settings/deal-desk"
-                className="text-[13.5px] font-semibold text-accent-primary"
-              >
-                Manage accounts
-              </Link>
-            }
-          >
-            {deal.accounts.length === 0 ? (
-              <p className="text-[14px] text-text-secondary">
-                No active account is set up for{" "}
-                {SERVICE_LABELS[deal.service].toLowerCase()}. Add one in
-                Settings → Deal desk.
-              </p>
-            ) : (
-              <div
-                className="grid gap-2"
-                role="radiogroup"
-                aria-label="Account to show"
-              >
-                {deal.accounts.map((a) => {
-                  const differs = accountNameDiffers(a.accountName, orgName);
-                  const isChosen = deal.paymentAccountId === a.id;
-                  const locked = deal.status !== "AGREED";
-                  return (
-                    <label
-                      key={a.id}
-                      className={cn(
-                        "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[12px] border border-border-default px-3.5 py-3",
-                        (locked ? isChosen : accountId === a.id) &&
-                          "border-accent-primary bg-accent-soft/40",
-                        locked ? "cursor-default" : "cursor-pointer",
-                      )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-[18px]">
+            <Panel
+              title={
+                det?.service === "POF"
+                  ? "Proof of funds request"
+                  : "Payment request"
+              }
+            >
+              <KV rows={requestRows} />
+              {deal.files.length > 0 && (
+                <div className="mt-4 grid gap-2">
+                  {deal.files.map((f) => (
+                    <div
+                      key={f.id}
+                      className="flex items-center gap-2.5 rounded-control border border-border-default px-3 py-2.5 text-[14px]"
                     >
-                      <input
-                        type="radio"
-                        name={`${id}-acct`}
-                        className="size-[18px] accent-accent-primary"
-                        checked={locked ? isChosen : accountId === a.id}
-                        disabled={locked}
-                        onChange={() => setAccountId(a.id)}
+                      <FileText
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-text-muted"
+                        strokeWidth={1.9}
                       />
-                      <div className="min-w-[160px] flex-1">
-                        <b className="block text-[14.5px] tabular-nums">
-                          {a.bank} · {formatAccountNumber(a.accountNumber)}
+                      <div className="min-w-0">
+                        <b className="block truncate font-semibold">
+                          {f.originalName}
                         </b>
-                        <span className="text-[13px] text-text-secondary">
-                          {a.accountName} · {a.currency}
+                        <span className="text-[12.5px] text-text-muted">
+                          {f.kind === "RECEIPT" ? "Receipt" : "Invoice"} ·{" "}
+                          {Math.max(1, Math.round(f.byteSize / 1024))} KB ·
+                          private ·{" "}
+                          {f.uploadedBy === "CUSTOMER"
+                            ? "from the customer"
+                            : "by the team"}{" "}
+                          {lbl(labels.time, f.createdAt)}
                         </span>
                       </div>
-                      {isChosen && shared ? (
-                        <Badge variant="success">
-                          Shown since {lbl(labels.time, deal.statusChangedAt)}
-                        </Badge>
-                      ) : differs ? (
-                        <Badge variant="gold">
-                          Name differs: tell the customer
-                        </Badge>
-                      ) : null}
-                    </label>
-                  );
-                })}
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto"
+                      >
+                        <a
+                          href={`/api/deals/${deal.ref}/files/${f.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink strokeWidth={1.9} />
+                          Open
+                        </a>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
+
+            <Panel
+              title="Rate and amount"
+              aside={
+                <span className="text-[13px] text-text-muted">
+                  Both are kept on the deal
+                </span>
+              }
+            >
+              <div className="grid gap-3 sheet:grid-cols-2">
+                <div className="rounded-[12px] border border-border-default p-3.5">
+                  <div className="text-[12.5px] font-[650] tracking-[.04em] text-text-muted uppercase">
+                    Website estimate
+                  </div>
+                  <div className="mt-0.5 text-[22px] font-[750] tracking-[-0.4px] tabular-nums">
+                    {deal.quotedNaira
+                      ? nairaText(deal.quotedNaira)
+                      : "Not quoted"}
+                  </div>
+                  <div className="text-[13px] text-text-secondary">
+                    {deal.quotedRate
+                      ? `${rateText(deal.service, deal.quotedRate, deal.currency)}${deal.quotedBoardTime ? ` · board ${deal.quotedBoardTime}` : ""}`
+                      : "No rate on the latest board"}
+                  </div>
+                </div>
+                <div
+                  className={cn(
+                    "rounded-[12px] border p-3.5",
+                    deal.agreedRate
+                      ? "border-accent-gold bg-accent-gold-soft/40"
+                      : "border-border-default",
+                  )}
+                >
+                  <div className="text-[12.5px] font-[650] tracking-[.04em] text-text-muted uppercase">
+                    Agreed on WhatsApp
+                  </div>
+                  <div className="mt-0.5 text-[22px] font-[750] tracking-[-0.4px] tabular-nums">
+                    {deal.agreedNaira ? nairaText(deal.agreedNaira) : "Not yet"}
+                  </div>
+                  <div className="text-[13px] text-text-secondary">
+                    {deal.agreedRate
+                      ? `${rateText(deal.service, deal.agreedRate, deal.currency)}${deal.agreedById ? ` · by ${byId.get(deal.agreedById)?.name ?? "a team member"}` : ""}${deal.agreedAt ? `, ${lbl(labels.time, deal.agreedAt)}` : ""}`
+                      : "Record the rate you agree in the chat"}
+                  </div>
+                </div>
               </div>
-            )}
-            <p className="mt-2.5 text-[13px] text-text-muted">
-              Only active accounts marked for{" "}
-              {SERVICE_LABELS[deal.service].toLowerCase()} appear. The customer
-              sees the chosen account on their deal page from “Awaiting
-              payment”, with {deal.ref} as the narration.
-            </p>
-          </Panel>
-        </div>
+              {!rateLocked && (
+                <>
+                  <div className="mt-3.5 grid grid-cols-2 gap-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`${id}-rate`}>
+                        {deal.service === "POF"
+                          ? "Agreed rate (% per month)"
+                          : "Agreed rate"}
+                      </Label>
+                      <Input
+                        id={`${id}-rate`}
+                        inputMode="decimal"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                        aria-invalid={errors.agreedRate ? true : undefined}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`${id}-fee`}>Fee (₦)</Label>
+                      <Input
+                        id={`${id}-fee`}
+                        inputMode="decimal"
+                        value={fee}
+                        onChange={(e) => setFee(e.target.value)}
+                        aria-invalid={errors.fee ? true : undefined}
+                      />
+                    </div>
+                  </div>
+                  {shared && (
+                    <div className="mt-3 flex flex-col gap-1.5">
+                      <Label htmlFor={`${id}-reason`}>
+                        Reason for the change
+                      </Label>
+                      <Input
+                        id={`${id}-reason`}
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Payment details were already shared"
+                        aria-invalid={errors.reason ? true : undefined}
+                      />
+                    </div>
+                  )}
+                  <p className="mt-2 text-[13px] text-text-muted">
+                    {preview
+                      ? `${deal.service === "FOREX_SELL" ? "Customer receives" : "Customer pays"} ${nairaText(preview)}. `
+                      : ""}
+                    Changing the rate after payment details are shared asks for
+                    a reason and is logged.
+                  </p>
+                  {deal.status !== "NEW" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      disabled={busy || !preview}
+                      onClick={agree}
+                    >
+                      Save rate
+                    </Button>
+                  )}
+                </>
+              )}
+            </Panel>
+
+            <Panel
+              title={
+                deal.service === "FOREX_SELL"
+                  ? "Our account the customer sends to"
+                  : "Payment details shown to the customer"
+              }
+              aside={
+                <Link
+                  href="/admin/settings/deal-desk"
+                  className="text-[13.5px] font-semibold text-accent-primary"
+                >
+                  Manage accounts
+                </Link>
+              }
+            >
+              {deal.accounts.length === 0 ? (
+                <p className="text-[14px] text-text-secondary">
+                  No active account is set up for{" "}
+                  {SERVICE_LABELS[deal.service].toLowerCase()}. Add one in
+                  Settings → Deal desk.
+                </p>
+              ) : (
+                <div
+                  className="grid gap-2"
+                  role="radiogroup"
+                  aria-label="Account to show"
+                >
+                  {deal.accounts.map((a) => {
+                    const differs = accountNameDiffers(a.accountName, orgName);
+                    const isChosen = deal.paymentAccountId === a.id;
+                    const locked = deal.status !== "AGREED";
+                    return (
+                      <label
+                        key={a.id}
+                        className={cn(
+                          "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[12px] border border-border-default px-3.5 py-3",
+                          (locked ? isChosen : accountId === a.id) &&
+                            "border-accent-primary bg-accent-soft/40",
+                          locked ? "cursor-default" : "cursor-pointer",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name={`${id}-acct`}
+                          className="size-[18px] accent-accent-primary"
+                          checked={locked ? isChosen : accountId === a.id}
+                          disabled={locked}
+                          onChange={() => setAccountId(a.id)}
+                        />
+                        <div className="min-w-[160px] flex-1">
+                          <b className="block text-[14.5px] tabular-nums">
+                            {a.bank} · {formatAccountNumber(a.accountNumber)}
+                          </b>
+                          <span className="text-[13px] text-text-secondary">
+                            {a.accountName} · {a.currency}
+                          </span>
+                        </div>
+                        {isChosen && shared ? (
+                          <Badge variant="success">
+                            Shown since {lbl(labels.time, deal.statusChangedAt)}
+                          </Badge>
+                        ) : differs ? (
+                          <Badge variant="gold">
+                            Name differs: tell the customer
+                          </Badge>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-2.5 text-[13px] text-text-muted">
+                Only active accounts marked for{" "}
+                {SERVICE_LABELS[deal.service].toLowerCase()} appear. The
+                customer sees the chosen account on their deal page from
+                “Awaiting payment”, with {deal.ref} as the narration.
+              </p>
+            </Panel>
+          </div>
+        )}
 
         <div className="flex flex-col gap-[18px]">
+          {crypto && (
+            <CryptoDealPanel deal={deal} crypto={crypto} labels={labels} />
+          )}
           <Panel title="Customer">
             <KV
               rows={[

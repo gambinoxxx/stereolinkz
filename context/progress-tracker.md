@@ -9,10 +9,32 @@ change.
 
 ## Current Goal
 
-- Phase 13: Admin (crypto rows and Payout due in Deals, crypto deal detail
-  with the check and payout panels, wallet settings).
+- Phase 13: Alerts and timers (deposit-complete and overdue team emails,
+  customer receipt, dashboard Payout due).
 
 ## Completed
+
+- 2026-10-17: Phase 13, Admin. Deals list: Payout due card (pulses), the
+  "Payout due (n)" shortcut, payout-due rows first, crypto rows (coin,
+  network, naira; "Lock mm:ss left", "Payout due" with mm:ss left / over,
+  Flagged, Paid out "in n min"), Sell crypto filter, unmatched-deposits
+  notice (official tokens, last 7 days, explorer links); needs-action and
+  the sidebar badge include payout due and flagged. Crypto detail
+  (`CryptoPanels.tsx`): the six-check panel with values, TxID copy and
+  Tronscan link; payout panel (timer, naira, bank, account, name check,
+  reference + paid from → `markPaidOut`); review panel for flagged
+  (`confirmDepositManually`, reason required) and expired (`requoteCryptoDeal`:
+  new agreed rate and lock, RATE_CHANGED logged); deal panel; crypto
+  WhatsApp texts. Settings: crypto switch kept on save, wallets section
+  (`wallet-actions.ts`: add with format check and key / phrase refusal,
+  one active per coin + network, deactivate), min / max, editable rate
+  lock and payout target, payout alert switch, "Crypto payouts" accounts.
+  Checked on the dev branch through the buttons: SLZ-1010 paid out (ref
+  saved, customer page "₦28,755 sent!"), SLZ-1009 flagged → confirmed
+  manually, SLZ-1012 expired → re-quoted at ₦1,340 with a new lock; cron
+  route 401 without / with a wrong secret, and with it expired 2 deals.
+  Watcher now fetches since the last successful check (10 min overlap)
+  and backs off longer on 429/403.
 
 - 2026-10-17: Phase 13, Customer flow. `/deal/new/crypto` (CryptoForm:
   coins from the latest Crypto board with an official token and an active
@@ -862,6 +884,11 @@ change.
 - Phase 14: Hardening and launch. Open: the launch users' Clerk IDs
 
 ## Open Questions
+
+- Phase 13: `deal-detail-crypto.html` shows a "Flag deal" button, but the
+  Phase 13 transition table has no member move into FLAGGED from
+  DEPOSIT_COMPLETE (the system flags). Left out; add a member flag move if
+  the owner wants it.
 
 - Second-account block on production: confirmed locally only. The owner
   should sign in with the second account at

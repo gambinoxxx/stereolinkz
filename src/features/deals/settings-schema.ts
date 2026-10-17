@@ -2,29 +2,58 @@
 // Shared by the settings page (client) and its actions (server).
 import { z } from "zod";
 
-import { PHASE12_SERVICES } from "@/features/deals/services";
+import { DESK_SERVICES } from "@/features/deals/services";
 import { REF_PREFIX_PATTERN } from "@/features/deals/refs";
 
-const phase12Service = z.enum(PHASE12_SERVICES);
+const deskService = z.enum(DESK_SERVICES);
 
-export const dealSettingsInput = z.object({
-  services: z.array(phase12Service).max(PHASE12_SERVICES.length),
-  contactSlaMinutes: z.coerce
-    .number({ error: "Enter minutes, like 15." })
+const minutes = (min: number, max: number) =>
+  z.coerce
+    .number({ error: `Enter minutes, like ${min * 2}.` })
     .int("Whole minutes only.")
-    .min(1, "At least 1 minute.")
-    .max(1440, "At most 1,440 minutes (a day)."),
-  dealRefPrefix: z
-    .string()
-    .trim()
-    .transform((v) => v.toUpperCase())
-    .pipe(z.string().regex(REF_PREFIX_PATTERN, "2 to 6 letters, like SLZ.")),
-  dealAlertEmails: z.boolean(),
-  dealDefaultOwnerId: z
-    .string()
-    .nullable()
-    .transform((v) => (v ? v : null)),
-});
+    .min(min, `At least ${min} minute${min > 1 ? "s" : ""}.`)
+    .max(max, `At most ${max} minutes.`);
+
+const coinAmount = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/,/g, ""))
+  .pipe(
+    z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, "Enter an amount, like 20.")
+      .refine((v) => Number(v) > 0, "Enter an amount above zero."),
+  );
+
+export const dealSettingsInput = z
+  .object({
+    services: z.array(deskService).max(DESK_SERVICES.length),
+    contactSlaMinutes: z.coerce
+      .number({ error: "Enter minutes, like 15." })
+      .int("Whole minutes only.")
+      .min(1, "At least 1 minute.")
+      .max(1440, "At most 1,440 minutes (a day)."),
+    dealRefPrefix: z
+      .string()
+      .trim()
+      .transform((v) => v.toUpperCase())
+      .pipe(z.string().regex(REF_PREFIX_PATTERN, "2 to 6 letters, like SLZ.")),
+    dealAlertEmails: z.boolean(),
+    dealDefaultOwnerId: z
+      .string()
+      .nullable()
+      .transform((v) => (v ? v : null)),
+    // Crypto (Phase 13)
+    rateLockMinutes: minutes(5, 120),
+    payoutTargetMinutes: minutes(1, 240),
+    cryptoMinQty: coinAmount,
+    cryptoMaxUsd: coinAmount,
+    payoutAlertEmails: z.boolean(),
+  })
+  .refine((v) => Number(v.cryptoMaxUsd) > Number(v.cryptoMinQty), {
+    path: ["cryptoMaxUsd"],
+    message: "The maximum must be above the minimum.",
+  });
 export type DealSettingsForm = z.input<typeof dealSettingsInput>;
 export type DealSettings = z.output<typeof dealSettingsInput>;
 
@@ -43,7 +72,7 @@ export const paymentAccountInput = z
       .trim()
       .transform((v) => v.toUpperCase())
       .pipe(z.string().regex(/^[A-Z]{3}$/, "A 3-letter code, like NGN.")),
-    services: z.array(phase12Service).min(1, "Pick at least one service."),
+    services: z.array(deskService).min(1, "Pick at least one service."),
     active: z.boolean(),
   })
   .superRefine((value, ctx) => {

@@ -17,6 +17,7 @@ function revalidateDealSettings() {
     "/admin/settings/deal-desk",
     "/admin/deals",
     "/deal/new",
+    "/deal/new/crypto",
   ])
     revalidatePath(path);
 }
@@ -68,6 +69,11 @@ export const updateDealSettings = safeAction(
         dealRefPrefix: value.dealRefPrefix,
         dealAlertEmails: value.dealAlertEmails,
         dealDefaultOwnerId: value.dealDefaultOwnerId,
+        rateLockMinutes: value.rateLockMinutes,
+        payoutTargetMinutes: value.payoutTargetMinutes,
+        cryptoMinQty: value.cryptoMinQty,
+        cryptoMaxUsd: value.cryptoMaxUsd,
+        payoutAlertEmails: value.payoutAlertEmails,
       },
     });
     revalidateDealSettings();

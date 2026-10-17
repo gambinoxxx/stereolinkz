@@ -9,7 +9,10 @@ import type {
   DealStatus,
   Prisma,
 } from "@/generated/prisma/client";
+import { Prisma as PrismaNs } from "@/generated/prisma/client";
 import { db } from "@/lib/server/db";
+
+const PrismaDecimal = PrismaNs.Decimal;
 import { startOfDayInTimeZone } from "@/lib/format";
 import { getUserDisplayName } from "@/lib/server/users";
 
@@ -25,15 +28,18 @@ export const SERVICE_FILTERS: Record<string, DealService[]> = {
   "pay-abroad": ["INTL_PAYMENT"],
   pof: ["POF"],
   forex: ["FOREX_SELL", "FOREX_BUY"],
+  crypto: ["CRYPTO_SELL"],
 };
 
 const CLOSED: DealStatus[] = ["COMPLETED", "CANCELLED", "PAID_OUT", "EXPIRED"];
 
-// NEW deals, and payments received but not moved on for 30 minutes.
+// NEW deals, payments received but not moved on for 30 minutes, crypto
+// payouts due and flagged crypto deposits.
 function needsActionWhere(now: Date): Prisma.DealWhereInput {
   return {
     OR: [
       { status: "NEW" },
+      { status: { in: ["DEPOSIT_COMPLETE", "FLAGGED"] } },
       {
         status: "PAYMENT_RECEIVED",
         statusChangedAt: {
@@ -98,8 +104,12 @@ export type DealRow = {
   createdAt: string;
   agreedAt: string | null;
   ownerId: string | null;
-  summary: string | null; // "Leeds", "China", "Providus"
+  summary: string | null; // "Leeds", "China", "Providus", "TRC20"
   customerPaid: boolean;
+  // Crypto (Phase 13)
+  lockExpiresAt: string | null;
+  depositCompletedAt: string | null;
+  payoutDueAt: string | null;
 };
 
 export type DealListParams = {
@@ -108,6 +118,7 @@ export type DealListParams = {
   service?: string;
   owner?: string; // membership id, or "none"
   cursor?: string;
+  exclude?: DealStatus[]; // rows the page shows separately (payout due)
 };
 
 function summaryOf(details: unknown): string | null {
@@ -117,7 +128,82 @@ function summaryOf(details: unknown): string | null {
   if (d.service === "SCHOOL_FEES") return d.schoolName;
   if (d.service === "INTL_PAYMENT") return d.country;
   if (d.service === "POF") return d.bankName ?? null;
+  if (d.service === "CRYPTO_SELL") return d.network;
   return "transfer";
+}
+
+const rowSelect = {
+  id: true,
+  ref: true,
+  service: true,
+  status: true,
+  customerName: true,
+  customerWhatsapp: true,
+  amount: true,
+  currency: true,
+  quotedNaira: true,
+  agreedNaira: true,
+  statusChangedAt: true,
+  createdAt: true,
+  agreedAt: true,
+  ownerMembershipId: true,
+  details: true,
+  lockExpiresAt: true,
+  depositCompletedAt: true,
+  payoutDueAt: true,
+  events: {
+    where: { type: "CUSTOMER_PAID" as const },
+    select: { id: true },
+    take: 1,
+  },
+} satisfies Prisma.DealSelect;
+
+function toRow(
+  r: Prisma.DealGetPayload<{ select: typeof rowSelect }>,
+): DealRow {
+  return {
+    ref: r.ref,
+    service: r.service,
+    status: r.status,
+    customerName: r.customerName,
+    amount: r.amount.toString(),
+    currency: r.currency,
+    quotedNaira: r.quotedNaira?.toString() ?? null,
+    agreedNaira: r.agreedNaira?.toString() ?? null,
+    statusChangedAt: r.statusChangedAt.toISOString(),
+    createdAt: r.createdAt.toISOString(),
+    agreedAt: r.agreedAt?.toISOString() ?? null,
+    ownerId: r.ownerMembershipId,
+    summary: summaryOf(r.details),
+    customerPaid: r.events.length > 0,
+    lockExpiresAt: r.lockExpiresAt?.toISOString() ?? null,
+    depositCompletedAt: r.depositCompletedAt?.toISOString() ?? null,
+    payoutDueAt: r.payoutDueAt?.toISOString() ?? null,
+  };
+}
+
+// Crypto payouts due, most urgent first: the queue shows them on top.
+export async function listPayoutDue(
+  organizationId: string,
+  params: Pick<DealListParams, "service" | "owner">,
+): Promise<DealRow[]> {
+  const services = params.service ? SERVICE_FILTERS[params.service] : undefined;
+  if (services && !services.includes("CRYPTO_SELL")) return [];
+  const rows = await db.deal.findMany({
+    where: {
+      organizationId,
+      status: "DEPOSIT_COMPLETE",
+      ...(params.owner === "none"
+        ? { ownerMembershipId: null }
+        : params.owner
+          ? { ownerMembershipId: params.owner }
+          : {}),
+    },
+    orderBy: [{ payoutDueAt: "asc" }, { id: "asc" }],
+    take: 50,
+    select: rowSelect,
+  });
+  return rows.map(toRow);
 }
 
 export async function listDeals(
@@ -128,7 +214,9 @@ export async function listDeals(
   const where: Prisma.DealWhereInput[] = [{ organizationId }];
   if (params.filter === "active") where.push({ status: { notIn: CLOSED } });
   if (params.filter === "needs") where.push(needsActionWhere(now));
-  if (params.filter === "completed") where.push({ status: "COMPLETED" });
+  if (params.filter === "completed")
+    where.push({ status: { in: ["COMPLETED", "PAID_OUT"] } });
+  if (params.exclude?.length) where.push({ status: { notIn: params.exclude } });
   const services = params.service ? SERVICE_FILTERS[params.service] : undefined;
   if (services) where.push({ service: { in: services } });
   if (params.owner === "none") where.push({ ownerMembershipId: null });
@@ -160,28 +248,7 @@ export async function listDeals(
     where: { AND: where },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: DEALS_PAGE_SIZE + 1,
-    select: {
-      id: true,
-      ref: true,
-      service: true,
-      status: true,
-      customerName: true,
-      customerWhatsapp: true,
-      amount: true,
-      currency: true,
-      quotedNaira: true,
-      agreedNaira: true,
-      statusChangedAt: true,
-      createdAt: true,
-      agreedAt: true,
-      ownerMembershipId: true,
-      details: true,
-      events: {
-        where: { type: "CUSTOMER_PAID" },
-        select: { id: true },
-        take: 1,
-      },
-    },
+    select: rowSelect,
   });
   // Phone search matched on the last 4 digits; keep only full matches.
   const digits = q?.replace(/\D/g, "") ?? "";
@@ -199,22 +266,7 @@ export async function listDeals(
   const page = filtered.slice(0, DEALS_PAGE_SIZE);
   const last = rows.length > DEALS_PAGE_SIZE ? rows[DEALS_PAGE_SIZE - 1] : null;
   return {
-    deals: page.map((r): DealRow => ({
-      ref: r.ref,
-      service: r.service,
-      status: r.status,
-      customerName: r.customerName,
-      amount: r.amount.toString(),
-      currency: r.currency,
-      quotedNaira: r.quotedNaira?.toString() ?? null,
-      agreedNaira: r.agreedNaira?.toString() ?? null,
-      statusChangedAt: r.statusChangedAt.toISOString(),
-      createdAt: r.createdAt.toISOString(),
-      agreedAt: r.agreedAt?.toISOString() ?? null,
-      ownerId: r.ownerMembershipId,
-      summary: summaryOf(r.details),
-      customerPaid: r.events.length > 0,
-    })),
+    deals: page.map(toRow),
     nextCursor: last
       ? encodeCursor({ createdAt: last.createdAt.toISOString(), id: last.id })
       : null,
@@ -222,6 +274,8 @@ export async function listDeals(
 }
 
 export type DealStats = {
+  payoutDue: number;
+  firstPayout: { ref: string; dueAt: string } | null;
   newCount: number;
   oldestNewAt: string | null;
   awaitingCount: number;
@@ -236,34 +290,79 @@ export async function getDealStats(
   now = new Date(),
 ): Promise<DealStats> {
   const today = startOfDayInTimeZone(now, timeZone);
-  const [news, awaiting, completed] = await Promise.all([
-    db.deal.aggregate({
-      where: { organizationId, status: "NEW" },
-      _count: true,
-      _min: { createdAt: true },
-    }),
-    db.deal.aggregate({
-      where: { organizationId, status: "AWAITING_PAYMENT" },
-      _count: true,
-      _sum: { agreedNaira: true },
-    }),
-    db.deal.aggregate({
-      where: {
-        organizationId,
-        status: "COMPLETED",
-        statusChangedAt: { gte: today },
-      },
-      _count: true,
-      _sum: { agreedNaira: true },
-    }),
-  ]);
+  const [news, awaiting, completed, due, cryptoOpen, cryptoPaid] =
+    await Promise.all([
+      db.deal.aggregate({
+        where: { organizationId, status: "NEW" },
+        _count: true,
+        _min: { createdAt: true },
+      }),
+      db.deal.aggregate({
+        where: { organizationId, status: "AWAITING_PAYMENT" },
+        _count: true,
+        _sum: { agreedNaira: true },
+      }),
+      db.deal.aggregate({
+        where: {
+          organizationId,
+          status: "COMPLETED",
+          statusChangedAt: { gte: today },
+        },
+        _count: true,
+        _sum: { agreedNaira: true },
+      }),
+      db.deal.findMany({
+        where: { organizationId, status: "DEPOSIT_COMPLETE" },
+        orderBy: [{ payoutDueAt: "asc" }, { id: "asc" }],
+        select: { ref: true, payoutDueAt: true },
+      }),
+      // Crypto deals carry the quote as the payout until a re-quote.
+      db.deal.findMany({
+        where: {
+          organizationId,
+          status: { in: ["AWAITING_DEPOSIT", "DEPOSIT_SEEN"] },
+        },
+        select: { agreedNaira: true, quotedNaira: true },
+      }),
+      db.deal.findMany({
+        where: {
+          organizationId,
+          status: "PAID_OUT",
+          statusChangedAt: { gte: today },
+        },
+        select: { agreedNaira: true, quotedNaira: true },
+      }),
+    ]);
+  const sum = (
+    base: string,
+    rows: {
+      agreedNaira: Prisma.Decimal | null;
+      quotedNaira: Prisma.Decimal | null;
+    }[],
+  ) =>
+    rows
+      .reduce(
+        (acc, r) => acc.plus(r.agreedNaira ?? r.quotedNaira ?? 0),
+        new PrismaDecimal(base),
+      )
+      .toString();
   return {
+    payoutDue: due.length,
+    firstPayout: due[0]?.payoutDueAt
+      ? { ref: due[0].ref, dueAt: due[0].payoutDueAt.toISOString() }
+      : null,
     newCount: news._count,
     oldestNewAt: news._min.createdAt?.toISOString() ?? null,
-    awaitingCount: awaiting._count,
-    awaitingNaira: awaiting._sum.agreedNaira?.toString() ?? "0",
-    completedToday: completed._count,
-    completedTodayNaira: completed._sum.agreedNaira?.toString() ?? "0",
+    awaitingCount: awaiting._count + cryptoOpen.length,
+    awaitingNaira: sum(
+      awaiting._sum.agreedNaira?.toString() ?? "0",
+      cryptoOpen,
+    ),
+    completedToday: completed._count + cryptoPaid.length,
+    completedTodayNaira: sum(
+      completed._sum.agreedNaira?.toString() ?? "0",
+      cryptoPaid,
+    ),
   };
 }
 
@@ -296,6 +395,7 @@ export async function getDealForTeam(organizationId: string, ref: string) {
       payoutAccountNumber: true,
       payoutAccountName: true,
       payoutReference: true,
+      paidFromAccountId: true,
       ownerMembershipId: true,
       cancelReason: true,
       statusChangedAt: true,
@@ -336,6 +436,7 @@ export async function getDealForTeam(organizationId: string, ref: string) {
         OR: [
           { active: true, services: { has: deal.service } },
           ...(deal.paymentAccountId ? [{ id: deal.paymentAccountId }] : []),
+          ...(deal.paidFromAccountId ? [{ id: deal.paidFromAccountId }] : []),
         ],
       },
       orderBy: { sortOrder: "asc" },

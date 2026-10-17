@@ -39,7 +39,7 @@ describe("paymentAccountInput", () => {
       }).success,
     ).toBe(true);
   });
-  it("requires a name, a bank and a service; no crypto in Phase 12", () => {
+  it("requires a name, a bank and a service", () => {
     expect(
       paymentAccountInput.safeParse({ ...account, accountName: " " }).success,
     ).toBe(false);
@@ -50,9 +50,14 @@ describe("paymentAccountInput", () => {
       paymentAccountInput.safeParse({ ...account, services: [] }).success,
     ).toBe(false);
     expect(
+      paymentAccountInput.safeParse({ ...account, services: ["NOPE"] }).success,
+    ).toBe(false);
+  });
+  it("allows crypto payouts (Phase 13)", () => {
+    expect(
       paymentAccountInput.safeParse({ ...account, services: ["CRYPTO_SELL"] })
         .success,
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -63,6 +68,11 @@ describe("dealSettingsInput", () => {
     dealRefPrefix: "slz",
     dealAlertEmails: false,
     dealDefaultOwnerId: "",
+    rateLockMinutes: "30",
+    payoutTargetMinutes: "10",
+    cryptoMinQty: "20",
+    cryptoMaxUsd: "5,000",
+    payoutAlertEmails: true,
   };
   it("normalises the prefix and the owner", () => {
     expect(dealSettingsInput.parse(settings)).toEqual({
@@ -71,7 +81,31 @@ describe("dealSettingsInput", () => {
       dealRefPrefix: "SLZ",
       dealAlertEmails: false,
       dealDefaultOwnerId: null,
+      rateLockMinutes: 30,
+      payoutTargetMinutes: 10,
+      cryptoMinQty: "20",
+      cryptoMaxUsd: "5000",
+      payoutAlertEmails: true,
     });
+  });
+  it("keeps crypto switched on when saved (Phase 13)", () => {
+    expect(
+      dealSettingsInput.parse({ ...settings, services: ["CRYPTO_SELL"] })
+        .services,
+    ).toEqual(["CRYPTO_SELL"]);
+  });
+  it("checks the crypto limits and timings", () => {
+    for (const bad of [
+      { rateLockMinutes: "2" },
+      { payoutTargetMinutes: "0" },
+      { cryptoMinQty: "0" },
+      { cryptoMinQty: "20.555" },
+      { cryptoMaxUsd: "10" },
+    ])
+      expect(
+        dealSettingsInput.safeParse({ ...settings, ...bad }).success,
+        JSON.stringify(bad),
+      ).toBe(false);
   });
   it("rejects bad prefixes and SLA", () => {
     for (const p of ["S", "SLZ-1", "TOOLONGX", "S1Z"])
@@ -85,12 +119,6 @@ describe("dealSettingsInput", () => {
           .success,
         m,
       ).toBe(false);
-  });
-  it("never enables crypto in Phase 12", () => {
-    expect(
-      dealSettingsInput.safeParse({ ...settings, services: ["CRYPTO_SELL"] })
-        .success,
-    ).toBe(false);
   });
 });
 

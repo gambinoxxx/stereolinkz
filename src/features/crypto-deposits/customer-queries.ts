@@ -104,7 +104,7 @@ export async function getCryptoDealForCustomer(
     hasEmail: !!d.customerEmail,
     ticker: d.cryptoTicker,
     network: d.cryptoNetwork,
-    expectedQty: d.expectedQty.toFixed(2),
+    expectedQty: d.expectedQty.toFixed(),
     rate: (d.agreedRate ?? d.quotedRate).toFixed(),
     naira: (d.agreedNaira ?? d.quotedNaira).toFixed(),
     createdAt: d.createdAt.toISOString(),

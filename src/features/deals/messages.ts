@@ -91,6 +91,43 @@ export function teamMessages(d: TeamDeal): TeamMessage[] {
         text: `${hi}, ${d.ref} is complete. Thank you for choosing us.`,
       });
       break;
+    // Crypto (Phase 13): agreedNaira is the payout (the quote until re-quoted).
+    case "AWAITING_DEPOSIT":
+      out.push({
+        label: "Remind them to send",
+        text: `${hi}, for ${d.ref} please send exactly ${amount} to the address on your deal page, on the network shown there, before your rate lock ends.`,
+      });
+      break;
+    case "DEPOSIT_SEEN":
+      out.push({
+        label: "Say we’ve seen it",
+        text: `${hi}, we can see your ${amount} for ${d.ref}. It’s confirming on the network now.`,
+      });
+      break;
+    case "DEPOSIT_COMPLETE":
+      out.push({
+        label: "Tell them it’s being paid",
+        text: `${hi}, your ${amount} is confirmed.${d.agreedNaira ? ` ${nairaText(d.agreedNaira)} is on its way to your account.` : " Your naira is on its way."}`,
+      });
+      break;
+    case "PAID_OUT":
+      out.push({
+        label: "Confirm the payout",
+        text: `${hi}, ${d.agreedNaira ? nairaText(d.agreedNaira) : "your naira"} has been sent for ${d.ref}. Thank you for choosing us.`,
+      });
+      break;
+    case "EXPIRED":
+      out.push({
+        label: "Offer a new rate",
+        text: `${hi}, the rate lock for ${d.ref} ended before your deposit arrived. Let’s agree a new rate.`,
+      });
+      break;
+    case "FLAGGED":
+      out.push({
+        label: "Say we’re checking",
+        text: `${hi}, we’re checking the deposit for ${d.ref} and will update you shortly.`,
+      });
+      break;
     default:
       break;
   }

@@ -7,6 +7,10 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { BankMark } from "@/components/bank-mark";
+import {
+  CryptoWallets,
+  type WalletRow,
+} from "@/features/crypto-deposits/components/admin/CryptoWallets";
 import { InputAddon } from "@/components/input-addon";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusChip } from "@/components/status-chip";
@@ -19,7 +23,10 @@ import {
   PaymentAccountDrawer,
   type PaymentAccountRow,
 } from "@/features/deals/components/PaymentAccountDrawer";
-import { SERVICE_LABELS, SETTINGS_SERVICES } from "@/features/deals/services";
+import {
+  ACCOUNT_SERVICE_LABELS,
+  SETTINGS_SERVICES,
+} from "@/features/deals/services";
 import { updateDealSettings } from "@/features/deals/settings-actions";
 import {
   accountNameDiffers,
@@ -38,21 +45,21 @@ import { SettingsTabs } from "@/features/settings/components/SettingsTabs";
 const ROW =
   "flex items-center justify-between gap-3 py-2.5 text-[14.5px] font-semibold";
 
-// settings-deal-desk.html, Phase 12 sections: services, our payment
-// accounts, timings and team alerts. Crypto wallets come in Phase 13.
+// settings-deal-desk.html: services, our payment accounts, crypto wallets,
+// timings and team alerts.
 export function DealDeskSettings({
   initial,
   orgName,
   members,
   accounts,
-  crypto,
+  wallets,
   emailReady,
 }: {
   initial: DealSettingsForm;
   orgName: string;
   members: { id: string; name: string }[];
   accounts: PaymentAccountRow[];
-  crypto: { rateLockMinutes: number; payoutTargetMinutes: number };
+  wallets: WalletRow[];
   emailReady: boolean; // RESEND_API_KEY and DEAL_ALERT_FROM are set
 }) {
   const id = useId();
@@ -78,11 +85,21 @@ export function DealDeskSettings({
     if (!result.ok) {
       for (const [field, message] of Object.entries(result.fieldErrors ?? {}))
         if (
-          field === "contactSlaMinutes" ||
-          field === "dealRefPrefix" ||
-          field === "dealDefaultOwnerId"
+          [
+            "contactSlaMinutes",
+            "dealRefPrefix",
+            "dealDefaultOwnerId",
+            "rateLockMinutes",
+            "payoutTargetMinutes",
+            "cryptoMinQty",
+            "cryptoMaxUsd",
+          ].includes(field)
         )
-          setError(field, { message }, { shouldFocus: true });
+          setError(
+            field as keyof DealSettingsForm,
+            { message },
+            { shouldFocus: true },
+          );
       toast.error(result.error);
       return;
     }
@@ -101,7 +118,7 @@ export function DealDeskSettings({
       <form onSubmit={onSubmit} noValidate>
         <PageHeader
           title="Settings"
-          description="How the Deal desk works: services, our payment accounts and timings."
+          description="How the Deal desk works: services, our payment accounts, crypto wallets and timings."
           actions={
             <Button type="submit" disabled={!isDirty || isSubmitting}>
               {isSubmitting && (
@@ -145,19 +162,6 @@ export function DealDeskSettings({
                     </label>
                   );
                 })}
-                <div className={`${ROW} text-text-muted`}>
-                  <span>
-                    Sell crypto (USDT, USDC)
-                    <span className="block text-[12.5px] font-normal">
-                      Coming in the next update
-                    </span>
-                  </span>
-                  <Switch
-                    checked={false}
-                    disabled
-                    aria-label="Sell crypto on the website (coming in the next update)"
-                  />
-                </div>
               </div>
             )}
           />
@@ -200,7 +204,7 @@ export function DealDeskSettings({
                       <span className="text-[13px] text-text-secondary">
                         {account.accountName} · {account.currency} ·{" "}
                         {account.services
-                          .map((s) => SERVICE_LABELS[s])
+                          .map((s) => ACCOUNT_SERVICE_LABELS[s])
                           .join(", ")}
                       </span>
                     </div>
@@ -244,6 +248,53 @@ export function DealDeskSettings({
             An account whose name isn’t “{orgName}” shows a warning to your rep
             to tell the customer the account name on WhatsApp first.
           </p>
+        </Section>
+
+        <Section
+          title="Crypto wallets"
+          description="Receiving addresses the app watches (read-only). Never enter a private key or seed phrase here."
+        >
+          <CryptoWallets wallets={wallets} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-min`}>Minimum deal</Label>
+              <InputAddon
+                id={`${id}-min`}
+                suffix="coins"
+                inputMode="decimal"
+                aria-invalid={errors.cryptoMinQty ? true : undefined}
+                aria-describedby={errors.cryptoMinQty ? err("min") : undefined}
+                {...register("cryptoMinQty")}
+              />
+              <FieldError
+                id={err("min")}
+                message={errors.cryptoMinQty?.message}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-max`}>Largest deal online</Label>
+              <InputAddon
+                id={`${id}-max`}
+                suffix="$"
+                inputMode="decimal"
+                aria-invalid={errors.cryptoMaxUsd ? true : undefined}
+                aria-describedby={
+                  errors.cryptoMaxUsd ? err("max") : `${id}-max-hint`
+                }
+                {...register("cryptoMaxUsd")}
+              />
+              <FieldError
+                id={err("max")}
+                message={errors.cryptoMaxUsd?.message}
+              />
+              <span
+                id={`${id}-max-hint`}
+                className="text-[12.5px] text-text-muted"
+              >
+                Above it, customers are asked to message you on WhatsApp.
+              </span>
+            </div>
+          </div>
         </Section>
 
         <Section
@@ -294,36 +345,61 @@ export function DealDeskSettings({
                 New deals only; existing references don’t change.
               </span>
             </div>
-            <div className="flex flex-col gap-1.5 opacity-60">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-lock`}>Crypto rate lock</Label>
               <InputAddon
                 id={`${id}-lock`}
                 suffix="minutes"
-                value={crypto.rateLockMinutes}
-                disabled
-                readOnly
+                inputMode="numeric"
+                aria-invalid={errors.rateLockMinutes ? true : undefined}
+                aria-describedby={
+                  errors.rateLockMinutes ? err("lock") : `${id}-lock-hint`
+                }
+                {...register("rateLockMinutes")}
               />
-              <span className="text-[12.5px] text-text-muted">
-                Used for crypto deals (next update).
+              <FieldError
+                id={err("lock")}
+                message={errors.rateLockMinutes?.message}
+              />
+              <span
+                id={`${id}-lock-hint`}
+                className="text-[12.5px] text-text-muted"
+              >
+                Deposits after this are re-quoted by your team.
               </span>
             </div>
-            <div className="flex flex-col gap-1.5 opacity-60">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-payout`}>Crypto payout target</Label>
               <InputAddon
                 id={`${id}-payout`}
                 suffix="minutes"
-                value={crypto.payoutTargetMinutes}
-                disabled
-                readOnly
+                inputMode="numeric"
+                aria-invalid={errors.payoutTargetMinutes ? true : undefined}
+                aria-describedby={
+                  errors.payoutTargetMinutes
+                    ? err("payout")
+                    : `${id}-payout-hint`
+                }
+                {...register("payoutTargetMinutes")}
               />
-              <span className="text-[12.5px] text-text-muted">
-                Used for crypto deals (next update).
+              <FieldError
+                id={err("payout")}
+                message={errors.payoutTargetMinutes?.message}
+              />
+              <span
+                id={`${id}-payout-hint`}
+                className="text-[12.5px] text-text-muted"
+              >
+                Countdown after deposit complete.
               </span>
             </div>
           </div>
         </Section>
 
-        <Section title="Team alerts" description="Who hears about new deals.">
+        <Section
+          title="Team alerts"
+          description="Who hears about new deals and payouts due."
+        >
           <label className={ROW}>
             <span>
               Email every team member on a new deal
@@ -342,6 +418,25 @@ export function DealDeskSettings({
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   aria-label="Email every team member on a new deal"
+                />
+              )}
+            />
+          </label>
+          <label className={ROW}>
+            <span>
+              Email when a crypto payout is due
+              <span className="block text-[12.5px] font-normal text-text-muted">
+                On deposit complete, and again if the payout target passes.
+              </span>
+            </span>
+            <Controller
+              control={control}
+              name="payoutAlertEmails"
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="Email when a crypto payout is due"
                 />
               )}
             />

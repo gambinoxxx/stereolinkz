@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getCryptoForTeam } from "@/features/crypto-deposits/admin-queries";
+import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { DealDetail } from "@/features/deals/components/admin/DealDetail";
 import { getDealForTeam, listMembers } from "@/features/deals/queries";
 import { normalizeRef } from "@/features/deals/refs";
@@ -31,6 +33,16 @@ export default async function DealDetailPage({
     }),
   ]);
   if (!deal) notFound();
+  const crypto =
+    deal.service === "CRYPTO_SELL"
+      ? await getCryptoForTeam(organizationId, deal.id)
+      : null;
+  // The latest board's rate for this coin, offered on a re-quote.
+  const currentCryptoRate = crypto
+    ? ((await getCryptoDesk(organizationId))?.coins.find(
+        (c) => c.ticker === crypto.ticker,
+      )?.rate ?? null)
+    : null;
   const now = new Date();
   // Labels are worked out here (org time zone) and passed as strings.
   const when = Object.fromEntries(
@@ -40,6 +52,9 @@ export default async function DealDetailPage({
       deal.agreedAt,
       ...deal.events.map((e) => e.createdAt),
       ...deal.files.map((f) => f.createdAt),
+      crypto?.lockExpiresAt,
+      crypto?.depositCompletedAt,
+      crypto?.payoutDueAt,
     ]
       .filter((v): v is string => !!v)
       .map((iso) => [
@@ -60,6 +75,8 @@ export default async function DealDetailPage({
       orgName={org.name}
       labels={{ when, time }}
       slaMinutes={org.contactSlaMinutes}
+      crypto={crypto}
+      currentCryptoRate={currentCryptoRate}
     />
   );
 }

@@ -11,7 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { PHASE12_SERVICES, SERVICE_LABELS } from "@/features/deals/services";
+import {
+  ACCOUNT_SERVICE_LABELS,
+  DESK_SERVICES,
+} from "@/features/deals/services";
 import { savePaymentAccount } from "@/features/deals/settings-actions";
 import {
   accountNameDiffers,
@@ -179,7 +182,7 @@ export function PaymentAccountDrawer({
           name="services"
           render={({ field }) => (
             <>
-              {PHASE12_SERVICES.map((service) => (
+              {DESK_SERVICES.map((service) => (
                 <label
                   key={service}
                   className="flex items-center gap-2.5 text-[14.5px]"
@@ -194,7 +197,7 @@ export function PaymentAccountDrawer({
                       )
                     }
                   />
-                  {SERVICE_LABELS[service]}
+                  {ACCOUNT_SERVICE_LABELS[service]}
                 </label>
               ))}
             </>

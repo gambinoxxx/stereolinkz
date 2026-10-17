@@ -29,7 +29,7 @@ import { db } from "@/lib/server/db";
 
 export const OPEN_CRYPTO: DealStatus[] = ["AWAITING_DEPOSIT", "DEPOSIT_SEEN"];
 const LATE_WINDOW_MS = 3 * 24 * 60 * 60_000; // expired deals still linkable
-const OVERLAP_MS = 5 * 60_000;
+const OVERLAP_MS = 10 * 60_000;
 
 export function providerFor(network: CryptoNetwork): DepositProvider | null {
   const decimalsFor = (contract: string) =>
@@ -176,13 +176,20 @@ export async function checkDeposits(
     return { completed: [], claim: claim ? "NOT_FOUND" : null };
   }
 
-  // 1. Record every transfer since the oldest deal (with overlap).
-  const since = new Date(
+  // 1. Record the transfers since the last successful check (with an
+  // overlap), or since the oldest deal on a first check. Matching then
+  // reads every recorded transfer since the oldest deal from the database.
+  const oldest = new Date(
     Math.min(...deals.map((d) => d.createdAt.getTime())) - OVERLAP_MS,
   );
+  const fetchFrom = wallet.lastCheckedAt
+    ? new Date(
+        Math.max(oldest.getTime(), wallet.lastCheckedAt.getTime() - OVERLAP_MS),
+      )
+    : oldest;
   let incoming: IncomingTransfer[];
   try {
-    incoming = await provider.listIncomingTransfers(wallet.address, since);
+    incoming = await provider.listIncomingTransfers(wallet.address, fetchFrom);
   } catch (error) {
     await db.cryptoWallet.update({
       where: { id: walletId },
@@ -213,7 +220,7 @@ export async function checkDeposits(
     where: {
       walletId,
       OR: [
-        { blockTime: { gte: since } },
+        { blockTime: { gte: oldest } },
         { matchedDealId: { in: deals.map((d) => d.id) } },
       ],
     },
