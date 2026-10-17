@@ -1200,3 +1200,288 @@
 .dk .copyrow button span {
   display: inline;
 }
+
+/* ═══ Crypto (Phase 13): deal-crypto*.html page styles ═══ */
+.dk .svc.c-crypto {
+  --c: #c77700;
+}
+.dk .coins {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.dk .coins label {
+  min-width: 0;
+  position: relative;
+}
+.dk .coins input {
+  position: absolute;
+  opacity: 0;
+}
+.dk .coins label > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s;
+  min-width: 0;
+}
+.dk .coins label > span > span {
+  min-width: 0;
+}
+.dk .coins .cb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-style: normal;
+  font-weight: 900;
+  background: var(--coin, var(--violet));
+  overflow: hidden;
+}
+.dk .coins .cb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dk .coins b {
+  display: block;
+}
+.dk .coins small {
+  color: var(--ink3);
+  font-size: 13px;
+}
+.dk .coins input:checked + span {
+  border-color: var(--violet);
+  background: #faf7ff;
+  box-shadow: 0 0 0 4px rgba(106, 53, 217, 0.1);
+}
+.dk .coins input:focus-visible + span {
+  outline: 3px solid var(--violet);
+  outline-offset: 3px;
+}
+.dk .flip {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: end;
+}
+.dk .flipbtn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--gold);
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+}
+@media (max-width: 560px) {
+  .dk .flip {
+    grid-template-columns: 1fr;
+  }
+  .dk .flipbtn {
+    justify-self: center;
+    transform: rotate(90deg);
+    margin: 0;
+  }
+}
+.dk .depo {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 22px;
+  align-items: center;
+  margin-top: 18px;
+}
+.dk .depo > div:last-child {
+  min-width: 0;
+}
+.dk .qr {
+  background: #fff;
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: inset 0 0 0 2px var(--line);
+  width: 200px;
+}
+.dk .qr svg {
+  display: block;
+  width: 180px;
+  height: 180px;
+}
+.dk .addr {
+  font:
+    800 16px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+.dk .timer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--night);
+  color: #fff;
+  border-radius: 22px;
+  padding: 16px 18px;
+}
+.dk .ring {
+  --p: 1;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--gold) calc(var(--p) * 360deg),
+    rgba(255, 255, 255, 0.12) 0
+  );
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.dk .ring span {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--night);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 12px;
+}
+.dk .timer b {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--gold2);
+}
+.dk .timer small {
+  display: block;
+  color: #b9a9e0;
+  font-size: 13px;
+}
+.dk .watch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--lav);
+  font-weight: 700;
+}
+.dk .spin {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 3px solid var(--lav2);
+  border-top-color: var(--violet);
+  animation: dk-spin 1s linear infinite;
+}
+@keyframes dk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dk .conf {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--lav2);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.dk .conf i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet), var(--gold));
+  border-radius: 4px;
+  transition: width 0.8s var(--ease);
+}
+@media (max-width: 640px) {
+  .dk .depo {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .dk .depo > div:last-child {
+    width: 100%;
+  }
+}
+.dk .hero2 {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.dk .okc {
+  width: 92px;
+  height: 92px;
+  margin: 48px auto 0;
+  border-radius: 50%;
+  background: var(--up);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow:
+    0 0 0 14px rgba(31, 157, 99, 0.14),
+    0 0 0 28px rgba(31, 157, 99, 0.06);
+  animation: dk-pop 0.6s var(--ease);
+}
+.dk .okc.wait {
+  background: var(--violet);
+  box-shadow:
+    0 0 0 14px rgba(106, 53, 217, 0.14),
+    0 0 0 28px rgba(106, 53, 217, 0.06);
+}
+@keyframes dk-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+.dk .count {
+  position: relative;
+  width: 230px;
+  height: 230px;
+  margin: 34px auto 0;
+}
+.dk .count svg {
+  transform: rotate(-90deg);
+}
+.dk .count .t {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.dk .count b {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.dk .count small {
+  color: var(--ink2);
+  font-weight: 650;
+}
+.dk .count .track {
+  stroke: var(--lav2);
+}
+.dk .count .stop-a {
+  stop-color: var(--violet);
+}
+.dk .count .stop-b {
+  stop-color: var(--gold);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dk .spin,
+  .dk .okc {
+    animation: none;
+  }
+}

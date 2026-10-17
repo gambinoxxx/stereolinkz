@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Banknote,
+  CircleDollarSign,
   FileText,
   Globe2,
   GraduationCap,
@@ -12,6 +13,7 @@ import Link from "next/link";
 import { compareDecimalStrings } from "@/lib/decimal";
 import { formatBoardPrice, formatRate } from "@/lib/format";
 import { whatsappLink } from "@/features/public/whatsapp";
+import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { DEAL_COPY } from "@/features/deals/content";
 import { getDealDeskContext } from "@/features/deals/public-queries";
 import {
@@ -32,12 +34,24 @@ const ICONS = {
 } satisfies Record<FormSlug, unknown>;
 
 // deal-start.html: the services that are switched on, with a tag from the
-// latest boards. Crypto arrives in Phase 13.
+// latest boards. Sell crypto shows while it is on and a coin can be watched
+// (an official token with a wallet, on the latest Crypto board).
 export default async function DealStartPage() {
   const ctx = await getDealDeskContext();
   const enabled = ctx
     ? FORM_SLUGS.filter((slug) => isFormEnabled(slug, ctx.org.servicesEnabled))
     : [];
+  const desk =
+    ctx && ctx.org.servicesEnabled.includes("CRYPTO_SELL")
+      ? await getCryptoDesk(ctx.org.id)
+      : null;
+  const coins = desk?.coins ?? [];
+  const cryptoCard = coins.length > 0 && {
+    body: `${coins.map((c) => c.ticker).join(" and ")} on ${[
+      ...new Set(coins.flatMap((c) => c.networks.map((n) => n.network))),
+    ].join(" or ")}. Paid out minutes after your deposit confirms.`,
+    tag: `${coins[0]!.ticker} ₦${formatRate(coins[0]!.rate)}`,
+  };
   const brand = ctx?.org.name ?? "Stereolinkz";
   const cashLink = whatsappLink(
     ctx?.org.contactLine ?? null,
@@ -65,7 +79,7 @@ export default async function DealStartPage() {
       <span className="crumb">{c.crumb}</span>
       <h1>{c.title}</h1>
       <p className="lead">{c.lead}</p>
-      {enabled.length === 0 ? (
+      {enabled.length === 0 && !cryptoCard ? (
         <div className="closed">
           <h2>{c.closed}</h2>
           <p>{c.closedSub}</p>
@@ -103,6 +117,21 @@ export default async function DealStartPage() {
               </Link>
             );
           })}
+          {cryptoCard && (
+            <Link className="svc c-crypto" href="/deal/new/crypto">
+              <span className="ic" aria-hidden="true">
+                <CircleDollarSign size={28} strokeWidth={2} />
+              </span>
+              <span className="tx">
+                <b>Sell crypto</b>
+                <small>{cryptoCard.body}</small>
+              </span>
+              <span className="tag">{cryptoCard.tag}</span>
+              <span className="go" aria-hidden="true">
+                <ArrowRight size={20} strokeWidth={2.2} />
+              </span>
+            </Link>
+          )}
         </div>
       )}
       <div className="how3">

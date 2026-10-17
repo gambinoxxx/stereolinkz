@@ -115,7 +115,18 @@ export function customerStatus(
       return { label: "Completed", tone: "ok" };
     case "CANCELLED":
       return { label: "Cancelled", tone: "off" };
-    default:
-      return { label: "In progress", tone: "vio" };
+    // Crypto (Phase 13). FLAGGED never shows its reason to the customer.
+    case "AWAITING_DEPOSIT":
+      return { label: "Waiting for your deposit", tone: "vio" };
+    case "DEPOSIT_SEEN":
+      return { label: "Deposit seen", tone: "vio" };
+    case "DEPOSIT_COMPLETE":
+      return { label: "Deposit complete", tone: "ok" };
+    case "PAID_OUT":
+      return { label: "Paid out", tone: "ok" };
+    case "EXPIRED":
+      return { label: "Rate lock ended", tone: "gold" };
+    case "FLAGGED":
+      return { label: "Being checked", tone: "gold" };
   }
 }

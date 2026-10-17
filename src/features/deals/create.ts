@@ -5,11 +5,17 @@ import "server-only";
 // incremented (the row lock makes parallel creates wait their turn, so no
 // two deals share a reference), then the deal and its first event are
 // inserted. Nothing is written unless all three succeed.
+import { uniqueAmount } from "@/features/crypto-deposits/amounts";
 import type { Quote } from "@/features/deals/quote";
 import { formatRef } from "@/features/deals/refs";
 import type { DealDetails } from "@/features/deals/schema";
 import type { DealActorRef } from "@/features/deals/transitions";
-import type { DealService, Prisma } from "@/generated/prisma/client";
+import type {
+  CryptoNetwork,
+  DealService,
+  Prisma,
+} from "@/generated/prisma/client";
+import { multiplyDecimalStrings } from "@/lib/decimal";
 import { db } from "@/lib/server/db";
 
 export type NewDeal = {
@@ -29,6 +35,20 @@ export type NewDeal = {
   // Website only: checked inside the transaction, after the counter row
   // is locked, so parallel submits can't slip past the limit together.
   limits?: { perIpPerHour: number; openPerPhone: number };
+  // Crypto (Phase 13): the deal starts at AWAITING_DEPOSIT with a copy of
+  // the wallet's address, the exact amount to send (unique per wallet) and
+  // the rate lock. `amount` is the amount typed; `quote` is replaced by
+  // the rate × the exact amount.
+  crypto?: {
+    walletId: string;
+    ticker: string;
+    network: CryptoNetwork;
+    depositAddress: string;
+    rate: string;
+    boardId: string;
+    timeLabel: string;
+    lockMinutes: number;
+  };
   now?: Date;
 };
 
@@ -42,7 +62,39 @@ export const OPEN_STATUSES = [
   "AWAITING_PAYMENT",
   "PAYMENT_RECEIVED",
   "PROCESSING",
+  "AWAITING_DEPOSIT",
+  "DEPOSIT_SEEN",
+  "DEPOSIT_COMPLETE",
+  "FLAGGED",
 ] as const;
+
+// Every cents suffix for this amount is in use on the wallet right now.
+export class CryptoAmountBusyError extends Error {
+  constructor() {
+    super("No free amount on this wallet");
+    this.name = "CryptoAmountBusyError";
+  }
+}
+
+// Deals whose expected amount a new transfer could still match
+// (crypto-deposits/match.ts: waiting deals, and expired ones for 3 days).
+async function takenAmounts(tx: Tx, walletId: string, now: Date) {
+  const rows = await tx.deal.findMany({
+    where: {
+      walletId,
+      matchedTransfer: null,
+      OR: [
+        { status: { in: ["AWAITING_DEPOSIT", "DEPOSIT_SEEN"] } },
+        {
+          status: "EXPIRED",
+          createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60_000) },
+        },
+      ],
+    },
+    select: { expectedQty: true },
+  });
+  return rows.flatMap((r) => (r.expectedQty ? [r.expectedQty.toFixed()] : []));
+}
 
 export class DealRateLimitError extends Error {
   constructor(readonly reason: "ip" | "phone") {
@@ -86,19 +138,39 @@ export async function insertDeal(
       throw new DealRateLimitError("phone");
   }
   const ref = formatRef(org.dealRefPrefix, org.dealRefCounter);
-  const { quote } = input;
+  const { crypto } = input;
+  let quote = input.quote;
+  let expectedQty: string | null = null;
+  if (crypto) {
+    // Lock the wallet row so two deals can't pick the same amount.
+    await tx.$queryRaw`SELECT id FROM "CryptoWallet" WHERE id = ${crypto.walletId} FOR UPDATE`;
+    expectedQty = uniqueAmount(
+      input.amount,
+      await takenAmounts(tx, crypto.walletId, now),
+    );
+    if (!expectedQty) throw new CryptoAmountBusyError();
+    quote = {
+      rate: crypto.rate,
+      naira: multiplyDecimalStrings(expectedQty, crypto.rate),
+      boardId: crypto.boardId,
+      timeLabel: crypto.timeLabel,
+      dateLabel: "",
+      side: "buy",
+    };
+  }
+  const status = crypto ? "AWAITING_DEPOSIT" : "NEW";
   const deal = await tx.deal.create({
     data: {
       organizationId: input.organizationId,
       ref,
       service: input.service,
-      status: "NEW",
+      status,
       customerName: input.customer.name,
       customerWhatsapp: input.customer.whatsapp,
       customerEmail: input.customer.email ?? null,
       details: input.details,
       currency: input.currency,
-      amount: input.amount,
+      amount: expectedQty ?? input.amount, // crypto: the exact amount to send
       quotedRate: quote?.rate ?? null,
       quotedNaira: quote?.naira ?? null,
       quotedBoardId: quote?.boardId ?? null,
@@ -111,6 +183,14 @@ export async function insertDeal(
       ipHash: input.ipHash,
       statusChangedAt: now,
       createdAt: now,
+      ...(crypto && {
+        cryptoTicker: crypto.ticker,
+        cryptoNetwork: crypto.network,
+        depositAddress: crypto.depositAddress,
+        walletId: crypto.walletId,
+        expectedQty,
+        lockExpiresAt: new Date(now.getTime() + crypto.lockMinutes * 60_000),
+      }),
     },
     select: { id: true },
   });
@@ -118,7 +198,7 @@ export async function insertDeal(
     data: {
       dealId: deal.id,
       type: "REQUESTED",
-      toStatus: "NEW",
+      toStatus: status,
       message: input.message,
       data: quote
         ? {

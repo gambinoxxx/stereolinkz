@@ -8,6 +8,10 @@ import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
+import { nameCheck } from "@/features/crypto-deposits/names";
+import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
+import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
+import { officialToken } from "@/features/crypto-deposits/tokens";
 import {
   checkDeposits,
   type ClaimResult,
@@ -20,6 +24,7 @@ import {
 } from "@/features/deals/notify";
 import {
   createDeal,
+  CryptoAmountBusyError,
   DealRateLimitError,
   WEBSITE_LIMITS,
 } from "@/features/deals/create";
@@ -45,6 +50,7 @@ import {
   MAX_FILES_PER_DEAL,
 } from "@/lib/server/deal-files";
 import { db } from "@/lib/server/db";
+import { compareDecimalStrings } from "@/lib/decimal";
 
 const CHECK = "Please check the highlighted fields.";
 const TOO_MANY =
@@ -158,6 +164,128 @@ export const submitDeal = publicAction(
     } catch (error) {
       if (error instanceof DealRateLimitError)
         return { ok: false, error: TOO_MANY };
+      throw error;
+    }
+  },
+);
+
+// ── Sell crypto (deal-crypto.html) ────────────────────────────────────
+// Same bot checks and limits as submitDeal. The deal starts at
+// AWAITING_DEPOSIT with a copy of our wallet's address, the exact amount
+// to send (unique on that wallet) and the rate lock; the customer goes
+// straight to the deposit page.
+
+export const submitCryptoDeal = publicAction(
+  "submitCryptoDeal",
+  async (
+    raw: unknown,
+  ): Promise<ActionResult<{ ref: string; token: string }>> => {
+    const parsed = submitCryptoDealInput.safeParse(raw);
+    if (!parsed.success)
+      return {
+        ok: false,
+        error: CHECK,
+        fieldErrors: fieldErrors(parsed.error.issues),
+      };
+    const input = parsed.data;
+    if (input.website.trim() !== "") return { ok: false, error: GENERIC };
+    const form = checkFormToken(input.formToken);
+    if (form === "expired") return { ok: false, error: EXPIRED };
+    if (form !== "ok") return { ok: false, error: GENERIC };
+
+    const unavailable = {
+      ok: false as const,
+      error:
+        "Selling this coin online isn’t available right now. Message us on WhatsApp.",
+    };
+    const ctx = await getDealDeskContext();
+    if (!ctx || !ctx.org.servicesEnabled.includes("CRYPTO_SELL"))
+      return unavailable;
+    const desk = await getCryptoDesk(ctx.org.id);
+    const coin = desk?.coins.find((c) => c.ticker === input.ticker);
+    const token = officialToken(input.network, input.ticker);
+    if (
+      !desk ||
+      !coin ||
+      !token ||
+      !coin.networks.some((n) => n.network === input.network)
+    )
+      return unavailable;
+    const wallet = await db.cryptoWallet.findFirst({
+      where: {
+        organizationId: ctx.org.id,
+        ticker: input.ticker,
+        network: input.network,
+        active: true,
+      },
+      select: { id: true, address: true },
+    });
+    if (!wallet) return unavailable;
+
+    if (compareDecimalStrings(input.qty, desk.minQty) < 0)
+      return {
+        ok: false,
+        error: CHECK,
+        fieldErrors: { qty: `The minimum is ${desk.minQty} ${input.ticker}.` },
+      };
+    // Stablecoins only (tokens.ts), so coins and dollars are 1:1.
+    if (compareDecimalStrings(input.qty, desk.maxUsd) > 0)
+      return {
+        ok: false,
+        error: CHECK,
+        fieldErrors: {
+          qty: `For more than ${desk.maxUsd} ${input.ticker}, message us on WhatsApp.`,
+        },
+      };
+
+    const ip = await clientIp();
+    const tracking = createTrackingToken();
+    try {
+      const deal = await createDeal({
+        organizationId: ctx.org.id,
+        service: "CRYPTO_SELL",
+        customer: input.customer,
+        details: {
+          service: "CRYPTO_SELL",
+          ticker: input.ticker,
+          network: input.network,
+          payoutNameCheck: nameCheck(
+            input.customer.name,
+            input.payout.accountName,
+          ),
+        },
+        currency: input.ticker,
+        amount: input.qty,
+        quote: null,
+        payout: input.payout,
+        ownerMembershipId: ctx.org.defaultOwnerId,
+        trackingTokenHash: tracking.hash,
+        ipHash: ip ? hashIp(ip) : null,
+        actor: { type: "CUSTOMER" },
+        message: "Requested on the website",
+        limits: WEBSITE_LIMITS,
+        crypto: {
+          walletId: wallet.id,
+          ticker: input.ticker,
+          network: input.network,
+          depositAddress: wallet.address,
+          rate: coin.rate,
+          boardId: desk.boardId,
+          timeLabel: desk.timeLabel,
+          lockMinutes: desk.lockMinutes,
+        },
+      });
+      after(() => notifyNewDeal(deal.id, tracking.token));
+      return { ok: true, data: { ref: deal.ref, token: tracking.token } };
+    } catch (error) {
+      if (error instanceof DealRateLimitError)
+        return { ok: false, error: TOO_MANY };
+      if (error instanceof CryptoAmountBusyError)
+        return {
+          ok: false,
+          error:
+            "We have many deals for this amount right now. Change the amount slightly, or try again in a few minutes.",
+        };
       throw error;
     }
   },

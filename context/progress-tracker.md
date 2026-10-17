@@ -9,10 +9,30 @@ change.
 
 ## Current Goal
 
-- Phase 13: Customer flow (`/deal/new/crypto`, deposit page, payout page,
-  flagged view).
+- Phase 13: Admin (crypto rows and Payout due in Deals, crypto deal detail
+  with the check and payout panels, wallet settings).
 
 ## Completed
+
+- 2026-10-17: Phase 13, Customer flow. `/deal/new/crypto` (CryptoForm:
+  coins from the latest Crypto board with an official token and an active
+  wallet, network pills, linked coins ⇄ naira in exact decimals, min / max,
+  payout bank + 10 digits + typed "Name on the account" with a soft name
+  check, details, consent, bot checks); `submitCryptoDeal` (server quote at
+  the board BUY rate, unique cents under a wallet row lock, deal created at
+  AWAITING_DEPOSIT with the address copy and lock); the Sell crypto card on
+  `/deal/new`; the crypto deal page (`CryptoDealView`): QR (qrcode, server
+  SVG), address / amount copy, first-and-last-4 warning, lock ring, TxID
+  box, live watcher (checkMyDeposit every 15 s), confirmations bar; payout
+  countdown → "taking a little longer"; paid state; lock ended (address
+  hidden), being checked (no reason shown), cancelled. Checked on the dev
+  branch with a test wallet on a busy public Tron address: SLZ-1010 went
+  waiting → complete by itself 18 s after the page opened, on a real
+  3.886426 USDT transfer (receipt-checked, 22 confirmations, payout due
+  +10 min); SLZ-1009 with a repeated amount → FLAGGED "ambiguous: 19
+  transfers"; another deal's TxID refused ("linked to another deal"); bad
+  TxID refused; lock ended and flagged views; 4th open deal per phone and
+  6th per IP refused. Screens at 1440 and 390 in `tmp/qa/out/c-*.png`.
 
 - 2026-10-17: Phase 13, Watcher and checks. `providers/tron.ts` (TronGrid
   index + the chain receipt as proof: contract, recipient, amount and
@@ -899,6 +919,10 @@ change.
     `/api/cron/crypto-watch` route every minute, with a daily Vercel cron
     as a backup. The deposit page also checks on demand every 15 s.
   - **QR: `qrcode` library** (approved), rendered to SVG on the server.
+  - **Payout account name is typed by the customer** ("Name on the
+    account"): we have no bank API for a name lookup. `names.ts` compares it
+    with the customer's name (MATCH / CLOSE / DIFFERENT), stored in the
+    deal details; a mismatch is a soft warning, and the team checks it.
 - 2026-10-17: Phase 13 watcher decisions.
   - **Matching**: by exact expected amount, arriving after the deal was
     created, official contract, our address. Unique cents per wallet at

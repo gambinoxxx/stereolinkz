@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CryptoDealView } from "@/features/crypto-deposits/components/CryptoDealView";
+import { getCryptoDealForCustomer } from "@/features/crypto-deposits/customer-queries";
 import { findDealIdByToken } from "@/features/deals/access";
 import { AutoRefresh } from "@/features/deals/components/customer/AutoRefresh";
 import { CopyButton } from "@/features/deals/components/customer/CopyButton";
@@ -88,6 +90,22 @@ export default async function DealPage({
   const dealId = ctx ? await findDealIdByToken(ctx.org.id, ref, token) : null;
   const deal = dealId ? await getDealForCustomer(dealId) : null;
   if (!ctx || !deal || !token) notFound();
+
+  // Crypto deals go straight to their deposit / payout page.
+  if (deal.service === "CRYPTO_SELL") {
+    const crypto = await getCryptoDealForCustomer(dealId!);
+    if (!crypto) notFound();
+    return (
+      <CryptoDealView
+        deal={crypto}
+        token={token}
+        whatsappHref={whatsappLink(
+          ctx.org.contactLine,
+          aboutDealMessage(ctx.org.name, deal.ref),
+        )}
+      />
+    );
+  }
 
   const now = new Date();
   const brand = ctx.org.name;
