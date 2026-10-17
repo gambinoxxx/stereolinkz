@@ -1,6 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
+import { after } from "next/server";
+
 import { watchAllWallets } from "@/features/crypto-deposits/watch";
+import {
+  alertOverduePayouts,
+  notifyDepositComplete,
+} from "@/features/deals/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,11 +32,14 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   const result = await watchAllWallets();
+  const overdue = await alertOverduePayouts();
+  for (const id of result.completed) after(() => notifyDepositComplete(id));
   return Response.json(
     {
       wallets: result.wallets,
       failed: result.failed,
       completed: result.completed.length,
+      overdue,
     },
     { headers: { "Cache-Control": "no-store" } },
   );

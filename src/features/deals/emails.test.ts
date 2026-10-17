@@ -4,6 +4,9 @@ import {
   customerLinkEmail,
   teamNewDealEmail,
   teamPaidEmail,
+  customerPaidOutEmail,
+  teamDepositCompleteEmail,
+  teamPayoutOverdueEmail,
 } from "@/features/deals/emails";
 
 const d = {
@@ -45,5 +48,41 @@ describe("deal emails", () => {
     });
     expect(e.subject).toBe("Your deal SLZ-1047 with Stereolinkz");
     expect(e.text).toContain("https://x/deal/SLZ-1047?t=abc");
+  });
+});
+
+describe("crypto emails (Phase 13)", () => {
+  it("tell the team the ref, amount and link only", () => {
+    const e = teamDepositCompleteEmail({
+      ref: "SLZ-1048",
+      amount: "500.37 USDT",
+      payout: "₦795,588",
+      minutes: 10,
+      adminUrl: "https://example.test/admin/deals/SLZ-1048",
+    });
+    expect(e.subject).toBe("SLZ-1048: payout due (₦795,588)");
+    expect(e.text).toContain("500.37 USDT");
+    expect(e.text).toContain("within 10 minutes");
+    expect(e.text).not.toMatch(/T[1-9A-HJ-NP-Za-km-z]{33}/); // no address
+    expect(
+      teamPayoutOverdueEmail({
+        ref: "SLZ-1048",
+        amount: "500.37 USDT",
+        payout: "₦795,588",
+        adminUrl: "https://example.test/admin/deals/SLZ-1048",
+      }).subject,
+    ).toBe("SLZ-1048: payout overdue");
+  });
+
+  it("give the customer the amount, account ending and reference", () => {
+    const e = customerPaidOutEmail({
+      brand: "Stereolinkz",
+      ref: "SLZ-1048",
+      payout: "₦795,588",
+      account: "Opay ••4567",
+      reference: "OPY<1>",
+    });
+    expect(e.text).toContain("₦795,588 has been sent to your Opay ••4567");
+    expect(e.html).toContain("OPY&lt;1&gt;");
   });
 });

@@ -9,10 +9,20 @@ change.
 
 ## Current Goal
 
-- Phase 13: Alerts and timers (deposit-complete and overdue team emails,
-  customer receipt, dashboard Payout due).
+- Phase 13: end-of-phase checks and Done-when.
 
 ## Completed
+
+- 2026-10-17: Phase 13, Alerts and timers. `notifyDepositComplete` (team
+  email when "Email when a crypto payout is due" is on: ref, amount, payout,
+  admin link only; after the response, from checkMyDeposit and the cron),
+  `alertOverduePayouts` in the cron (claims `payoutOverdueAlertAt`
+  conditionally, so once per deal; logs ALERT_SENT; email when on),
+  `notifyPaidOut` (customer receipt when they gave an email and a real
+  sender is set up; no link, since only the token hash is stored), the
+  dashboard "Payout due" line, the payout page's "taking a little longer"
+  after the target. Tests: email contents; opt-in DB test: two overdue
+  sweeps at once alert once and never move the deal.
 
 - 2026-10-17: Phase 13, Admin. Deals list: Payout due card (pulses), the
   "Payout due (n)" shortcut, payout-due rows first, crypto rows (coin,

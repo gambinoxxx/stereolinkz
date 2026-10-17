@@ -75,3 +75,63 @@ export function customerLinkEmail(d: {
     html: layout(lines, { href: d.trackUrl, label: "Open my deal page" }),
   };
 }
+
+// Crypto (Phase 13). Team emails carry the ref, the amount and the admin
+// link only.
+export function teamDepositCompleteEmail(d: {
+  ref: string;
+  amount: string; // "500.37 USDT"
+  payout: string; // "₦795,000"
+  minutes: number;
+  adminUrl: string;
+}): Omit<Email, "to"> {
+  const lines = [
+    `Deposit complete on ${d.ref}: ${d.amount}.`,
+    `Pay out ${d.payout} within ${d.minutes} minutes, then mark it paid out with the bank reference.`,
+  ];
+  return {
+    subject: `${d.ref}: payout due (${d.payout})`,
+    text: `${lines.join("\n")}\n\n${d.adminUrl}`,
+    html: layout(lines, { href: d.adminUrl, label: `Open ${d.ref}` }),
+  };
+}
+
+export function teamPayoutOverdueEmail(d: {
+  ref: string;
+  amount: string;
+  payout: string;
+  adminUrl: string;
+}): Omit<Email, "to"> {
+  const lines = [
+    `The payout on ${d.ref} (${d.amount}, ${d.payout}) is past its target.`,
+    "The customer’s page now says it’s taking a little longer. Pay out and mark it paid out.",
+  ];
+  return {
+    subject: `${d.ref}: payout overdue`,
+    text: `${lines.join("\n")}\n\n${d.adminUrl}`,
+    html: layout(lines, { href: d.adminUrl, label: `Open ${d.ref}` }),
+  };
+}
+
+// The customer's receipt. No deal link: only the link token's hash is
+// stored, so the email can't rebuild it.
+export function customerPaidOutEmail(d: {
+  brand: string;
+  ref: string;
+  payout: string;
+  account: string; // "Opay ••4567"
+  reference: string;
+}): Omit<Email, "to"> {
+  const lines = [
+    `${d.payout} has been sent to your ${d.account} for deal ${d.ref}.`,
+    `Bank reference: ${d.reference}.`,
+    `Thank you for choosing ${d.brand}.`,
+  ];
+  return {
+    subject: `${d.ref}: ${d.payout} sent`,
+    text: lines.join("\n"),
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1F0B3F">${lines
+      .map((l) => `<p style="margin:0 0 10px">${esc(l)}</p>`)
+      .join("")}</div>`,
+  };
+}

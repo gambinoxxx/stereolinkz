@@ -212,6 +212,24 @@ describe.skipIf(!enabled)(
       expect(r.claim).toBe("TAKEN");
     });
 
+    it("alerts an overdue payout once, even from two runs at once", async () => {
+      const { alertOverduePayouts } = await import("@/features/deals/notify");
+      await db.deal.update({
+        where: { id: deals.good },
+        data: { payoutDueAt: new Date(Date.now() - 60_000) },
+      });
+      await Promise.all([alertOverduePayouts(), alertOverduePayouts()]);
+      const alerts = await db.dealEvent.count({
+        where: { dealId: deals.good, type: "ALERT_SENT" },
+      });
+      expect(alerts).toBe(1);
+      const good = await db.deal.findUniqueOrThrow({
+        where: { id: deals.good },
+      });
+      expect(good.payoutOverdueAlertAt).not.toBeNull();
+      expect(good.status).toBe("DEPOSIT_COMPLETE"); // never paid out by the system
+    });
+
     it("expires the idle deal once its lock has passed", async () => {
       await checkDeposits(walletId, {
         provider: fakeProvider([], 19),

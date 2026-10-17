@@ -6,8 +6,11 @@ import "server-only";
 // is logged as a SYSTEM event (no addresses stored).
 import {
   customerLinkEmail,
+  customerPaidOutEmail,
+  teamDepositCompleteEmail,
   teamNewDealEmail,
   teamPaidEmail,
+  teamPayoutOverdueEmail,
 } from "@/features/deals/emails";
 import {
   amountToPayText,
@@ -137,13 +140,143 @@ export async function notifyCustomerPaid(dealId: string) {
   }
 }
 
-// Placeholder until the Alerts part: the badge and dashboard already show
-// deposit-complete deals; the team email is added there.
+// ── Crypto (Phase 13) ────────────────────────────────────────────────
+
+async function loadCrypto(dealId: string) {
+  return db.deal.findUnique({
+    where: { id: dealId },
+    select: {
+      id: true,
+      ref: true,
+      cryptoTicker: true,
+      receivedQty: true,
+      expectedQty: true,
+      quotedNaira: true,
+      agreedNaira: true,
+      customerEmail: true,
+      payoutBank: true,
+      payoutAccountNumber: true,
+      payoutReference: true,
+      organization: {
+        select: {
+          name: true,
+          payoutAlertEmails: true,
+          payoutTargetMinutes: true,
+        },
+      },
+    },
+  });
+}
+type CryptoForEmail = NonNullable<Awaited<ReturnType<typeof loadCrypto>>>;
+const coinsText = (d: CryptoForEmail) =>
+  `${(d.receivedQty ?? d.expectedQty)?.toFixed() ?? ""} ${d.cryptoTicker ?? ""}`.trim();
+const payoutText = (d: CryptoForEmail) =>
+  nairaText((d.agreedNaira ?? d.quotedNaira)?.toString() ?? "0");
+
+// Deposit complete: the team pays out against the timer. The badge and
+// the dashboard show it anyway; email only when switched on.
 export async function notifyDepositComplete(dealId: string) {
-  void dealId;
+  try {
+    const d = await loadCrypto(dealId);
+    const team = alertRecipients();
+    if (!d || !d.organization.payoutAlertEmails || !team.length) return;
+    const sent = await sendEach(
+      team,
+      teamDepositCompleteEmail({
+        ref: d.ref,
+        amount: coinsText(d),
+        payout: payoutText(d),
+        minutes: d.organization.payoutTargetMinutes,
+        adminUrl: new URL(`/admin/deals/${d.ref}`, siteUrl()).href,
+      }),
+    );
+    if (sent)
+      await logSent(
+        d.id,
+        `Team alerted: payout due (email to ${sent} of ${team.length})`,
+        sent,
+      );
+  } catch (error) {
+    console.error(
+      `[notifyDepositComplete] failed: ${error instanceof Error ? error.name : "error"}`,
+    );
+  }
 }
 
-// Placeholder until the Alerts part: the customer's receipt email.
+// The payout target passed without "paid out": claimed once per deal
+// (payoutOverdueAlertAt, set conditionally so two cron runs can't both
+// send), logged, and emailed when switched on.
+export async function alertOverduePayouts(now = new Date()) {
+  const due = await db.deal.findMany({
+    where: {
+      status: "DEPOSIT_COMPLETE",
+      payoutDueAt: { lt: now },
+      payoutOverdueAlertAt: null,
+    },
+    select: { id: true },
+    take: 50,
+  });
+  let alerted = 0;
+  for (const { id } of due) {
+    const { count } = await db.deal.updateMany({
+      where: { id, status: "DEPOSIT_COMPLETE", payoutOverdueAlertAt: null },
+      data: { payoutOverdueAlertAt: now },
+    });
+    if (count !== 1) continue;
+    alerted++;
+    try {
+      const d = await loadCrypto(id);
+      if (!d) continue;
+      const team = alertRecipients();
+      const sent =
+        d.organization.payoutAlertEmails && team.length
+          ? await sendEach(
+              team,
+              teamPayoutOverdueEmail({
+                ref: d.ref,
+                amount: coinsText(d),
+                payout: payoutText(d),
+                adminUrl: new URL(`/admin/deals/${d.ref}`, siteUrl()).href,
+              }),
+            )
+          : 0;
+      await logSent(
+        d.id,
+        sent
+          ? `Payout overdue: team alerted (email to ${sent} of ${team.length})`
+          : "Payout overdue: past the payout target",
+        sent,
+      );
+    } catch (error) {
+      console.error(
+        `[alertOverduePayouts] failed: ${error instanceof Error ? error.name : "error"}`,
+      );
+    }
+  }
+  return alerted;
+}
+
+// Paid out: the customer's page updates on its next refresh; if they gave
+// an email (and a real sender is set up), they also get the receipt.
 export async function notifyPaidOut(dealId: string) {
-  void dealId;
+  try {
+    const d = await loadCrypto(dealId);
+    if (!d || !d.customerEmail || !d.payoutReference || !customerEmailReady())
+      return;
+    const ok = await sendEmail({
+      to: [d.customerEmail],
+      ...customerPaidOutEmail({
+        brand: d.organization.name,
+        ref: d.ref,
+        payout: payoutText(d),
+        account: `${d.payoutBank ?? "bank"} ••${(d.payoutAccountNumber ?? "").slice(-4)}`,
+        reference: d.payoutReference,
+      }),
+    });
+    if (ok) await logSent(d.id, "Payout receipt emailed to the customer", 1);
+  } catch (error) {
+    console.error(
+      `[notifyPaidOut] failed: ${error instanceof Error ? error.name : "error"}`,
+    );
+  }
 }

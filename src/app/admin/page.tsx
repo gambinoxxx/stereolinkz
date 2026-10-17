@@ -1,4 +1,4 @@
-import { ChevronRight, Inbox, Pencil, Sparkles } from "lucide-react";
+import { BellRing, ChevronRight, Inbox, Pencil, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getBoardDetail } from "@/features/boards/queries";
 import { DashboardView } from "@/features/dashboard/components/DashboardView";
 import { getDashboard } from "@/features/dashboard/queries";
+import { countPayoutsDue } from "@/features/crypto-deposits/admin-queries";
 import { countDealsNeedingAction } from "@/features/deals/queries";
 import { formatLongDate } from "@/lib/format";
 import { getViewer, requireMember } from "@/lib/server/auth";
@@ -25,12 +26,14 @@ export default async function DashboardPage({
   const { organizationId } = await requireMember();
   const { board } = searchSchema.parse(await searchParams);
   const now = new Date();
-  const [data, viewer, detail, dealsNeedingAction] = await Promise.all([
-    getDashboard(organizationId, now),
-    getViewer().catch(() => null),
-    board ? getBoardDetail(organizationId, board, now) : null,
-    countDealsNeedingAction(organizationId, now),
-  ]);
+  const [data, viewer, detail, dealsNeedingAction, payoutsDue] =
+    await Promise.all([
+      getDashboard(organizationId, now),
+      getViewer().catch(() => null),
+      board ? getBoardDetail(organizationId, board, now) : null,
+      countDealsNeedingAction(organizationId, now),
+      countPayoutsDue(organizationId),
+    ]);
 
   return (
     <>
@@ -54,6 +57,29 @@ export default async function DashboardPage({
           </>
         }
       />
+      {/* Crypto payouts due come first: they run against a timer. */}
+      {payoutsDue > 0 && (
+        <Link
+          href="/admin/deals"
+          className="mb-2.5 flex items-center gap-2.5 rounded-control bg-state-error-soft px-3.5 py-3 text-[14px] font-semibold text-state-error"
+        >
+          <BellRing
+            aria-hidden="true"
+            className="size-[18px] shrink-0"
+            strokeWidth={1.9}
+          />
+          Payout due: {payoutsDue} crypto deal{payoutsDue > 1 ? "s" : ""}{" "}
+          waiting to be paid out
+          <span className="ml-auto inline-flex items-center gap-1">
+            Pay out
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4"
+              strokeWidth={1.9}
+            />
+          </span>
+        </Link>
+      )}
       {/* Deal desk: new deals and received payments waiting on the team. */}
       <Link
         href={dealsNeedingAction ? "/admin/deals?filter=needs" : "/admin/deals"}
