@@ -9,10 +9,24 @@ change.
 
 ## Current Goal
 
-- Phase 13: Watcher and checks (TronGrid provider, check.ts, match.ts,
-  checkDeposits, cron route, checkMyDeposit).
+- Phase 13: Customer flow (`/deal/new/crypto`, deposit page, payout page,
+  flagged view).
 
 ## Completed
+
+- 2026-10-17: Phase 13, Watcher and checks. `providers/tron.ts` (TronGrid
+  index + the chain receipt as proof: contract, recipient, amount and
+  SUCCESS must agree; timeouts, backoff on 429/5xx; recorded fixtures),
+  `check.ts` (six checks → complete / seen / flagged / expired),
+  `match.ts` (exact amount after creation; ambiguous → flagged; pasted
+  TxID claims), `amounts.ts` (exact units, unique cents), `plan.ts`
+  (moves per check; seen > 60 min → flagged), `watch.ts` (checkDeposits,
+  watchAllWallets), `/api/cron/crypto-watch` (CRON_SECRET bearer,
+  constant-time), `checkMyDeposit` in public-actions (one per 10 s per
+  deal), `vercel.json` daily cron. Tests: 61 unit (fixtures) + 5 opt-in
+  on the dev branch (`watch.db.test.ts`: two concurrent runs move each
+  deal once; pasted TxID underpaid and wrong token flagged; someone
+  else's TxID refused; idle deal expires).
 
 - 2026-10-17: Phase 13, Data. Migration `20261017120000_crypto_deposits`
   (additive; applied to the dev branch only): CryptoWallet (one active per
@@ -885,6 +899,28 @@ change.
     `/api/cron/crypto-watch` route every minute, with a daily Vercel cron
     as a backup. The deposit page also checks on demand every 15 s.
   - **QR: `qrcode` library** (approved), rendered to SVG on the server.
+- 2026-10-17: Phase 13 watcher decisions.
+  - **Matching**: by exact expected amount, arriving after the deal was
+    created, official contract, our address. Unique cents per wallet at
+    creation (`uniqueAmount`), so two waiting deals never expect the same
+    amount. Two candidates either way → FLAGGED "ambiguous". Expired deals
+    (≤ 3 days) still get a late transfer linked, for the team to re-quote.
+  - **Pasted TxIDs** are only a lookup among transfers already seen at our
+    address; never stored or logged on their own (64 hex looks like a
+    private key). Because anyone can see our address's transfers, a TxID
+    proves nothing about the sender: a transfer that fits another waiting
+    deal's exact amount stays with that deal, and a pasted TxID whose
+    amount is MORE than expected (or older than the deal) is flagged, not
+    completed. So the "overpaid → complete with a note" rule in
+    `check.ts` is kept, but in practice an overpayment always reaches the
+    team as FLAGGED first (they confirm manually).
+  - **Proof**: TronGrid's index finds transfers; completion also needs
+    the transaction receipt (`gettransactioninfobyid`) to show SUCCESS and
+    a Transfer log with the official contract, our address and the same
+    amount. Confirmations = latest block − tx block + 1.
+  - **Cron route** is the one non-member route outside `/deal/*`
+    (Invariant 7 updated): CRON_SECRET bearer, compared in constant time;
+    answers with counts only.
 
 - 2026-10-13: Phase 12 data decisions.
   - **Schema shape**: one Deal table for every service, with the

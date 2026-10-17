@@ -8,8 +8,16 @@ import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
+import {
+  checkDeposits,
+  type ClaimResult,
+} from "@/features/crypto-deposits/watch";
 import { findDealIdByToken } from "@/features/deals/access";
-import { notifyCustomerPaid, notifyNewDeal } from "@/features/deals/notify";
+import {
+  notifyCustomerPaid,
+  notifyDepositComplete,
+  notifyNewDeal,
+} from "@/features/deals/notify";
 import {
   createDeal,
   DealRateLimitError,
@@ -311,5 +319,77 @@ export const markDealPaid = publicAction(
     });
     after(() => notifyCustomerPaid(dealId));
     return { ok: true, data: { recorded: true } };
+  },
+);
+
+// ── "Check my deposit" (crypto deposit page) ──────────────────────────
+// Runs the deposit check for this deal's wallet now, at most once per
+// 10 s per deal (the page polls every 15 s). A pasted TxID is only used
+// to look up a transfer we have already seen at our address: it is never
+// stored or logged on its own (a 64-hex TxID looks like a private key).
+
+const CHECK_EVERY_MS = 10_000;
+
+const depositCheckRequest = z.object({
+  ref: z.string().max(20),
+  token: z.string().max(60),
+  txHash: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/^0x/i, "").toLowerCase())
+    .pipe(z.union([z.literal(""), z.string().regex(/^[0-9a-f]{64}$/)]))
+    .optional(),
+});
+
+export type DepositCheckResult = {
+  checked: boolean; // false: checked less than 10 s ago, try again shortly
+  claim: ClaimResult | null;
+};
+
+export const checkMyDeposit = publicAction(
+  "checkMyDeposit",
+  async (raw: unknown): Promise<ActionResult<DepositCheckResult>> => {
+    const parsed = depositCheckRequest.safeParse(raw);
+    if (!parsed.success)
+      return {
+        ok: false,
+        error:
+          "That doesn’t look like a TxID. Copy it from your wallet’s transaction details.",
+      };
+    const { ref, token, txHash } = parsed.data;
+    const ctx = await getDealDeskContext();
+    const dealId = ctx && (await findDealIdByToken(ctx.org.id, ref, token));
+    if (!dealId) return { ok: false, error: NOT_FOUND };
+
+    const now = new Date();
+    const { count } = await db.deal.updateMany({
+      where: {
+        id: dealId,
+        service: "CRYPTO_SELL",
+        status: { in: ["AWAITING_DEPOSIT", "DEPOSIT_SEEN", "EXPIRED"] },
+        walletId: { not: null },
+        OR: [
+          { lastDepositCheckAt: null },
+          {
+            lastDepositCheckAt: {
+              lt: new Date(now.getTime() - CHECK_EVERY_MS),
+            },
+          },
+        ],
+      },
+      data: { lastDepositCheckAt: now },
+    });
+    if (count === 0) return { ok: true, data: { checked: false, claim: null } };
+
+    const { walletId } = await db.deal.findUniqueOrThrow({
+      where: { id: dealId },
+      select: { walletId: true },
+    });
+    const summary = await checkDeposits(walletId!, {
+      now,
+      claim: txHash ? { dealId, txHash } : undefined,
+    });
+    for (const id of summary.completed) after(() => notifyDepositComplete(id));
+    return { ok: true, data: { checked: true, claim: summary.claim } };
   },
 );

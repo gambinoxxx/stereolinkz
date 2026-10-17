@@ -30,7 +30,41 @@ function base58Decode(text: string): Uint8Array | null {
   return Uint8Array.from(bytes);
 }
 
+function base58Encode(bytes: Uint8Array): string {
+  let n = BigInt(0);
+  for (const b of bytes) n = n * B256 + BigInt(b);
+  let out = "";
+  while (n > BigInt(0)) {
+    out = BASE58[Number(n % B58)] + out;
+    n /= B58;
+  }
+  for (const b of bytes) {
+    if (b !== 0) break;
+    out = `1${out}`;
+  }
+  return out;
+}
+
 const sha256 = (data: Uint8Array) => createHash("sha256").update(data).digest();
+
+// A Tron address from its hex form, as chain logs give it: 20 bytes
+// ("a614…13c"), a 32-byte topic word, or 21 bytes with the 0x41 prefix.
+export function tronAddressFromHex(hex: string): string | null {
+  const clean = hex.replace(/^0x/, "").toLowerCase();
+  if (!/^[0-9a-f]+$/.test(clean)) return null;
+  const body =
+    clean.length === 42 && clean.startsWith("41")
+      ? clean.slice(2)
+      : clean.length === 64 && /^0{24}/.test(clean)
+        ? clean.slice(24)
+        : clean.length === 40
+          ? clean
+          : null;
+  if (!body) return null;
+  const payload = Buffer.from(`41${body}`, "hex");
+  const check = sha256(sha256(payload)).subarray(0, 4);
+  return base58Encode(Buffer.concat([payload, check]));
+}
 
 // Tron: base58check of 0x41 + 20 bytes, so 34 characters starting "T".
 export function isTronAddress(value: string): boolean {

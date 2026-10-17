@@ -5,6 +5,7 @@ import {
   isTronAddress,
   looksLikeSecret,
   SECRET_ERROR,
+  tronAddressFromHex,
 } from "@/features/crypto-deposits/address";
 
 // Real, public Tron addresses (the USDT contract and its deployer).
@@ -76,5 +77,24 @@ describe("checkWalletAddress", () => {
       checkWalletAddress("BEP20", "0x55d398326f99059fF775485246999027B3197955")
         .ok,
     ).toBe(false);
+  });
+});
+
+describe("tronAddressFromHex", () => {
+  it("reads the forms chain logs use", () => {
+    // The USDT contract, as a log address and with the 0x41 prefix.
+    expect(tronAddressFromHex("a614f803b6fd780986a42c78ec9c7f77e6ded13c")).toBe(
+      TRON_A,
+    );
+    expect(
+      tronAddressFromHex("41a614f803b6fd780986a42c78ec9c7f77e6ded13c"),
+    ).toBe(TRON_A);
+    // A topic word: the recipient in the recorded fixture.
+    expect(
+      tronAddressFromHex(
+        "000000000000000000000000517591d35d313bf6a5e33098284502b045e2bc08",
+      ),
+    ).toBe(TRON_B);
+    expect(tronAddressFromHex("zz")).toBeNull();
   });
 });

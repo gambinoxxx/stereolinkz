@@ -265,6 +265,15 @@ template, then inserts a RateBoardImage only.
   destination, official token contract, network, amount and
   confirmations all pass; ambiguous or failed checks are FLAGGED.
   No private keys or seed phrases exist anywhere in the system.
+  Built (`features/crypto-deposits/`): `tokens.ts` (the vetted official
+  contracts, keyed by network + ticker: USDT TRC20 only for now),
+  `address.ts`, `providers/` (TronGrid; read-only, recorded fixtures in
+  tests), `check.ts` (the six checks), `match.ts` (exact amount after the
+  deal was created, unique cents per wallet; pasted TxID), `plan.ts`
+  (status moves per check), `watch.ts` (records ObservedTransfers, links,
+  moves deals as SYSTEM; conditional, so concurrent runs are safe). The
+  chain's own receipt must agree with the provider's index (contract,
+  recipient, amount, success) before a deposit can complete.
 
 ## Auth and Access Model
 
@@ -317,11 +326,11 @@ added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 | `DEAL_ALERT_FROM` | Sender address for alerts | local, Vercel |
 | `DEAL_ALERT_TO` | Team inboxes for deal alerts, comma-separated | local, Vercel |
 | `DEAL_SECRET` | Keys the deal form timestamps and the IP hash (32+ random characters; different per environment) | local, Vercel |
+| `TRONGRID_API_KEY` | TronGrid key for the TRC20 deposit watcher (`TRON-PRO-API-KEY` header; read-only data) | local, Vercel |
+| `CRON_SECRET` | Bearer token for `/api/cron/crypto-watch` (Vercel Cron sends it; the external scheduler must too). 32+ random characters | Vercel (local to test the route) |
 | `DEAL_FILES_STORE_ID` | The private Blob store for deal files (OIDC on Vercel) | local, Vercel (added by connecting the store) |
 | `DEAL_FILES_READ_WRITE_TOKEN` | Read-write token for that store (local auth; Vercel fallback) | local, Vercel |
-| `CRON_SECRET` | Protects `/api/cron/*` (Phase 13) | Vercel |
-| `TRONGRID_API_KEY` | TRC20 deposit checks (Phase 13) | local, Vercel |
-| `ETHERSCAN_API_KEY` | BEP20 deposit checks (Phase 13) | local, Vercel |
+| `BSC_RPC_URL` | BEP20 deposit checks, when BEP20 is enabled (a BSC JSON-RPC URL; Etherscan V2 is paid-only for BNB Chain). Not used yet | local, Vercel |
 
 ## Settled Decisions
 
@@ -393,7 +402,10 @@ the rest of this file. Decisions made during the build are recorded in
    (`onDelete: Restrict` on rate relations). Delete is offered only
    when the history count is zero.
 7. Every server action and route handler calls `requireMember()` before
-   any read or write, and scopes queries by `organizationId`.
+   any read or write, and scopes queries by `organizationId`. Exceptions:
+   the public deal routes (Invariant 14) and `/api/cron/crypto-watch`,
+   which needs the `CRON_SECRET` bearer token and only runs the deposit
+   watcher (moves through `transitionDeal` as SYSTEM).
 8. Final PNGs are produced by the server renderer (SVG → PNG), never by
    screenshotting the browser.
 9. Board templates render at exactly 1080 × 1920. Important content

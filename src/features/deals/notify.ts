@@ -136,3 +136,9 @@ export async function notifyCustomerPaid(dealId: string) {
     );
   }
 }
+
+// Placeholder until the Alerts part: the badge and dashboard already show
+// deposit-complete deals; the team email is added there.
+export async function notifyDepositComplete(dealId: string) {
+  void dealId;
+}
