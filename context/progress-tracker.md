@@ -5,12 +5,12 @@ change.
 
 ## Current Phase
 
-- Phase 12: Deal desk, complete
+- Phase 13: Crypto deposits, in progress
 
 ## Current Goal
 
-- None. Next: Phase 13 (Crypto deposits), after the owner's open items
-  below.
+- Phase 13: research done and plan posted; waiting for the owner's
+  answers (BEP20 provider, BEP20 tokens, cron scheduler, QR library).
 
 ## Completed
 
@@ -1427,6 +1427,30 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-17: Phase 13 started. Preflight passed on the new dev branch
+  (`ep-soft-haze`, copied from production with data; the old dev branch
+  was deleted): build, lint, tsc, 288 tests. Research (verified on-chain
+  with eth_call / TronGrid, plus issuer pages):
+  - USDT TRC20 `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`, 6 decimals: listed
+    on tether.to Supported Protocols; on-chain `decimals()` = 6.
+  - BEP20 `0x55d3…7955` (USDT, 18) and `0x8AC7…580d` (USDC, 18): name,
+    symbol and decimals match on-chain, but **neither issuer lists them**
+    (Tether lists only XAU₮ on BSC; Circle lists no BSC USDC). Both are
+    Binance-issued pegged tokens ("Binance-Peg BSC-USD" / "Binance-Peg
+    USD Coin"). Owner to decide whether to accept them.
+  - Etherscan API V2: BscScan API deprecated (Dec 2025); **chain 56 is
+    paid tier only**. BNB Chain recommends NodeReal MegaNode (free tier).
+    A plain JSON-RPC `eth_getLogs` provider works with any BSC RPC URL;
+    the public `bsc-dataseed` refused it ("limit exceeded").
+  - TronGrid `GET /v1/accounts/{addr}/transactions/trc20` with
+    `only_to`, `contract_address`, `min_timestamp`, `limit` ≤ 200,
+    `fingerprint` paging, `TRON-PRO-API-KEY` header; no block number in
+    the response (confirmations via `gettransactioninfobyid` +
+    `getnowblock`). Limits per the TronGrid console (429/403 → backoff).
+  - Confirmations: TRON 19 (solidified), BEP20 15 (Binance's own
+    deposit rule; BSC fast finality is a few seconds).
+  - Vercel Cron: Hobby = once a day (±59 min); Pro = once a minute.
 
 - 2026-10-17: Phase 12 complete and tagged locally (`phase-12-complete`).
   The Phase 12 commits were already pushed by the owner and are live; the
