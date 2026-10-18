@@ -274,6 +274,17 @@ template, then inserts a RateBoardImage only.
   moves deals as SYSTEM; conditional, so concurrent runs are safe). The
   chain's own receipt must agree with the provider's index (contract,
   recipient, amount, success) before a deposit can complete.
+  BTC (Phase 13b): quoted in whole dollars at a live price (CoinGecko);
+  the conversion fee max(margin %, minimum $) comes off the payout; the
+  customer sends the dollars' worth of BTC plus a few unique satoshis. At
+  full confirmations the deposit completes only if the coins are still
+  worth at least the payout dollars at the price then; otherwise
+  RATE_TO_AGREE (the team agrees the naira and starts the payout timer).
+  BTC deposits are read from an Esplora API (outputs to our address summed
+  per transaction; our own spends ignored) with a 20-minute lock grace for
+  slow blocks. ETH is never a deal: a read-only transfer checker
+  (`/deal/check-eth`, rate-limited, and the admin) and the admin wallet
+  balances page (`/admin/deals/wallets`).
 
 ## Auth and Access Model
 

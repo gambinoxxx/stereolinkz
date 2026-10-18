@@ -9,10 +9,29 @@ change.
 
 ## Current Goal
 
-- Phase 13b: Customer flow (BTC in the sell form with dollars, fee and the
-  BTC amount; deposit page; "coins received" view).
+- Phase 13b: verification (live BTC deposit on the dev branch, screens at
+  1440 / 390), then end-of-phase checks.
 
 ## Completed
+
+- 2026-10-18: Phase 13b, Customer and admin. `market-quote.ts` (exact
+  dollars → fee → payout → naira → BTC, and naira → dollars); sell form
+  with BTC in dollars, the BTC amount at the live price and the conversion
+  fee shown before sending; `submitCryptoDeal` re-quotes at a fresh price
+  and creates the deal with unique satoshis under the wallet lock
+  (`Deal.amount` widened to 8 decimals, migration
+  `20261018130000_deal_amount_8dp`); deposit page in Bitcoin wording and
+  timings; "coins received" view for RATE_TO_AGREE; admin BTC detail
+  (quote, fee, prices at quote and confirmation, coins' value), "Agree the
+  payout" panel (`agreeCryptoPayout`: agreed naira + note, RATE_CHANGED
+  logged, payout timer starts), team email for rate to agree; wallet
+  balances page (`/admin/deals/wallets`: USDT + TRX, BTC confirmed and
+  unconfirmed, ETH) and the ETH transfer checker for the team and on
+  `/deal/check-eth` (read-only, 6 checks / min per IP, 15 s cache); margin %
+  and minimum fee in Settings; BTC / ETH wallet hints. Tests: quote maths,
+  Etherscan and balance fixtures, opt-in DB test (`market.db.test.ts`:
+  three parallel $400 deals get different exact amounts; the dollar quote
+  can't change).
 
 - 2026-10-18: Phase 13b, Watcher. `providers/btc.ts` (Esplora: sums a
   transaction's outputs to our address, skips our own spends, pages by
