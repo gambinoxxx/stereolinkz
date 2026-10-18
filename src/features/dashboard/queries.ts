@@ -165,13 +165,19 @@ export async function getDashboard(
   organizationId: string,
   now: Date,
 ): Promise<DashboardData> {
-  const { timezone } = await db.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-    select: { timezone: true },
-  });
-  const today = startOfDayInTimeZone(now, timezone);
+  // Only "boards today" needs the time zone: everything else starts at once.
+  const todayP = db.organization
+    .findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { timezone: true },
+    })
+    .then(({ timezone }) => ({
+      timezone,
+      today: startOfDayInTimeZone(now, timezone),
+    }));
 
   const [
+    { timezone },
     currencyCounts,
     activeBanks,
     totalBanks,
@@ -185,6 +191,7 @@ export async function getDashboard(
     bankOptions,
     boards,
   ] = await Promise.all([
+    todayP,
     db.currency.groupBy({
       by: ["status"],
       where: { organizationId, status: { not: "ARCHIVED" } },
@@ -205,14 +212,18 @@ export async function getDashboard(
         pofRates: { some: {} },
       },
     }),
-    db.rateBoard.count({
-      where: { organizationId, createdAt: { gte: today } },
-    }),
-    db.rateBoard.findFirst({
-      where: { organizationId, createdAt: { gte: today } },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
-    }),
+    todayP.then(({ today }) =>
+      db.rateBoard.count({
+        where: { organizationId, createdAt: { gte: today } },
+      }),
+    ),
+    todayP.then(({ today }) =>
+      db.rateBoard.findFirst({
+        where: { organizationId, createdAt: { gte: today } },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ),
     recentForexChanges(organizationId, RECENT_CHANGES),
     recentPofChanges(organizationId, RECENT_CHANGES),
     recentCryptoChanges(organizationId, RECENT_CHANGES),

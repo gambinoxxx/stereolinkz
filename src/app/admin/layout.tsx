@@ -17,9 +17,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   // page query, server action and route handler must call requireMember()
   // itself (architecture.md → Invariant 7). This call only keeps
   // non-members from seeing the shell.
+  // The Clerk name lookup needs no membership, so it starts first; nothing
+  // renders until requireMember() has passed.
+  const viewer = getViewer();
+  viewer.catch(() => {}); // a redirect below must not leave it unhandled
   const { role, organizationId } = await requireMember();
   const [{ fullName }, needsAction] = await Promise.all([
-    getViewer(),
+    viewer,
     countDealsNeedingAction(organizationId),
   ]);
   const user = { name: fullName, role };

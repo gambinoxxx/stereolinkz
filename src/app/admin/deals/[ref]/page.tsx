@@ -33,15 +33,17 @@ export default async function DealDetailPage({
     }),
   ]);
   if (!deal) notFound();
-  const crypto =
+  // Crypto: the deposit details and the latest board (its rate for this
+  // coin is offered on a re-quote; no live price needed) at the same time.
+  const [crypto, desk] =
     deal.service === "CRYPTO_SELL"
-      ? await getCryptoForTeam(organizationId, deal.id)
-      : null;
-  // The latest board's rate for this coin, offered on a re-quote.
+      ? await Promise.all([
+          getCryptoForTeam(organizationId, deal.id),
+          getCryptoDesk(organizationId, { livePrices: false }),
+        ])
+      : [null, null];
   const currentCryptoRate = crypto
-    ? ((await getCryptoDesk(organizationId))?.coins.find(
-        (c) => c.ticker === crypto.ticker,
-      )?.rate ?? null)
+    ? (desk?.coins.find((c) => c.ticker === crypto.ticker)?.rate ?? null)
     : null;
   const now = new Date();
   // Labels are worked out here (org time zone) and passed as strings.

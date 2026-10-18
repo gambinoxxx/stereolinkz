@@ -15,15 +15,17 @@ export const metadata: Metadata = { title: "Wallets · RateBoard" };
 // (Phase 13b). Read-only: nothing here can move funds.
 export default async function WalletsPage() {
   const { organizationId } = await requireMember();
-  const wallets = await db.cryptoWallet.findMany({
-    where: { organizationId, active: true },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, ticker: true, network: true, address: true },
-  });
-  const org = await db.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-    select: { timezone: true },
-  });
+  const [wallets, org] = await Promise.all([
+    db.cryptoWallet.findMany({
+      where: { organizationId, active: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, ticker: true, network: true, address: true },
+    }),
+    db.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { timezone: true },
+    }),
+  ]);
   const hasEth = wallets.some((w) => w.network === "ETH");
   return (
     <>

@@ -70,35 +70,46 @@ export default async function DealsPage({
   const { organizationId } = await requireMember();
   const params = query.parse(await searchParams);
   const now = new Date();
-  const org = await db.organization.findUniqueOrThrow({
+  // The org (its time zone feeds the stats) runs alongside the rest.
+  const orgP = db.organization.findUniqueOrThrow({
     where: { id: organizationId },
     select: { timezone: true, contactSlaMinutes: true },
   });
   // Crypto payouts due go on top of the first page (deals.html); the
   // rest of the list leaves them out so they never show twice.
   const dueOnTop = !params.cursor && !params.q && params.filter !== "completed";
-  const [stats, needs, active, page, members, desk, due, unmatched] =
-    await Promise.all([
-      getDealStats(organizationId, org.timezone, now),
-      countDealsNeedingAction(organizationId, now),
-      countActiveDeals(organizationId),
-      listDeals(
-        organizationId,
-        {
-          ...params,
-          exclude: params.filter !== "completed" ? ["DEPOSIT_COMPLETE"] : [],
-        },
-        now,
-      ),
-      listMembers(organizationId),
-      getDealDeskContext(),
-      params.filter !== "completed" && !params.q
-        ? listPayoutDue(organizationId, params)
-        : Promise.resolve([]),
-      countUnmatchedDeposits(organizationId),
-    ]);
-  const unmatchedRows =
-    unmatched > 0 ? await listUnmatchedDeposits(organizationId) : [];
+  const [
+    org,
+    stats,
+    needs,
+    active,
+    page,
+    members,
+    desk,
+    due,
+    unmatched,
+    unmatchedRows,
+  ] = await Promise.all([
+    orgP,
+    orgP.then((o) => getDealStats(organizationId, o.timezone, now)),
+    countDealsNeedingAction(organizationId, now),
+    countActiveDeals(organizationId),
+    listDeals(
+      organizationId,
+      {
+        ...params,
+        exclude: params.filter !== "completed" ? ["DEPOSIT_COMPLETE"] : [],
+      },
+      now,
+    ),
+    listMembers(organizationId),
+    getDealDeskContext(),
+    params.filter !== "completed" && !params.q
+      ? listPayoutDue(organizationId, params)
+      : Promise.resolve([]),
+    countUnmatchedDeposits(organizationId),
+    listUnmatchedDeposits(organizationId),
+  ]);
   const rows = dueOnTop ? [...due, ...page.deals] : page.deals;
   const owners = new Map(members.map((m) => [m.id, m]));
   const oldestNew = stats.oldestNewAt
