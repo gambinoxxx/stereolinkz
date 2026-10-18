@@ -15,6 +15,54 @@ change.
 
 ## Completed
 
+- 2026-10-18: Performance, after. Commits: speed insights, loading
+  skeletons, cache deal forms, parallel queries, woff2 board fonts, defer
+  landing motion. The database driver stays on `@prisma/adapter-pg` (owner,
+  2026-10-18: step 3 dropped). `next build` now: `/deal/new` and
+  `/deal/new/crypto` static (○, ISR 1h), `/deal/new/[service]` prerendered
+  for school-fees, pay-abroad, pof and forex (●, ISR 1h); `/deal/[ref]`,
+  `/deal/check-eth` and every `/admin` route still dynamic (ƒ).
+
+  Browser, same method as the before table (cold, 390px, local server
+  against the dev branch):
+
+  | Route | TTFB ms before → after | FCP ms before → after | LCP ms after |
+  |---|---|---|---|
+  | `/` | 13 → 7 | 576 → 548 | 548 |
+  | `/deal/new` | 1,898 → 4 | 2,060 → 300 | 300 |
+  | `/deal/new/pof` | 1,599 → 6 | 1,768 → 220 | 220 |
+  | `/deal/new/crypto` | 1,685 → 3 | 1,872 → 184 | 184 |
+  | `/admin` | 4,006 → 964 | 4,232 → 1,104 | 1,512 |
+  | `/admin/deals` | 5,295 → 686 | 5,444 → 932 | 932 |
+  | `/admin/forex` | 1,191 → 706 | 1,476 → 952 | 952 |
+
+  Admin FCP is now the skeleton (loading.tsx); LCP is the loaded page.
+  First-load JS (the scripts each page's HTML references, gzip -9, bytes;
+  before = the last pushed commit eff9b94, built and served side by side):
+  `/` 227,073 → 226,218 (−855, after adding the Speed Insights loader);
+  `/deal/new` 178,770 → 179,103; `/deal/new/pof` 346,450 → 347,125;
+  `/deal/new/crypto` 277,346 → 278,233 (the form-token and price hooks).
+  The landing motion was small code (its markup is server HTML now); most
+  of every page's JS is the React / Next runtime. The browser JS totals
+  for the deal pages look higher only because static links are now
+  prefetched in full (instant navigation to the forms); the before
+  table's 45.7 KB for `/admin` was a measuring slip (that load followed
+  the sign-in page), so admin JS is not compared.
+
+  Notes: `revalidatePublicPages()` names the deal form page paths, not
+  `/deal/new` as a layout (it has no layout.tsx, so a layout revalidation
+  never reached them; found when a cached 404 survived adding a wallet).
+  Rate and bank saves don't revalidate the forms: they read board
+  snapshots only (Invariants 13–14), so a board must be generated first.
+  The tracking page's skeleton follows the in-progress layout; the
+  centred "Deposit complete" / "paid" views differ. Skeletons can't
+  predict text that wraps on phones or the conditional "Payout due"
+  strip. Checked on the dev branch: BTC submit with the browser-fetched
+  token and live price (SLZ-1025), POF submit (SLZ-1026), calculator
+  prefill, honeypot and too-fast refusals, wallet add / deactivate
+  refreshing the cached crypto page, landing motion on, and off with
+  reduced motion (the effects chunk is never requested).
+
 - 2026-10-18: Performance, before (baseline for the perf work). `next
   build`: static `/` (ISR 1h), `/robots.txt`, `/sitemap.xml`,
   `/not-authorized`, icons; dynamic (ƒ) everything else, including
