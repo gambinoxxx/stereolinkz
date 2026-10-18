@@ -9,10 +9,23 @@ change.
 
 ## Current Goal
 
-- Phase 13b: Watcher (BTC Esplora provider, CoinGecko price, margin check
-  in the planner, RATE_TO_AGREE).
+- Phase 13b: Customer flow (BTC in the sell form with dollars, fee and the
+  BTC amount; deposit page; "coins received" view).
 
 ## Completed
+
+- 2026-10-18: Phase 13b, Watcher. `providers/btc.ts` (Esplora: sums a
+  transaction's outputs to our address, skips our own spends, pages by
+  txid, proof re-reads the tx and the tip; vanished tx → FAILED),
+  `prices.ts` (CoinGecko simple price, 30 s cache, null instead of a guess),
+  planner margin check (at full confirmations: coins × price now ≥ payout
+  dollars → complete with confirmPrice; below → RATE_TO_AGREE; no price →
+  wait), BTC lock grace 20 min (two blocks), watcher reads one price per run
+  only when a deposit is fully confirmed. Tests: fixtures recorded from
+  Blockstream and CoinGecko (with labelled made-up spend / unconfirmed
+  txs); planner margin pass / fail / no price / grace / underpaid; opt-in
+  `providers/live.test.ts` (LIVE_PROVIDERS=1) passed against Blockstream,
+  TronGrid and CoinGecko.
 
 - 2026-10-18: Phase 13b, Data. Migration `20261018120000_btc_deposits`
   (additive; dev branch only): CryptoNetwork BTC and ETH, status

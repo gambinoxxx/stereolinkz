@@ -48,6 +48,10 @@ export function checkDeposit(
   deal: CheckDeal,
   transfer: CheckTransfer,
   minConfirmations: number,
+  // BTC (Phase 13b): blocks come every ~10 min, so a deposit sent inside
+  // the lock can land in a block just after it; the margin check at
+  // confirmation still protects the price.
+  lockGraceMs = 0,
 ): CheckResult {
   const checks: Record<CheckKey, boolean> = {
     destination: transfer.toAddress === deal.depositAddress,
@@ -59,7 +63,9 @@ export function checkDeposit(
     network: transfer.network === deal.network,
     amount: compareDecimalStrings(transfer.amount, deal.expectedQty) >= 0,
     confirmations: transfer.confirmations >= minConfirmations,
-    lock: transfer.blockTime.getTime() <= deal.lockExpiresAt.getTime(),
+    lock:
+      transfer.blockTime.getTime() <=
+      deal.lockExpiresAt.getTime() + lockGraceMs,
   };
 
   const verdict = ((): Verdict => {

@@ -330,6 +330,9 @@ added `BLOB_WEBHOOK_PUBLIC_KEY` to Vercel; the app does not use it.
 | `CRON_SECRET` | Bearer token for `/api/cron/crypto-watch` (Vercel Cron sends it; the external scheduler must too). 32+ random characters | Vercel (local to test the route) |
 | `DEAL_FILES_STORE_ID` | The private Blob store for deal files (OIDC on Vercel) | local, Vercel (added by connecting the store) |
 | `DEAL_FILES_READ_WRITE_TOKEN` | Read-write token for that store (local auth; Vercel fallback) | local, Vercel |
+| `BTC_API_URL` | Esplora API for BTC deposits and balance (optional; default `https://blockstream.info/api`, or mempool.space) | Vercel (optional) |
+| `COINGECKO_API_KEY` | Optional CoinGecko demo key for BTC/ETH dollar prices (works without one at a lower limit) | Vercel (optional) |
+| `ETHERSCAN_API_KEY` | Etherscan API V2 (free tier, Ethereum mainnet) for the ETH transfer checker and ETH balance | local, Vercel |
 | `BSC_RPC_URL` | BEP20 deposit checks, when BEP20 is enabled (a BSC JSON-RPC URL; Etherscan V2 is paid-only for BNB Chain). Not used yet | local, Vercel |
 
 ## Settled Decisions

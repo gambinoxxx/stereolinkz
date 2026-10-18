@@ -9,6 +9,7 @@ import {
   type CheckTransfer,
 } from "@/features/crypto-deposits/check";
 import type { TransferProof } from "@/features/crypto-deposits/providers/types";
+import { compareDecimalStrings, multiplyDecimalStrings } from "@/lib/decimal";
 
 export const SEEN_STALL_MINUTES = 60; // seen but never confirmed → team looks
 
@@ -18,6 +19,15 @@ export type PlanDeal = CheckDeal & {
   depositSeenAt: Date | null;
   confirmations: number | null;
   payoutTargetMinutes: number;
+  // Market-priced coins (BTC, Phase 13b): the payout in dollars, and the
+  // lock grace for slow blocks. Null for stablecoins.
+  market: { payoutUsd: string; lockGraceMs: number } | null;
+};
+
+// "401.2349…" → "401.23" (rounded down, for messages).
+const cents = (v: string) => {
+  const [int = "0", frac = ""] = v.split(".");
+  return `${int}.${frac.padEnd(2, "0").slice(0, 2)}`;
 };
 
 export type PlanTransfer = CheckTransfer & { txHash: string };
@@ -33,6 +43,7 @@ export type Step = {
     receivedQty?: string;
     confirmations?: number;
     flagReason?: string;
+    confirmPrice?: string;
   };
   data?: Record<string, string | number | null>;
 };
@@ -57,6 +68,9 @@ export function planDeal(
   minConfirmations: number,
   now: Date,
   forcedFlag: string | null = null,
+  // The coin's dollar price now, for market-priced deals at confirmation;
+  // null when unavailable (the deal then waits, never guesses).
+  priceNow: string | null = null,
 ): DealPlan {
   const open =
     deal.status === "AWAITING_DEPOSIT" || deal.status === "DEPOSIT_SEEN";
@@ -94,6 +108,7 @@ export function planDeal(
     deal,
     { ...transfer, confirmations },
     minConfirmations,
+    deal.market?.lockGraceMs ?? 0,
   );
   const seenStep: Step = {
     to: "DEPOSIT_SEEN",
@@ -145,12 +160,47 @@ export function planDeal(
       };
     }
     case "COMPLETE": {
+      const seenFirst = deal.status === "AWAITING_DEPOSIT" ? [seenStep] : [];
+      let priced: { set: Step["set"]; note: string } | null = null;
+      if (deal.market) {
+        if (priceNow === null) return { ...EMPTY, steps: seenFirst };
+        const value = multiplyDecimalStrings(transfer.amount, priceNow);
+        if (compareDecimalStrings(value, deal.market.payoutUsd) < 0)
+          return {
+            ...EMPTY,
+            steps: [
+              ...seenFirst,
+              {
+                to: "RATE_TO_AGREE",
+                message: `Coins received: ${transfer.amount} ${deal.ticker} worth $${cents(value)} at $${cents(priceNow)}, below the $${cents(deal.market.payoutUsd)} payout. Agree the payout on WhatsApp`,
+                set: {
+                  txHash: transfer.txHash,
+                  receivedQty: transfer.amount,
+                  confirmations,
+                  confirmPrice: priceNow,
+                },
+                data: {
+                  valueUsd: cents(value),
+                  priceUsd: priceNow,
+                  payoutUsd: deal.market.payoutUsd,
+                },
+              },
+            ],
+          };
+        priced = {
+          set: { confirmPrice: priceNow },
+          note: ` worth $${cents(value)} at $${cents(priceNow)}`,
+        };
+      }
       const complete: Step = {
         to: "DEPOSIT_COMPLETE",
-        message: verdict.overpaidBy
-          ? `Deposit complete: ${transfer.amount} ${deal.ticker} (${verdict.overpaidBy} more than expected)`
-          : `Deposit complete: ${transfer.amount} ${deal.ticker}`,
+        message: priced
+          ? `Deposit complete: ${transfer.amount} ${deal.ticker}${priced.note}`
+          : verdict.overpaidBy
+            ? `Deposit complete: ${transfer.amount} ${deal.ticker} (${verdict.overpaidBy} more than expected)`
+            : `Deposit complete: ${transfer.amount} ${deal.ticker}`,
         set: {
+          ...priced?.set,
           depositCompletedAt: now,
           payoutDueAt: new Date(
             now.getTime() + deal.payoutTargetMinutes * 60_000,

@@ -23,6 +23,7 @@ const base: PlanDeal = {
   depositSeenAt: null,
   confirmations: null,
   payoutTargetMinutes: 10,
+  market: null,
 };
 const transfer = {
   network: "TRC20" as const,
@@ -213,5 +214,125 @@ describe("planDeal", () => {
           at(6),
         ).steps,
       ).toEqual([]);
+  });
+});
+
+describe("planDeal for BTC (market-priced, Phase 13b)", () => {
+  const BTC_ADDR = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq";
+  const btc: PlanDeal = {
+    ...base,
+    network: "BTC",
+    ticker: "BTC",
+    depositAddress: BTC_ADDR,
+    expectedQty: "0.00491237", // $400 at $81,427
+    // $400 − max(1.5%, $2) = $394
+    market: { payoutUsd: "394", lockGraceMs: 20 * 60_000 },
+  };
+  const sent = {
+    ...transfer,
+    network: "BTC" as const,
+    toAddress: BTC_ADDR,
+    tokenContract: "native",
+    amount: "0.00491237",
+  };
+
+  it("completes when the coins still cover the payout (price moved within the margin)", () => {
+    // 0.00491237 × 80,500 = $395.44 ≥ $394
+    const plan = planDeal(
+      btc,
+      { transfer: sent, proof: inBlock(2) },
+      2,
+      at(25),
+      null,
+      "80500",
+    );
+    expect(plan.steps.map((s) => s.to)).toEqual([
+      "DEPOSIT_SEEN",
+      "DEPOSIT_COMPLETE",
+    ]);
+    expect(plan.steps[1]!.set.confirmPrice).toBe("80500");
+    expect(plan.steps[1]!.message).toContain("worth $395.44 at $80500.00");
+  });
+
+  it("holds for the team when the price fell beyond the margin", () => {
+    // 0.00491237 × 79,000 = $388.07 < $394
+    const plan = planDeal(
+      btc,
+      { transfer: sent, proof: inBlock(2) },
+      2,
+      at(25),
+      null,
+      "79000",
+    );
+    expect(plan.steps.map((s) => s.to)).toEqual([
+      "DEPOSIT_SEEN",
+      "RATE_TO_AGREE",
+    ]);
+    expect(plan.steps[1]!.set.confirmPrice).toBe("79000");
+    expect(plan.steps.some((s) => s.to === "DEPOSIT_COMPLETE")).toBe(false);
+  });
+
+  it("waits, never guesses, when no price is available", () => {
+    const plan = planDeal(
+      btc,
+      { transfer: sent, proof: inBlock(2) },
+      2,
+      at(25),
+      null,
+      null,
+    );
+    expect(plan.steps.map((s) => s.to)).toEqual(["DEPOSIT_SEEN"]);
+    const seen = {
+      ...btc,
+      status: "DEPOSIT_SEEN" as const,
+      depositSeenAt: at(10),
+    };
+    expect(
+      planDeal(
+        seen,
+        { transfer: sent, proof: inBlock(2) },
+        2,
+        at(25),
+        null,
+        null,
+      ).steps,
+    ).toEqual([]);
+  });
+
+  it("allows a block a few minutes after the lock, not much later", () => {
+    const justAfter = { ...sent, blockTime: at(45) }; // lock 30 + grace 20
+    expect(
+      planDeal(
+        btc,
+        { transfer: justAfter, proof: inBlock(2) },
+        2,
+        at(46),
+        null,
+        "81000",
+      ).steps.map((s) => s.to),
+    ).toEqual(["DEPOSIT_SEEN", "DEPOSIT_COMPLETE"]);
+    const late = { ...sent, blockTime: at(51) };
+    expect(
+      planDeal(
+        btc,
+        { transfer: late, proof: inBlock(2) },
+        2,
+        at(52),
+        null,
+        "81000",
+      ).steps.map((s) => s.to),
+    ).toEqual(["EXPIRED"]);
+  });
+
+  it("still flags an underpayment before looking at the price", () => {
+    const plan = planDeal(
+      btc,
+      { transfer: { ...sent, amount: "0.0049" }, proof: inBlock(2) },
+      2,
+      at(25),
+      null,
+      "99999",
+    );
+    expect(plan.steps[0]).toMatchObject({ to: "FLAGGED" });
   });
 });

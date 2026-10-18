@@ -14,13 +14,18 @@ import {
   type MatchTransfer,
 } from "@/features/crypto-deposits/match";
 import { planDeal, type PlanTransfer } from "@/features/crypto-deposits/plan";
+import { usdPrice } from "@/features/crypto-deposits/prices";
+import { btcProvider } from "@/features/crypto-deposits/providers/btc";
 import { tronProvider } from "@/features/crypto-deposits/providers/tron";
 import type {
   DepositProvider,
   IncomingTransfer,
   TransferProof,
 } from "@/features/crypto-deposits/providers/types";
-import { OFFICIAL_TOKENS } from "@/features/crypto-deposits/tokens";
+import {
+  OFFICIAL_TOKENS,
+  officialToken,
+} from "@/features/crypto-deposits/tokens";
 import {
   DealTransitionError,
   transitionDeal,
@@ -30,6 +35,9 @@ import { db } from "@/lib/server/db";
 export const OPEN_CRYPTO: DealStatus[] = ["AWAITING_DEPOSIT", "DEPOSIT_SEEN"];
 const LATE_WINDOW_MS = 3 * 24 * 60 * 60_000; // expired deals still linkable
 const OVERLAP_MS = 10 * 60_000;
+// BTC blocks come every ~10 min: a deposit sent inside the lock may be
+// mined up to two blocks after it (the margin check still guards price).
+const BTC_LOCK_GRACE_MS = 20 * 60_000;
 
 export function providerFor(network: CryptoNetwork): DepositProvider | null {
   const decimalsFor = (contract: string) =>
@@ -42,7 +50,7 @@ export function providerFor(network: CryptoNetwork): DepositProvider | null {
     case "BEP20":
       return null; // not enabled (tokens.ts)
     case "BTC":
-      return null; // Phase 13b: added with the BTC provider
+      return btcProvider();
     case "ETH":
       return null; // never a deal: checker and balances only
   }
@@ -67,6 +75,7 @@ const dealSelect = {
   lockExpiresAt: true,
   depositSeenAt: true,
   confirmations: true,
+  payoutUsd: true,
   matchedTransfer: { select: { id: true } },
   organization: { select: { payoutTargetMinutes: true } },
 } satisfies Prisma.DealSelect;
@@ -295,6 +304,13 @@ export async function checkDeposits(
     where: { matchedDealId: { in: deals.map((d) => d.id) } },
   });
   const completed: string[] = [];
+  // One live price per run for a market-priced coin, read only when a
+  // deposit is fully confirmed.
+  let price: string | null | undefined;
+  const priceFor = async (ticker: string) => {
+    if (price === undefined) price = await usdPrice(ticker);
+    return price;
+  };
   for (const deal of deals) {
     if (deal.status === "EXPIRED" && !newlyLinked.has(deal.id)) continue;
     const row = linkedRows.find((t) => t.matchedDealId === deal.id) ?? null;
@@ -327,6 +343,19 @@ export async function checkDeposits(
       linked = { transfer, proof };
     }
 
+    const market =
+      officialToken(deal.cryptoNetwork!, deal.cryptoTicker!)?.pricing ===
+        "MARKET" && deal.payoutUsd
+        ? {
+            payoutUsd: deal.payoutUsd.toFixed(),
+            lockGraceMs: deal.cryptoNetwork === "BTC" ? BTC_LOCK_GRACE_MS : 0,
+          }
+        : null;
+    const ready =
+      market &&
+      linked?.proof.state === "IN_BLOCK" &&
+      linked.proof.confirmations >= wallet.minConfirmations;
+    const priceNow = ready ? await priceFor(deal.cryptoTicker!) : null;
     const plan = planDeal(
       {
         id: deal.id,
@@ -339,11 +368,13 @@ export async function checkDeposits(
         depositSeenAt: deal.depositSeenAt,
         confirmations: deal.confirmations,
         payoutTargetMinutes: deal.organization.payoutTargetMinutes,
+        market,
       },
       linked,
       wallet.minConfirmations,
       now,
       forcedFlags.get(deal.id) ?? null,
+      priceNow,
     );
 
     await db
@@ -375,7 +406,11 @@ export async function checkDeposits(
           });
       })
       .then(() => {
-        if (plan.steps.some((s) => s.to === "DEPOSIT_COMPLETE"))
+        if (
+          plan.steps.some(
+            (s) => s.to === "DEPOSIT_COMPLETE" || s.to === "RATE_TO_AGREE",
+          )
+        )
           completed.push(deal.id);
       })
       .catch(ignoreChanged);
