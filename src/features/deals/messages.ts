@@ -122,6 +122,12 @@ export function teamMessages(d: TeamDeal): TeamMessage[] {
         text: `${hi}, the rate lock for ${d.ref} ended before your deposit arrived. Let’s agree a new rate.`,
       });
       break;
+    case "RATE_TO_AGREE":
+      out.push({
+        label: "Agree the final amount",
+        text: `${hi}, we’ve received your ${amount} for ${d.ref}. The price moved while it confirmed, so let’s agree your final naira amount before we pay you.`,
+      });
+      break;
     case "FLAGGED":
       out.push({
         label: "Say we’re checking",

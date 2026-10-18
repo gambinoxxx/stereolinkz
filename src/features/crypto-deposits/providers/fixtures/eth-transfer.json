@@ -1,0 +1,30 @@
+{
+  "_note": "Recorded 2026-10-18 from a public Ethereum node (standard JSON-RPC, the same shape Etherscan's proxy module returns).",
+  "tx": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "hash": "0xbb15bb4fac43a0b1fe5389825f7ec5701a061ff0c279df4c9f3d29645f97f085",
+      "from": "0xd47a1bdc6872ad2fd16e50149baa9924c653e624",
+      "to": "0xecdb9cf92fec11d6136042dfd47e7aedb4aed8ec",
+      "value": "0x55f43c582279",
+      "blockNumber": "0x19013f7",
+      "input": "0x"
+    }
+  },
+  "receipt": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "status": "0x1",
+      "blockNumber": "0x19013f7",
+      "transactionHash": "0xbb15bb4fac43a0b1fe5389825f7ec5701a061ff0c279df4c9f3d29645f97f085",
+      "to": "0xecdb9cf92fec11d6136042dfd47e7aedb4aed8ec"
+    }
+  },
+  "tip": {
+    "jsonrpc": "2.0",
+    "result": "0x19013fc",
+    "id": 1
+  }
+}

@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { type CSSProperties, type FormEvent, useId, useState } from "react";
 
 import { coinsForNaira } from "@/features/crypto-deposits/amounts";
+import {
+  dollarsForNaira,
+  marketQuote,
+} from "@/features/crypto-deposits/market-quote";
 import { nameCheck } from "@/features/crypto-deposits/names";
 import type { CryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
@@ -56,21 +60,50 @@ export function CryptoForm({
   const net =
     coin.networks.find((n) => n.network === v.network) ?? coin.networks[0]!;
 
-  // Linked boxes: typing coins fills naira, typing naira fills coins.
-  const nairaFor = (qty: string, rate: string) => {
+  // BTC (MARKET): the customer sells whole dollars' worth; the fee comes
+  // off the payout. Stablecoins: coins, 1:1 with dollars.
+  const isMarket = (c: typeof coin) => c.pricing === "MARKET";
+  const quoteFor = (qty: string, c: typeof coin) =>
+    isMarket(c) && c.priceUsd && /^\d+$/.test(digits(qty))
+      ? marketQuote({
+          usd: digits(qty),
+          priceUsd: c.priceUsd,
+          marginPct: desk.marginPct,
+          minFeeUsd: desk.minFeeUsd,
+          rate: c.rate,
+          decimals: c.decimals,
+        })
+      : null;
+
+  // Linked boxes: typing the amount fills naira, typing naira fills it.
+  const nairaFor = (qty: string, c: typeof coin) => {
+    if (isMarket(c)) {
+      const q = quoteFor(qty, c);
+      return q ? formatRate(estimateNaira(q.naira, "1") ?? "0") : "";
+    }
     const q = amountString.safeParse(qty);
     return q.success
       ? formatRate(
-          estimateNaira(multiplyDecimalStrings(q.data, rate), "1") ?? "0",
+          estimateNaira(multiplyDecimalStrings(q.data, c.rate), "1") ?? "0",
         )
       : "";
   };
-  function onQty(value: string, rate = coin.rate) {
-    setV((s) => ({ ...s, qty: value, ngn: nairaFor(value, rate) }));
+  function onQty(value: string) {
+    setV((s) => ({ ...s, qty: value, ngn: nairaFor(value, coin) }));
   }
   function onNgn(value: string) {
     const n = digits(value);
-    const q = /^\d+(\.\d+)?$/.test(n) ? coinsForNaira(n, coin.rate) : null;
+    const valid = /^\d+(\.\d+)?$/.test(n);
+    const q = !valid
+      ? null
+      : isMarket(coin)
+        ? dollarsForNaira({
+            naira: n,
+            rate: coin.rate,
+            marginPct: desk.marginPct,
+            minFeeUsd: desk.minFeeUsd,
+          })
+        : coinsForNaira(n, coin.rate);
     setV((s) => ({
       ...s,
       ngn: value,
@@ -85,15 +118,23 @@ export function CryptoForm({
       network: next.networks.some((n) => n.network === s.network)
         ? s.network
         : next.networks[0]!.network,
-      ngn: nairaFor(s.qty, next.rate),
+      ngn: nairaFor(s.qty, next),
     }));
   }
 
+  const market = isMarket(coin);
+  const mq = quoteFor(v.qty, coin);
   const cleanQty = amountString.safeParse(v.qty);
-  const total = cleanQty.success
-    ? naira(multiplyDecimalStrings(cleanQty.data, coin.rate))
-    : "₦0";
+  const total = market
+    ? mq
+      ? naira(mq.naira)
+      : "₦0"
+    : cleanQty.success
+      ? naira(multiplyDecimalStrings(cleanQty.data, coin.rate))
+      : "₦0";
   const shownQty = cleanQty.success ? formatRate(cleanQty.data) : "0";
+  const unitLabel = (amount: string) =>
+    market ? `$${amount}` : `${amount} ${coin.ticker}`;
   const check =
     v.name.trim() && v.accountName.trim()
       ? nameCheck(v.name, v.accountName)
@@ -127,12 +168,14 @@ export function CryptoForm({
       cleanQty.success &&
       compareDecimalStrings(cleanQty.data, desk.minQty) < 0
     )
-      local.qty = `The minimum is ${desk.minQty} ${coin.ticker}.`;
+      local.qty = `The minimum is ${unitLabel(desk.minQty)}.`;
     if (
       cleanQty.success &&
       compareDecimalStrings(cleanQty.data, desk.maxUsd) > 0
     )
-      local.qty = `For more than ${desk.maxUsd} ${coin.ticker}, message us on WhatsApp.`;
+      local.qty = `For more than ${unitLabel(desk.maxUsd)}, message us on WhatsApp.`;
+    if (market && cleanQty.success && !/^\d+$/.test(cleanQty.data))
+      local.qty = "Enter whole dollars, like 400.";
     if (Object.keys(local).length) {
       setErrors(local);
       setFormError("Please check the highlighted fields.");
@@ -239,11 +282,14 @@ export function CryptoForm({
               </fieldset>
               <div className="flip">
                 <div className="fld">
-                  <label htmlFor={fid("qty")}>You send</label>
+                  <label htmlFor={fid("qty")}>
+                    {market ? `You sell (${coin.ticker} worth)` : "You send"}
+                  </label>
                   <div className="money" data-invalid={inv("qty")}>
+                    {market && <span className="unit">$</span>}
                     <input
                       id={fid("qty")}
-                      inputMode="decimal"
+                      inputMode={market ? "numeric" : "decimal"}
                       autoComplete="off"
                       placeholder="0"
                       value={v.qty}
@@ -251,7 +297,7 @@ export function CryptoForm({
                       aria-describedby={errId("qty")}
                       onChange={(e) => onQty(e.target.value)}
                     />
-                    <span className="unit">{coin.ticker}</span>
+                    {!market && <span className="unit">{coin.ticker}</span>}
                   </div>
                 </div>
                 <span className="flipbtn" aria-hidden="true">
@@ -273,11 +319,41 @@ export function CryptoForm({
                 </div>
               </div>
               {fieldError("qty")}
+              {market && coin.priceUsd && (
+                <div className="note ok">
+                  <Info
+                    size={18}
+                    strokeWidth={2.2}
+                    aria-hidden="true"
+                    style={{ flexShrink: 0, marginTop: 2 }}
+                  />
+                  <span>
+                    {mq ? (
+                      <>
+                        You’ll send about{" "}
+                        <b>
+                          {mq.coins} {coin.ticker}
+                        </b>{" "}
+                        at $
+                        {formatRate(
+                          coin.priceUsd.replace(/(\.\d{2})\d+$/, "$1"),
+                        )}{" "}
+                        per {coin.ticker}. The exact amount is on the next
+                        page.{" "}
+                      </>
+                    ) : null}
+                    Conversion fee: {mq ? <b>${mq.feeUsd}</b> : null} (
+                    {formatRate(desk.marginPct)}%, at least $
+                    {formatRate(desk.minFeeUsd)}). It covers price changes and
+                    network fees.
+                  </span>
+                </div>
+              )}
               <p
                 className="hint"
                 style={{ fontSize: 13.5, color: "var(--ink3)" }}
               >
-                Type in either box. Minimum {desk.minQty} {coin.ticker}. Other
+                Type in either box. Minimum {unitLabel(desk.minQty)}. Other
                 coins:{" "}
                 <a
                   href={otherCoinsLink}
@@ -288,6 +364,19 @@ export function CryptoForm({
                   ask us on WhatsApp
                 </a>
                 .
+                {desk.ethCheck && (
+                  <>
+                    {" "}
+                    Sold ETH on WhatsApp?{" "}
+                    <Link
+                      href="/deal/check-eth"
+                      style={{ color: "var(--violet)", fontWeight: 750 }}
+                    >
+                      Check your transfer
+                    </Link>
+                    .
+                  </>
+                )}
               </p>
             </div>
           </section>
@@ -476,13 +565,25 @@ export function CryptoForm({
             {total}
           </div>
           <div className="sub">
-            for {shownQty} {coin.ticker} on {net.network}
+            {market
+              ? `for $${mq?.quoteUsd ?? "0"} of ${coin.ticker} (fee $${mq?.feeUsd ?? "0"})`
+              : `for ${shownQty} ${coin.ticker} on ${net.network}`}
           </div>
           <div className="lines">
             <div className="ln">
               <span>Rate</span>
               <span className="num">₦{formatRate(coin.rate)} per $1</span>
             </div>
+            {market && (
+              <div className="ln">
+                <span>Conversion fee</span>
+                <span className="num">
+                  {mq ? `$${mq.feeUsd} · ` : ""}
+                  {formatRate(desk.marginPct)}%, min $
+                  {formatRate(desk.minFeeUsd)}
+                </span>
+              </div>
+            )}
             <div className="ln">
               <span>Rate locked for</span>
               <span className="num">

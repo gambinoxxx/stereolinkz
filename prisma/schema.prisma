@@ -426,7 +426,7 @@ model Deal {
   detailsVersion Int  @default(1)
 
   currency String // ISO code of the amount, or NGN for POF
-  amount   Decimal @db.Decimal(18, 4) // CHECK (amount > 0) in the migration
+  amount   Decimal @db.Decimal(26, 8) // CHECK (amount > 0); 8 decimals for BTC (Phase 13b)
 
   // The website estimate, from the latest board snapshot at request time.
   // Never changes after insert (trigger in the migration). Null when the

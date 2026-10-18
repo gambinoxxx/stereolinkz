@@ -93,6 +93,8 @@ export function DealDeskSettings({
             "payoutTargetMinutes",
             "cryptoMinQty",
             "cryptoMaxUsd",
+            "cryptoMarginPct",
+            "cryptoMinFeeUsd",
           ].includes(field)
         )
           setError(
@@ -260,7 +262,7 @@ export function DealDeskSettings({
               <Label htmlFor={`${id}-min`}>Minimum deal</Label>
               <InputAddon
                 id={`${id}-min`}
-                suffix="coins"
+                suffix="$"
                 inputMode="decimal"
                 aria-invalid={errors.cryptoMinQty ? true : undefined}
                 aria-describedby={errors.cryptoMinQty ? err("min") : undefined}
@@ -293,6 +295,47 @@ export function DealDeskSettings({
               >
                 Above it, customers are asked to message you on WhatsApp.
               </span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-margin`}>BTC conversion margin</Label>
+              <InputAddon
+                id={`${id}-margin`}
+                suffix="%"
+                inputMode="decimal"
+                aria-invalid={errors.cryptoMarginPct ? true : undefined}
+                aria-describedby={
+                  errors.cryptoMarginPct ? err("margin") : `${id}-margin-hint`
+                }
+                {...register("cryptoMarginPct")}
+              />
+              <FieldError
+                id={err("margin")}
+                message={errors.cryptoMarginPct?.message}
+              />
+              <span
+                id={`${id}-margin-hint`}
+                className="text-[12.5px] text-text-muted"
+              >
+                Taken from the payout. Price moves within it complete by
+                themselves; bigger drops wait for your team to agree.
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-minfee`}>Minimum conversion fee</Label>
+              <InputAddon
+                id={`${id}-minfee`}
+                suffix="$"
+                inputMode="decimal"
+                aria-invalid={errors.cryptoMinFeeUsd ? true : undefined}
+                aria-describedby={
+                  errors.cryptoMinFeeUsd ? err("minfee") : undefined
+                }
+                {...register("cryptoMinFeeUsd")}
+              />
+              <FieldError
+                id={err("minfee")}
+                message={errors.cryptoMinFeeUsd?.message}
+              />
             </div>
           </div>
         </Section>

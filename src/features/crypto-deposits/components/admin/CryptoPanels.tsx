@@ -18,13 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  agreeCryptoPayout,
   confirmDepositManually,
   markPaidOut,
   requoteCryptoDeal,
 } from "@/features/crypto-deposits/actions";
 import type { TeamCrypto } from "@/features/crypto-deposits/admin-queries";
 import type { CheckKey } from "@/features/crypto-deposits/check";
-import { NETWORKS } from "@/features/crypto-deposits/tokens";
+import { explorerName, NETWORKS } from "@/features/crypto-deposits/tokens";
 import { KV, Panel } from "@/features/deals/components/admin/parts";
 import { nairaText } from "@/features/deals/format";
 import type { TeamDeal } from "@/features/deals/queries";
@@ -135,6 +136,8 @@ export function CryptoCheckPanel({
       <Badge variant="destructive">Flagged</Badge>
     ) : deal.status === "EXPIRED" ? (
       <Badge>Rate lock ended</Badge>
+    ) : deal.status === "RATE_TO_AGREE" ? (
+      <Badge variant="gold">Coins received · rate to agree</Badge>
     ) : c.depositCompletedAt &&
       (deal.status === "DEPOSIT_COMPLETE" || deal.status === "PAID_OUT") ? (
       <Badge variant="success">
@@ -217,7 +220,7 @@ export function CryptoCheckPanel({
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {c.network === "TRC20" ? "Tronscan" : "BscScan"}
+                  {explorerName(c.network)}
                   <ExternalLink strokeWidth={1.9} />
                 </a>
               </Button>
@@ -511,7 +514,7 @@ export function CryptoReviewPanel({
           </Button>
           <p className="mt-2 text-[13px] text-text-muted">
             Logged with your name and reason. Only confirm after checking the
-            transfer on {c.network === "TRC20" ? "Tronscan" : "BscScan"}.
+            transfer on {explorerName(c.network)}.
           </p>
         </div>
       )}
@@ -572,6 +575,24 @@ export function CryptoDealPanel({
               ? `₦${formatRate(rate)} per $1 (${deal.agreedRate ? "re-quoted" : `locked ${lbl(labels.time, deal.createdAt)}`})`
               : "—",
           ],
+          ...(c.market
+            ? ([
+                [
+                  "Quoted",
+                  `$${c.market.quoteUsd} at $${formatRate(c.market.quotePrice)} per ${c.ticker}`,
+                ],
+                [
+                  "Conversion fee",
+                  `$${c.market.feeUsd} · payout $${c.market.payoutUsd}`,
+                ],
+                [
+                  "At confirmation",
+                  c.market.confirmPrice
+                    ? `$${formatRate(c.market.confirmPrice)} per ${c.ticker} · coins worth $${c.market.valueAtConfirm ?? "—"}`
+                    : "Not confirmed yet",
+                ],
+              ] as [string, ReactNode][])
+            : []),
           ["Payout", nairaText(deal.agreedNaira ?? deal.quotedNaira ?? "0")],
           [
             "Deposit address",
@@ -581,6 +602,89 @@ export function CryptoDealPanel({
           ],
         ]}
       />
+    </Panel>
+  );
+}
+
+// ── BTC: the price moved past the margin (RATE_TO_AGREE) ──────────────
+
+export function CryptoAgreePanel({
+  deal,
+  crypto: c,
+  boardRate,
+}: {
+  deal: TeamDeal;
+  crypto: TeamCrypto;
+  boardRate: string | null;
+}) {
+  const id = useId();
+  const { busy, errors, run } = useRun();
+  const m = c.market;
+  // A starting point: the coins' value at confirmation, less the fee, at
+  // the deal's rate. The team agrees the final figure on WhatsApp.
+  const rate = deal.agreedRate ?? deal.quotedRate ?? boardRate;
+  const suggested =
+    m?.valueAtConfirm && rate
+      ? Math.max(
+          0,
+          Math.floor(
+            (Number(m.valueAtConfirm) - Number(m.feeUsd)) * Number(rate),
+          ),
+        ).toString()
+      : "";
+  const [naira, setNaira] = useState(suggested);
+  const [note, setNote] = useState("");
+  return (
+    <Panel title="Agree the payout">
+      <p className="text-[14px] text-text-secondary">
+        The coins arrived, but the {c.ticker} price moved past the margin while
+        they confirmed
+        {m?.valueAtConfirm
+          ? ` (worth $${m.valueAtConfirm}, payout was $${m.payoutUsd})`
+          : ""}
+        . Agree the amount with the customer on WhatsApp, then record it here.
+        The payout timer starts when you save.
+      </p>
+      <div className="mt-3.5 grid gap-3.5 sheet:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-naira`}>Agreed payout (₦)</Label>
+          <Input
+            id={`${id}-naira`}
+            inputMode="decimal"
+            value={naira}
+            onChange={(e) => setNaira(e.target.value)}
+            aria-invalid={errors.naira ? true : undefined}
+          />
+          {suggested && (
+            <span className="text-[12.5px] text-text-muted">
+              Suggested from the price at confirmation: ₦{formatRate(suggested)}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-note`}>What you agreed</Label>
+          <Input
+            id={`${id}-note`}
+            value={note}
+            placeholder="e.g. Agreed ₦520,000 with Chinedu on WhatsApp"
+            onChange={(e) => setNote(e.target.value)}
+            aria-invalid={errors.note ? true : undefined}
+          />
+        </div>
+      </div>
+      <Button
+        className="mt-3.5"
+        disabled={busy || !naira.trim() || note.trim().length < 3}
+        onClick={() =>
+          run(
+            () => agreeCryptoPayout({ ref: deal.ref, naira, note }),
+            "Payout agreed. The payout timer has started.",
+          )
+        }
+      >
+        {busy && <Loader2 className="animate-spin" />}
+        Save and start the payout
+      </Button>
     </Panel>
   );
 }

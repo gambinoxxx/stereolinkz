@@ -74,6 +74,8 @@ export const updateDealSettings = safeAction(
         cryptoMinQty: value.cryptoMinQty,
         cryptoMaxUsd: value.cryptoMaxUsd,
         payoutAlertEmails: value.payoutAlertEmails,
+        cryptoMarginPct: value.cryptoMarginPct,
+        cryptoMinFeeUsd: value.cryptoMinFeeUsd,
       },
     });
     revalidateDealSettings();

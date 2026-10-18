@@ -39,6 +39,15 @@ export type TeamCrypto = {
     network: CryptoNetwork;
   } | null;
   officialContract: string | null;
+  // BTC (Phase 13b): the dollar quote and the prices on either side.
+  market: {
+    quoteUsd: string;
+    feeUsd: string;
+    payoutUsd: string;
+    quotePrice: string;
+    confirmPrice: string | null;
+    valueAtConfirm: string | null; // received × confirmPrice, in dollars
+  } | null;
 };
 
 export async function getCryptoForTeam(
@@ -61,6 +70,11 @@ export async function getCryptoForTeam(
       payoutDueAt: true,
       flagReason: true,
       createdAt: true,
+      quoteUsd: true,
+      feeUsd: true,
+      payoutUsd: true,
+      quotePrice: true,
+      confirmPrice: true,
       wallet: { select: { minConfirmations: true } },
       matchedTransfer: true,
       organization: {
@@ -132,6 +146,20 @@ export async function getCryptoForTeam(
         }
       : null,
     officialContract: official,
+    market:
+      d.quoteUsd && d.feeUsd && d.payoutUsd && d.quotePrice
+        ? {
+            quoteUsd: d.quoteUsd.toFixed(0),
+            feeUsd: d.feeUsd.toFixed(2),
+            payoutUsd: d.payoutUsd.toFixed(2),
+            quotePrice: d.quotePrice.toFixed(2),
+            confirmPrice: d.confirmPrice?.toFixed(2) ?? null,
+            valueAtConfirm:
+              d.confirmPrice && (d.receivedQty ?? t?.amount)
+                ? d.confirmPrice.mul(d.receivedQty ?? t!.amount).toFixed(2)
+                : null,
+          }
+        : null,
   };
 }
 

@@ -26,6 +26,8 @@ export default async function DealDeskSettingsPage() {
         cryptoMinQty: true,
         cryptoMaxUsd: true,
         payoutAlertEmails: true,
+        cryptoMarginPct: true,
+        cryptoMinFeeUsd: true,
         timezone: true,
       },
     }),
@@ -87,6 +89,8 @@ export default async function DealDeskSettingsPage() {
         cryptoMinQty: org.cryptoMinQty.toFixed(),
         cryptoMaxUsd: org.cryptoMaxUsd.toFixed(),
         payoutAlertEmails: org.payoutAlertEmails,
+        cryptoMarginPct: org.cryptoMarginPct.toFixed(),
+        cryptoMinFeeUsd: org.cryptoMinFeeUsd.toFixed(),
       }}
       orgName={org.name}
       members={members}

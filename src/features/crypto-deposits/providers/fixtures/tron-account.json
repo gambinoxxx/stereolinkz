@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": [
+    {
+      "address": "41517591d35d313bf6a5e33098284502b045e2bc08",
+      "balance": 1128842884286,
+      "trc20": [
+        {
+          "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t": "24847874401"
+        },
+        {
+          "TL81r5Zze7Av4DiKxCBzCbtDnUQVSQfm82": "31200000000000000000000"
+        },
+        {
+          "TFBy8RsM1fVVB7TYxUUDZxgyrP99FpjFD2": "59483000000000000000000"
+        }
+      ]
+    }
+  ]
+}

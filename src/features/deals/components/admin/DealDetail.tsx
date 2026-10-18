@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import type { TeamCrypto } from "@/features/crypto-deposits/admin-queries";
 import {
+  CryptoAgreePanel,
   CryptoCheckPanel,
   CryptoDealPanel,
   CryptoPayoutPanel,
@@ -439,6 +440,13 @@ export function DealDetail({
             {(deal.status === "DEPOSIT_COMPLETE" ||
               deal.status === "PAID_OUT") && (
               <CryptoPayoutPanel deal={deal} crypto={crypto} labels={labels} />
+            )}
+            {deal.status === "RATE_TO_AGREE" && (
+              <CryptoAgreePanel
+                deal={deal}
+                crypto={crypto}
+                boardRate={currentCryptoRate}
+              />
             )}
             {(deal.status === "FLAGGED" || deal.status === "EXPIRED") && (
               <CryptoReviewPanel

@@ -32,6 +32,8 @@ export type CustomerCryptoDeal = {
   payoutMinutes: number;
   payout: { bank: string; last4: string; name: string };
   paid: { reference: string; at: string } | null;
+  // BTC (Phase 13b): quoted in dollars with the conversion fee.
+  market: { quoteUsd: string; feeUsd: string; payoutUsd: string } | null;
 };
 
 export async function getCryptoDealForCustomer(
@@ -66,6 +68,9 @@ export async function getCryptoDealForCustomer(
       payoutAccountNumber: true,
       payoutAccountName: true,
       payoutReference: true,
+      quoteUsd: true,
+      feeUsd: true,
+      payoutUsd: true,
       wallet: { select: { minConfirmations: true } },
       organization: {
         select: { rateLockMinutes: true, payoutTargetMinutes: true },
@@ -128,6 +133,14 @@ export async function getCryptoDealForCustomer(
     paid:
       d.status === "PAID_OUT" && d.payoutReference && paidAt
         ? { reference: d.payoutReference, at: paidAt.toISOString() }
+        : null,
+    market:
+      d.quoteUsd && d.feeUsd && d.payoutUsd
+        ? {
+            quoteUsd: d.quoteUsd.toFixed(0),
+            feeUsd: d.feeUsd.toFixed(2),
+            payoutUsd: d.payoutUsd.toFixed(2),
+          }
         : null,
   };
 }

@@ -11,6 +11,7 @@ import {
   teamNewDealEmail,
   teamPaidEmail,
   teamPayoutOverdueEmail,
+  teamRateToAgreeEmail,
 } from "@/features/deals/emails";
 import {
   amountToPayText,
@@ -148,6 +149,7 @@ async function loadCrypto(dealId: string) {
     select: {
       id: true,
       ref: true,
+      status: true,
       cryptoTicker: true,
       receivedQty: true,
       expectedQty: true,
@@ -180,20 +182,25 @@ export async function notifyDepositComplete(dealId: string) {
     const d = await loadCrypto(dealId);
     const team = alertRecipients();
     if (!d || !d.organization.payoutAlertEmails || !team.length) return;
+    const adminUrl = new URL(`/admin/deals/${d.ref}`, siteUrl()).href;
+    // BTC whose price moved past the margin: agree first, then pay.
+    const toAgree = d.status === "RATE_TO_AGREE";
     const sent = await sendEach(
       team,
-      teamDepositCompleteEmail({
-        ref: d.ref,
-        amount: coinsText(d),
-        payout: payoutText(d),
-        minutes: d.organization.payoutTargetMinutes,
-        adminUrl: new URL(`/admin/deals/${d.ref}`, siteUrl()).href,
-      }),
+      toAgree
+        ? teamRateToAgreeEmail({ ref: d.ref, amount: coinsText(d), adminUrl })
+        : teamDepositCompleteEmail({
+            ref: d.ref,
+            amount: coinsText(d),
+            payout: payoutText(d),
+            minutes: d.organization.payoutTargetMinutes,
+            adminUrl,
+          }),
     );
     if (sent)
       await logSent(
         d.id,
-        `Team alerted: payout due (email to ${sent} of ${team.length})`,
+        `Team alerted: ${toAgree ? "rate to agree" : "payout due"} (email to ${sent} of ${team.length})`,
         sent,
       );
   } catch (error) {

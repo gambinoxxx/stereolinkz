@@ -117,12 +117,17 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
                   {w.address}
                 </code>
                 <span className="text-[12.5px] text-text-muted">
-                  {w.minConfirmations} confirmations · official contract{" "}
-                  {
-                    OFFICIAL_TOKENS.find(
-                      (t) => t.network === w.network && t.ticker === w.ticker,
-                    )?.contract
-                  }
+                  {w.minConfirmations} confirmations
+                  {(() => {
+                    const t = OFFICIAL_TOKENS.find(
+                      (o) => o.network === w.network && o.ticker === w.ticker,
+                    );
+                    return t && t.contract !== "native"
+                      ? ` · official contract ${t.contract}`
+                      : t && !t.dealable
+                        ? " · balances and checker only"
+                        : "";
+                  })()}
                 </span>
               </div>
               <div className="col-start-2 sm:col-start-auto">
@@ -209,7 +214,11 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
               spellCheck={false}
               className="font-mono"
               placeholder={
-                token.network === "TRC20" ? "T… (34 characters)" : "0x…"
+                token.network === "TRC20"
+                  ? "T… (34 characters)"
+                  : token.network === "BTC"
+                    ? "bc1… (or 1… / 3…)"
+                    : "0x…"
               }
               value={v.address}
               onChange={(e) => setV((s) => ({ ...s, address: e.target.value }))}
@@ -226,10 +235,22 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
             </span>
           </div>
           <div className="text-[13px] text-text-secondary">
-            Official {token.ticker} contract on {NETWORKS[token.network].chain}{" "}
-            (fixed, read-only):{" "}
-            <code className="break-all">{token.contract}</code> ·{" "}
-            {token.decimals} decimals
+            {token.contract === "native" ? (
+              <>
+                {NETWORKS[token.network].chain}’s own coin ({token.decimals}{" "}
+                decimals)
+                {token.dealable
+                  ? ""
+                  : ". Watched for balances and the transfer checker only; never sold on the website."}
+              </>
+            ) : (
+              <>
+                Official {token.ticker} contract on{" "}
+                {NETWORKS[token.network].chain} (fixed, read-only):{" "}
+                <code className="break-all">{token.contract}</code> ·{" "}
+                {token.decimals} decimals
+              </>
+            )}
           </div>
           <div className="flex flex-wrap gap-2.5">
             <Button

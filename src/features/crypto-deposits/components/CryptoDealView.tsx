@@ -10,7 +10,7 @@ import { LockTimer } from "@/features/crypto-deposits/components/LockTimer";
 import { PayoutCountdown } from "@/features/crypto-deposits/components/PayoutCountdown";
 import type { CustomerCryptoDeal } from "@/features/crypto-deposits/customer-queries";
 import { addressQrSvg } from "@/features/crypto-deposits/qr";
-import { NETWORKS } from "@/features/crypto-deposits/tokens";
+import { explorerName, NETWORKS } from "@/features/crypto-deposits/tokens";
 import { nairaText } from "@/features/deals/format";
 import { customerStatus } from "@/features/deals/progress";
 import { formatBoardTime, formatRate } from "@/lib/format";
@@ -18,11 +18,19 @@ import { formatBoardTime, formatRate } from "@/lib/format";
 const TZ = "Africa/Lagos";
 const time = (iso: string) => formatBoardTime(new Date(iso), TZ);
 
-// "1500.5" → "1,500.50": coin amounts always show their cents.
-function coins(qty: string): string {
+// "1500.5" → "1,500.50": stablecoin amounts show their cents; BTC its
+// 8 decimals ("0.00491237"), which the customer must send exactly.
+function coinsText(qty: string, network: string): string {
   const [int = "0", frac = ""] = qty.split(".");
-  return `${formatRate(int)}.${frac.padEnd(2, "0")}`;
+  const places = network === "BTC" ? 8 : 2;
+  return `${formatRate(int)}.${frac.padEnd(places, "0")}`;
 }
+// How long the confirmations usually take, for the timeline.
+function confirmTime(network: string, count: number): string {
+  if (network === "BTC") return `about ${count * 10} minutes`; // ~10 min a block
+  return "about a minute";
+}
+const confirmations = (n: number) => `${n} confirmation${n === 1 ? "" : "s"}`;
 const ends = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
 
 type Step = {
@@ -65,6 +73,13 @@ export async function CryptoDealView({
   whatsappHref: string;
 }) {
   const net = NETWORKS[deal.network];
+  const coins = (q: string) => coinsText(q, deal.network);
+  // "on TRC20" / "on the Bitcoin network"
+  const onNet =
+    deal.network === "BTC" ? "on the Bitcoin network" : `on ${deal.network}`;
+  const fee = deal.market
+    ? ` after a $${deal.market.feeUsd} conversion fee`
+    : "";
   // A lock that ended shows as such at once, before the watcher moves it.
   const status = customerStatus(
     "CRYPTO_SELL",
@@ -111,7 +126,7 @@ export async function CryptoDealView({
       rel="noopener noreferrer"
       style={{ color: "var(--violet)", fontWeight: 700 }}
     >
-      view on {deal.network === "TRC20" ? "Tronscan" : "BscScan"}
+      view on {explorerName(deal.network)}
     </a>
   ) : null;
 
@@ -138,8 +153,8 @@ export async function CryptoDealView({
                 {deal.receivedQty
                   ? coins(deal.receivedQty)
                   : coins(deal.expectedQty)}{" "}
-                {deal.ticker} confirmed on {deal.network}. Your naira is on its
-                way to {short}.
+                {deal.ticker} confirmed {onNet}. Your naira is on its way to{" "}
+                {short}.
               </>
             )}
           </p>
@@ -191,6 +206,77 @@ export async function CryptoDealView({
     );
   }
 
+  // ── BTC: coins received, the price moved past the margin ─────────────
+  if (deal.status === "RATE_TO_AGREE") {
+    return (
+      <main className="page">
+        <AutoRefresh />
+        {head(
+          `${coins(deal.receivedQty ?? deal.expectedQty)} ${deal.ticker} received`,
+          <>Your coins arrived {onNet}.</>,
+        )}
+        <div className="grid">
+          <div>
+            <section className="card">
+              <p className="note ok">
+                <Check
+                  size={18}
+                  strokeWidth={3}
+                  aria-hidden="true"
+                  style={{ flexShrink: 0, marginTop: 2 }}
+                />
+                <span>
+                  We’ve received your coins. The {deal.ticker} price moved while
+                  they confirmed, so our team will confirm your final naira
+                  amount with you on WhatsApp before paying out.
+                </span>
+              </p>
+              <a
+                className="btn vio block"
+                style={{ marginTop: 18 }}
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle size={20} strokeWidth={2.2} aria-hidden="true" />
+                Continue on WhatsApp
+              </a>
+            </section>
+          </div>
+          <aside>
+            <section className="card">
+              <h2>Progress</h2>
+              <Timeline
+                steps={[
+                  {
+                    title: "Deal created",
+                    sub: `${time(deal.createdAt)} · rate locked at ₦${formatRate(deal.rate)}`,
+                    state: "done",
+                  },
+                  {
+                    title: "Coins received",
+                    sub: explorer ?? `${deal.minConfirmations} confirmations`,
+                    state: "done",
+                  },
+                  {
+                    title: "Final amount agreed",
+                    sub: "With our team on WhatsApp",
+                    state: "now",
+                  },
+                  {
+                    title: "Naira paid out",
+                    sub: `About ${deal.payoutMinutes} minutes after agreement`,
+                    state: "todo",
+                  },
+                ]}
+              />
+            </section>
+          </aside>
+        </div>
+      </main>
+    );
+  }
+
   // ── Being checked / cancelled / lock ended ───────────────────────────
   if (
     deal.status === "FLAGGED" ||
@@ -207,9 +293,10 @@ export async function CryptoDealView({
       <main className="page">
         <AutoRefresh />
         {head(
-          `Sell ${qty} on ${deal.network}`,
+          `Sell ${qty} ${onNet}`,
           <>
-            Estimate {naira} at {rate}.
+            Estimate {naira} at {rate}
+            {fee}.
           </>,
         )}
         <div className="grid">
@@ -255,7 +342,7 @@ export async function CryptoDealView({
                         : "Waiting for deposit",
                     sub: deal.depositSeenAt
                       ? `Seen ${time(deal.depositSeenAt)}`
-                      : `Send ${qty} on ${deal.network}`,
+                      : `Send ${qty} ${onNet}`,
                     state: deal.status === "FLAGGED" ? "now" : "todo",
                   },
                   {
@@ -281,9 +368,10 @@ export async function CryptoDealView({
     <main className="page">
       <DepositPoller dealRef={deal.ref} token={token} />
       {head(
-        `Send ${qty} on ${deal.network}`,
+        `Send ${qty} ${onNet}`,
         <>
-          You’ll receive <b className="num">{naira}</b> in your {account}.
+          You’ll receive <b className="num">{naira}</b> in your {account}
+          {fee}.
         </>,
       )}
       <div className="grid">
@@ -333,7 +421,7 @@ export async function CryptoDealView({
               />
               <span>
                 <b>
-                  Send only {deal.ticker} on {deal.network} to this address.
+                  Send only {deal.ticker} {onNet} to this address.
                 </b>{" "}
                 Other coins or networks can’t be recovered. Check the first and
                 last 4 characters ({ends(address)}) after pasting.
@@ -365,7 +453,7 @@ export async function CryptoDealView({
               <span className="spin" aria-hidden="true" />
               <span>
                 {seen
-                  ? `${coins(deal.receivedQty ?? deal.expectedQty)} ${deal.ticker} received on ${deal.network} · confirming…`
+                  ? `${coins(deal.receivedQty ?? deal.expectedQty)} ${deal.ticker} received ${onNet} · confirming…`
                   : `Watching the ${net.chain} network for your deposit…`}
               </span>
             </div>
@@ -404,16 +492,12 @@ export async function CryptoDealView({
                 {
                   title: seen ? "Deposit seen" : "Waiting for deposit",
                   sub:
-                    seen && explorer ? (
-                      <>{explorer}</>
-                    ) : (
-                      `Send ${qty} on ${deal.network}`
-                    ),
+                    seen && explorer ? <>{explorer}</> : `Send ${qty} ${onNet}`,
                   state: seen ? "done" : "now",
                 },
                 {
                   title: "Deposit complete",
-                  sub: `After ${deal.minConfirmations} confirmations (about a minute)`,
+                  sub: `After ${confirmations(deal.minConfirmations)} (${confirmTime(deal.network, deal.minConfirmations)})`,
                   state: seen ? "now" : "todo",
                 },
                 {

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Deal" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(26,8);

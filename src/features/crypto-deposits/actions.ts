@@ -8,6 +8,12 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
+import { runEthCheck } from "@/features/crypto-deposits/eth-check";
+import {
+  type Balance,
+  walletBalance,
+} from "@/features/crypto-deposits/providers/balances";
+import type { EthCheck } from "@/features/crypto-deposits/providers/eth";
 import { notifyPaidOut } from "@/features/deals/notify";
 import { normalizeRef } from "@/features/deals/refs";
 import {
@@ -267,4 +273,104 @@ export const requoteCryptoDeal = safeAction(
       },
     );
   },
+);
+
+// ── BTC: agree the payout after the price moved (RATE_TO_AGREE) ──────
+
+const agreeInput = z.object({
+  ref: z.string(),
+  naira: z
+    .string()
+    .transform((v) => v.trim().replace(/[,₦\s]/g, ""))
+    .pipe(
+      z
+        .string()
+        .regex(/^\d+(\.\d{1,2})?$/, "Enter the agreed naira, like 520000.")
+        .refine((v) => Number(v) > 0, "Enter the agreed naira, like 520000."),
+    ),
+  note: z
+    .string()
+    .trim()
+    .min(3, "Say what you agreed, for the record.")
+    .max(300),
+});
+
+export const agreeCryptoPayout = safeAction(
+  async (
+    member,
+    raw: unknown,
+  ): Promise<ActionResult<{ status: DealStatus }>> => {
+    const parsed = agreeInput.safeParse(raw);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const i of parsed.error.issues)
+        fieldErrors[String(i.path[0])] ??= i.message;
+      return {
+        ok: false,
+        error: "Please check the highlighted fields.",
+        fieldErrors,
+      };
+    }
+    const deal = await loadCryptoDeal(member.organizationId, parsed.data.ref);
+    if (!deal) return NOT_FOUND;
+    const now = new Date();
+    const { naira, note } = parsed.data;
+    return move(
+      member,
+      deal,
+      "DEPOSIT_COMPLETE",
+      `Payout agreed on WhatsApp: ₦${naira} (${note})`,
+      {
+        set: {
+          agreedNaira: naira,
+          agreedAt: now,
+          agreedById: member.membershipId,
+          depositCompletedAt: now,
+          payoutDueAt: new Date(
+            now.getTime() + deal.organization.payoutTargetMinutes * 60_000,
+          ),
+        },
+        data: { naira, note },
+        events: [
+          {
+            dealId: deal.id,
+            type: "RATE_CHANGED",
+            message: `Payout agreed at ₦${naira} after the price moved`,
+            data: { naira, note },
+            actorType: "MEMBER",
+            actorMembershipId: member.membershipId,
+            createdAt: now,
+          },
+        ],
+      },
+    );
+  },
+);
+
+// ── Wallet balances and the ETH checker (admin) ───────────────────────
+
+export const getWalletBalances = safeAction(
+  async ({
+    organizationId,
+  }): Promise<
+    ActionResult<{ walletId: string; balance: Balance; checkedAt: string }[]>
+  > => {
+    const wallets = await db.cryptoWallet.findMany({
+      where: { organizationId, active: true },
+      select: { id: true, network: true, address: true },
+    });
+    const rows = await Promise.all(
+      wallets.map(async (w) => ({
+        walletId: w.id,
+        balance: await walletBalance(w.network, w.address),
+        checkedAt: new Date().toISOString(),
+      })),
+    );
+    return { ok: true, data: rows };
+  },
+);
+
+export const checkEthTransferForTeam = safeAction(
+  async ({ organizationId }, raw: unknown): Promise<ActionResult<EthCheck>> =>
+    runEthCheck(organizationId, raw),
 );

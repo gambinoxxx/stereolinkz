@@ -12,7 +12,8 @@ import {
 
 export const submitCryptoDealInput = z.object({
   ticker: z.string().regex(/^[A-Z0-9]{2,6}$/),
-  network: z.enum(["TRC20", "BEP20"]),
+  network: z.enum(["TRC20", "BEP20", "BTC"]),
+  // Stablecoins: the coins to send. BTC: the whole dollars to sell.
   qty: amountString,
   payout: payoutInput.extend({
     accountName: z

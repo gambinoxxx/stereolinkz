@@ -135,3 +135,19 @@ export function customerPaidOutEmail(d: {
       .join("")}</div>`,
   };
 }
+
+export function teamRateToAgreeEmail(d: {
+  ref: string;
+  amount: string;
+  adminUrl: string;
+}): Omit<Email, "to"> {
+  const lines = [
+    `Coins received on ${d.ref}: ${d.amount}, but the price moved past the margin while they confirmed.`,
+    "Agree the payout with the customer on WhatsApp, then record it to start the payout timer.",
+  ];
+  return {
+    subject: `${d.ref}: coins received, rate to agree`,
+    text: `${lines.join("\n")}\n\n${d.adminUrl}`,
+    html: layout(lines, { href: d.adminUrl, label: `Open ${d.ref}` }),
+  };
+}

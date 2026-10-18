@@ -5,7 +5,12 @@ import "server-only";
 // incremented (the row lock makes parallel creates wait their turn, so no
 // two deals share a reference), then the deal and its first event are
 // inserted. Nothing is written unless all three succeed.
-import { uniqueAmount } from "@/features/crypto-deposits/amounts";
+import {
+  btcToSats,
+  satsToBtc,
+  uniqueAmount,
+  uniqueSats,
+} from "@/features/crypto-deposits/amounts";
 import type { Quote } from "@/features/deals/quote";
 import { formatRef } from "@/features/deals/refs";
 import type { DealDetails } from "@/features/deals/schema";
@@ -48,6 +53,14 @@ export type NewDeal = {
     boardId: string;
     timeLabel: string;
     lockMinutes: number;
+    // Market-priced coins (BTC): the dollar quote; `amount` is then the
+    // coins at the live price, before the unique satoshis are added.
+    market?: {
+      quoteUsd: string;
+      feeUsd: string;
+      payoutUsd: string;
+      priceUsd: string;
+    };
   };
   now?: Date;
 };
@@ -144,14 +157,19 @@ export async function insertDeal(
   if (crypto) {
     // Lock the wallet row so two deals can't pick the same amount.
     await tx.$queryRaw`SELECT id FROM "CryptoWallet" WHERE id = ${crypto.walletId} FOR UPDATE`;
-    expectedQty = uniqueAmount(
-      input.amount,
-      await takenAmounts(tx, crypto.walletId, now),
-    );
+    const taken = await takenAmounts(tx, crypto.walletId, now);
+    if (crypto.market) {
+      const sats = uniqueSats(btcToSats(input.amount), taken.map(btcToSats));
+      expectedQty = sats === null ? null : satsToBtc(sats);
+    } else expectedQty = uniqueAmount(input.amount, taken);
     if (!expectedQty) throw new CryptoAmountBusyError();
     quote = {
       rate: crypto.rate,
-      naira: multiplyDecimalStrings(expectedQty, crypto.rate),
+      // Stablecoins: coins × rate. BTC: the payout dollars × rate.
+      naira: multiplyDecimalStrings(
+        crypto.market ? crypto.market.payoutUsd : expectedQty,
+        crypto.rate,
+      ),
       boardId: crypto.boardId,
       timeLabel: crypto.timeLabel,
       dateLabel: "",
@@ -190,6 +208,12 @@ export async function insertDeal(
         walletId: crypto.walletId,
         expectedQty,
         lockExpiresAt: new Date(now.getTime() + crypto.lockMinutes * 60_000),
+        ...(crypto.market && {
+          quoteUsd: crypto.market.quoteUsd,
+          feeUsd: crypto.market.feeUsd,
+          payoutUsd: crypto.market.payoutUsd,
+          quotePrice: crypto.market.priceUsd,
+        }),
       }),
     },
     select: { id: true },

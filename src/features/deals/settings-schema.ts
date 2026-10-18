@@ -49,6 +49,20 @@ export const dealSettingsInput = z
     cryptoMinQty: coinAmount,
     cryptoMaxUsd: coinAmount,
     payoutAlertEmails: z.boolean(),
+    // Market-priced coins (BTC, Phase 13b)
+    cryptoMarginPct: z
+      .string()
+      .trim()
+      .pipe(
+        z
+          .string()
+          .regex(/^\d{1,2}(\.\d{1,2})?$/, "A percentage, like 1.5.")
+          .refine((v) => Number(v) <= 20, "At most 20%."),
+      ),
+    cryptoMinFeeUsd: z
+      .string()
+      .trim()
+      .pipe(z.string().regex(/^\d{1,4}(\.\d{1,2})?$/, "Dollars, like 2.")),
   })
   .refine((v) => Number(v.cryptoMaxUsd) > Number(v.cryptoMinQty), {
     path: ["cryptoMaxUsd"],

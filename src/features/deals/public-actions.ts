@@ -8,7 +8,11 @@ import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
+import { marketQuote } from "@/features/crypto-deposits/market-quote";
+import { runEthCheck } from "@/features/crypto-deposits/eth-check";
 import { nameCheck } from "@/features/crypto-deposits/names";
+import type { EthCheck } from "@/features/crypto-deposits/providers/eth";
+import { usdPrice } from "@/features/crypto-deposits/prices";
 import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
 import { officialToken } from "@/features/crypto-deposits/tokens";
@@ -222,21 +226,68 @@ export const submitCryptoDeal = publicAction(
     });
     if (!wallet) return unavailable;
 
+    // Stablecoins: qty is coins (1:1 with dollars). BTC: whole dollars.
+    const market = token.pricing === "MARKET";
+    const unit = market ? "" : ` ${input.ticker}`;
+    const money = (v: string) => (market ? `$${v}` : v);
+    if (market && !/^\d+$/.test(input.qty))
+      return {
+        ok: false,
+        error: CHECK,
+        fieldErrors: { qty: "Enter whole dollars, like 400." },
+      };
     if (compareDecimalStrings(input.qty, desk.minQty) < 0)
       return {
         ok: false,
         error: CHECK,
-        fieldErrors: { qty: `The minimum is ${desk.minQty} ${input.ticker}.` },
+        fieldErrors: { qty: `The minimum is ${money(desk.minQty)}${unit}.` },
       };
-    // Stablecoins only (tokens.ts), so coins and dollars are 1:1.
     if (compareDecimalStrings(input.qty, desk.maxUsd) > 0)
       return {
         ok: false,
         error: CHECK,
         fieldErrors: {
-          qty: `For more than ${desk.maxUsd} ${input.ticker}, message us on WhatsApp.`,
+          qty: `For more than ${money(desk.maxUsd)}${unit}, message us on WhatsApp.`,
         },
       };
+    // BTC: quoted again here at a fresh price (never the page's).
+    let marketTerms: {
+      coins: string;
+      quote: {
+        quoteUsd: string;
+        feeUsd: string;
+        payoutUsd: string;
+        priceUsd: string;
+      };
+    } | null = null;
+    if (market) {
+      const priceUsd = await usdPrice(input.ticker);
+      const q =
+        priceUsd &&
+        marketQuote({
+          usd: input.qty,
+          priceUsd,
+          marginPct: desk.marginPct,
+          minFeeUsd: desk.minFeeUsd,
+          rate: coin.rate,
+          decimals: token.decimals,
+        });
+      if (!priceUsd || !q)
+        return {
+          ok: false,
+          error:
+            "We can’t get a live price right now. Try again in a minute or message us on WhatsApp.",
+        };
+      marketTerms = {
+        coins: q.coins,
+        quote: {
+          quoteUsd: q.quoteUsd,
+          feeUsd: q.feeUsd,
+          payoutUsd: q.payoutUsd,
+          priceUsd,
+        },
+      };
+    }
 
     const ip = await clientIp();
     const tracking = createTrackingToken();
@@ -255,7 +306,7 @@ export const submitCryptoDeal = publicAction(
           ),
         },
         currency: input.ticker,
-        amount: input.qty,
+        amount: marketTerms ? marketTerms.coins : input.qty,
         quote: null,
         payout: input.payout,
         ownerMembershipId: ctx.org.defaultOwnerId,
@@ -273,6 +324,7 @@ export const submitCryptoDeal = publicAction(
           boardId: desk.boardId,
           timeLabel: desk.timeLabel,
           lockMinutes: desk.lockMinutes,
+          market: marketTerms?.quote,
         },
       });
       after(() => notifyNewDeal(deal.id, tracking.token));
@@ -519,5 +571,33 @@ export const checkMyDeposit = publicAction(
     });
     for (const id of summary.completed) after(() => notifyDepositComplete(id));
     return { ok: true, data: { checked: true, claim: summary.claim } };
+  },
+);
+
+// ── ETH transfer checker (public, read-only; Phase 13b) ──────────────
+// ETH is arranged on WhatsApp; this only reports a transfer's status to
+// our ETH address. Limited per IP (best effort, per server instance) and
+// cached per TxID, so it can't be used to burn the Etherscan quota.
+
+const ETH_CHECKS_PER_MINUTE = 6;
+const ethChecks = new Map<string, number[]>();
+
+export const checkEthTransfer = publicAction(
+  "checkEthTransfer",
+  async (raw: unknown): Promise<ActionResult<EthCheck>> => {
+    const ctx = await getDealDeskContext();
+    if (!ctx) return { ok: false, error: GENERIC };
+    const ip = await clientIp();
+    const key = ip ? hashIp(ip) : "unknown";
+    const now = Date.now();
+    const recent = (ethChecks.get(key) ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= ETH_CHECKS_PER_MINUTE)
+      return {
+        ok: false,
+        error: "Too many checks. Wait a minute and try again.",
+      };
+    ethChecks.set(key, [...recent, now]);
+    if (ethChecks.size > 5000) ethChecks.delete(ethChecks.keys().next().value!);
+    return runEthCheck(ctx.org.id, raw);
   },
 );

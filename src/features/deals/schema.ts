@@ -57,7 +57,7 @@ export type NameCheck = (typeof NAME_CHECKS)[number];
 export const cryptoSellDetails = z.object({
   service: z.literal("CRYPTO_SELL"),
   ticker: z.string().regex(/^[A-Z0-9]{2,6}$/),
-  network: z.enum(["TRC20", "BEP20"]),
+  network: z.enum(["TRC20", "BEP20", "BTC"]),
   payoutNameCheck: z.enum(NAME_CHECKS),
 });
 

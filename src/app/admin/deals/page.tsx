@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, Inbox, Info } from "lucide-react";
+import { Bell, ChevronRight, Inbox, Info, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { z } from "zod";
@@ -117,6 +117,12 @@ export default async function DealsPage({
         description="Every deal started on the website, from request to payout. Agree the final rate on WhatsApp, then move the deal along here."
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href="/admin/deals/wallets">
+                <Wallet strokeWidth={1.9} />
+                Wallets
+              </Link>
+            </Button>
             <NewDealButton
               boards={
                 desk

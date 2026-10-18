@@ -73,6 +73,8 @@ describe("dealSettingsInput", () => {
     cryptoMinQty: "20",
     cryptoMaxUsd: "5,000",
     payoutAlertEmails: true,
+    cryptoMarginPct: "1.5",
+    cryptoMinFeeUsd: "2",
   };
   it("normalises the prefix and the owner", () => {
     expect(dealSettingsInput.parse(settings)).toEqual({
@@ -86,6 +88,8 @@ describe("dealSettingsInput", () => {
       cryptoMinQty: "20",
       cryptoMaxUsd: "5000",
       payoutAlertEmails: true,
+      cryptoMarginPct: "1.5",
+      cryptoMinFeeUsd: "2",
     });
   });
   it("keeps crypto switched on when saved (Phase 13)", () => {
@@ -101,6 +105,9 @@ describe("dealSettingsInput", () => {
       { cryptoMinQty: "0" },
       { cryptoMinQty: "20.555" },
       { cryptoMaxUsd: "10" },
+      { cryptoMarginPct: "25" },
+      { cryptoMarginPct: "abc" },
+      { cryptoMinFeeUsd: "-1" },
     ])
       expect(
         dealSettingsInput.safeParse({ ...settings, ...bad }).success,

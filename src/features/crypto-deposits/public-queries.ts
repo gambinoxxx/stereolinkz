@@ -9,6 +9,7 @@ import { cache } from "react";
 
 import type { CryptoNetwork } from "@/generated/prisma/client";
 import { readSnapshot } from "@/features/boards/history";
+import { usdPrice } from "@/features/crypto-deposits/prices";
 import { DEALABLE_TOKENS, NETWORKS } from "@/features/crypto-deposits/tokens";
 import { db } from "@/lib/server/db";
 
@@ -19,6 +20,10 @@ export type CryptoCoinOption = {
   badgeColor: string | null;
   rate: string; // naira per $1 (board BUY)
   networks: { network: CryptoNetwork; label: string; chain: string }[];
+  // MARKET (BTC): quoted in dollars at the live price, with the margin.
+  pricing: "STABLE" | "MARKET";
+  priceUsd: string | null; // dollars per coin now (MARKET only)
+  decimals: number;
 };
 
 export type CryptoDesk = {
@@ -30,6 +35,9 @@ export type CryptoDesk = {
   maxUsd: string;
   lockMinutes: number;
   payoutMinutes: number;
+  marginPct: string;
+  minFeeUsd: string;
+  ethCheck: boolean; // an ETH wallet is set up: link to /deal/check-eth
 };
 
 export const getCryptoDesk = cache(
@@ -42,6 +50,8 @@ export const getCryptoDesk = cache(
           cryptoMaxUsd: true,
           rateLockMinutes: true,
           payoutTargetMinutes: true,
+          cryptoMarginPct: true,
+          cryptoMinFeeUsd: true,
         },
       }),
       db.rateBoard.findFirst({
@@ -70,6 +80,11 @@ export const getCryptoDesk = cache(
         chain: NETWORKS[t.network].chain,
       }));
       if (networks.length === 0) continue;
+      const token = DEALABLE_TOKENS.find((t) => t.ticker === row.ticker)!;
+      // No live price, no online quote for a market-priced coin.
+      const priceUsd =
+        token.pricing === "MARKET" ? await usdPrice(row.ticker) : null;
+      if (token.pricing === "MARKET" && !priceUsd) continue;
       coins.push({
         ticker: row.ticker,
         name: row.name,
@@ -77,6 +92,9 @@ export const getCryptoDesk = cache(
         badgeColor: row.badgeColor,
         rate: row.buy,
         networks,
+        pricing: token.pricing,
+        priceUsd,
+        decimals: token.decimals,
       });
     }
     return {
@@ -88,6 +106,9 @@ export const getCryptoDesk = cache(
       maxUsd: org.cryptoMaxUsd.toFixed(),
       lockMinutes: org.rateLockMinutes,
       payoutMinutes: org.payoutTargetMinutes,
+      marginPct: org.cryptoMarginPct.toFixed(),
+      minFeeUsd: org.cryptoMinFeeUsd.toFixed(),
+      ethCheck: wallets.some((w) => w.network === "ETH"),
     };
   },
 );

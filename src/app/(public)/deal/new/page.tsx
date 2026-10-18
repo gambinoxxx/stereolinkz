@@ -46,12 +46,17 @@ export default async function DealStartPage() {
       ? await getCryptoDesk(ctx.org.id)
       : null;
   const coins = desk?.coins ?? [];
+  // "USDT on TRC20 and Bitcoin (BTC)": a stablecoin with its networks,
+  // a chain's own coin by its name.
+  const coinPhrase = (c: (typeof coins)[number]) =>
+    c.pricing === "MARKET"
+      ? `${c.name} (${c.ticker})`
+      : `${c.ticker} on ${c.networks.map((n) => n.network).join(" or ")}`;
   const cryptoCard = coins.length > 0 && {
-    body: `${coins.map((c) => c.ticker).join(" and ")} on ${[
-      ...new Set(coins.flatMap((c) => c.networks.map((n) => n.network))),
-    ].join(" or ")}. Paid out minutes after your deposit confirms.`,
+    body: `${coins.map(coinPhrase).join(" and ")}. Paid out minutes after your deposit confirms.`,
     tag: `${coins[0]!.ticker} ₦${formatRate(coins[0]!.rate)}`,
   };
+
   const brand = ctx?.org.name ?? "Stereolinkz";
   const cashLink = whatsappLink(
     ctx?.org.contactLine ?? null,
