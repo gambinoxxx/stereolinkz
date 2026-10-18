@@ -15,6 +15,21 @@ change.
 
 ## Completed
 
+- 2026-10-18: Fix: the wallet form accepts BTC and ETH. Adding a BTC or ETH
+  wallet failed with "Please check the highlighted fields." because the
+  wallet schema still allowed only TRC20 and BEP20. The parse and checks
+  moved to `wallet-input.ts` (`parseWalletInput`, used by
+  `addCryptoWallet`), with the network built from Prisma's `CryptoNetwork`
+  so a new network can't be missed; `officialToken()`,
+  `checkWalletAddress()` (key / phrase refused first) and the "already an
+  active wallet" message unchanged; ETH stays non-dealable. The Coin and
+  network field now shows its own error. Wallet list: network names ("BTC ·
+  Bitcoin"), ETH badge "Checker and balances" (never watched), and "Watched
+  once a deal is open" instead of "Not checked yet" (the watcher only checks
+  wallets with open deals). Checked on dev through the form: ETH
+  0xd12b07d2… (64 confirmations) and BTC bc1qjn7e… added; /deal/new/crypto
+  offers BTC only. Tests: `wallet-input.test.ts`.
+
 - 2026-10-18: Fix: bank logos fit their circles on the deal form. The POF
   bank card rule `.dk .bank span` also matched BankMark's round span, giving
   the logo the card's padding, border and grid; now `.dk .bank > span`, and

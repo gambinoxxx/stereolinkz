@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { OFFICIAL_TOKENS } from "@/features/crypto-deposits/tokens";
 import { DealDeskSettings } from "@/features/deals/components/DealDeskSettings";
 import { DESK_SERVICES } from "@/features/deals/services";
 import { formatBoardDay, formatBoardTime } from "@/lib/format";
@@ -106,9 +107,14 @@ export default async function DealDeskSettingsPage() {
         minConfirmations: w.minConfirmations,
         active: w.active,
         // "Watching" = the last successful check; a later failure warns.
-        watching:
-          w.lastFailedAt &&
-          (!w.lastCheckedAt || w.lastFailedAt > w.lastCheckedAt)
+        // The watcher only checks wallets with open deals, and never one
+        // that can't take a website deal (ETH: checker and balances only).
+        watching: !OFFICIAL_TOKENS.find(
+          (t) => t.network === w.network && t.ticker === w.ticker,
+        )?.dealable
+          ? { tone: "idle" as const, text: "Checker and balances" }
+          : w.lastFailedAt &&
+              (!w.lastCheckedAt || w.lastFailedAt > w.lastCheckedAt)
             ? {
                 tone: "warn" as const,
                 text: `Check failed ${at(w.lastFailedAt)}`,
@@ -118,7 +124,7 @@ export default async function DealDeskSettingsPage() {
                   tone: "ok" as const,
                   text: `Watching · ${at(w.lastCheckedAt)}`,
                 }
-              : { tone: "idle" as const, text: "Not checked yet" },
+              : { tone: "idle" as const, text: "Watched once a deal is open" },
       }))}
       emailReady={!!process.env.RESEND_API_KEY && !!process.env.DEAL_ALERT_FROM}
     />

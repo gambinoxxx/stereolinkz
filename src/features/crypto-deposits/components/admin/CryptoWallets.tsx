@@ -111,7 +111,7 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
               </span>
               <div className="min-w-0">
                 <b className="block">
-                  {w.ticker} · {w.network}
+                  {w.ticker} · {NETWORKS[w.network].label}
                 </b>
                 <code className="block text-[12.5px] break-all text-text-secondary">
                   {w.address}
@@ -166,6 +166,14 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
               <Select
                 id={`${id}-coin`}
                 value={v.key}
+                aria-invalid={
+                  errors.network || errors.ticker ? true : undefined
+                }
+                aria-describedby={
+                  errors.network || errors.ticker
+                    ? `${id}-coin-error`
+                    : undefined
+                }
                 onChange={(e) => {
                   const t = OFFICIAL_TOKENS.find(
                     (o) => `${o.network}:${o.ticker}` === e.target.value,
@@ -188,6 +196,10 @@ export function CryptoWallets({ wallets }: { wallets: WalletRow[] }) {
                   </option>
                 ))}
               </Select>
+              <FieldError
+                id={`${id}-coin-error`}
+                message={errors.network ?? errors.ticker}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-conf`}>Confirmations needed</Label>
