@@ -30,6 +30,9 @@ const ALLOWED: [DealStatus, DealStatus, Mover][] = [
   ["AWAITING_DEPOSIT", "CANCELLED", "MEMBER"],
   ["DEPOSIT_SEEN", "DEPOSIT_COMPLETE", "SYSTEM"],
   ["DEPOSIT_SEEN", "FLAGGED", "SYSTEM"],
+  ["DEPOSIT_SEEN", "RATE_TO_AGREE", "SYSTEM"],
+  ["RATE_TO_AGREE", "DEPOSIT_COMPLETE", "MEMBER"],
+  ["RATE_TO_AGREE", "CANCELLED", "MEMBER"],
   ["DEPOSIT_COMPLETE", "PAID_OUT", "MEMBER"],
   ["EXPIRED", "AWAITING_DEPOSIT", "MEMBER"],
   ["EXPIRED", "FLAGGED", "MEMBER"],
@@ -57,7 +60,7 @@ function fakeTx(count = 1) {
 }
 
 describe("TRANSITIONS", () => {
-  it("is exactly the Phase 12 and Phase 13 table, with its movers", () => {
+  it("is exactly the Phase 12, 13 and 13b table, with its movers", () => {
     const listed = Object.entries(TRANSITIONS).flatMap(([from, tos]) =>
       Object.entries(tos!).map(([to, mover]) => `${from}→${to}:${mover}`),
     );

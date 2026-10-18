@@ -90,3 +90,33 @@ export function coinsForNaira(naira: string, rate: string): string | null {
   const cents = (big(n) * BigInt(100)) / big(r);
   return fromCents(cents);
 }
+
+// BTC (Phase 13b): the dollars at the live price, rounded down to whole
+// satoshis, plus a few satoshis no waiting deal on the wallet uses
+// (0.00491237 BTC), so a deposit matches one deal by amount alone. The
+// extra satoshis are worth cents and are the customer's to send.
+export function uniqueSats(
+  baseSats: bigint,
+  takenSats: readonly bigint[],
+  random: () => number = Math.random,
+): bigint | null {
+  const used = new Set(takenSats.map(String));
+  const offsets = Array.from({ length: 999 }, (_, i) => i + 1);
+  for (let i = offsets.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [offsets[i], offsets[j]] = [offsets[j]!, offsets[i]!];
+  }
+  for (const k of offsets) {
+    const candidate = baseSats + BigInt(k);
+    if (!used.has(String(candidate))) return candidate;
+  }
+  return null;
+}
+
+// "0.00491237" ↔ 491237 satoshis (8 decimals), exact.
+export function btcToSats(btc: string): bigint {
+  const [int = "0", frac = ""] = toDecimalString(btc).split(".");
+  if (frac.length > 8) throw new Error("More than 8 decimals");
+  return BigInt(int) * BigInt(100_000_000) + BigInt(frac.padEnd(8, "0") || "0");
+}
+export const satsToBtc = (sats: bigint) => unitsToDecimal(String(sats), 8);

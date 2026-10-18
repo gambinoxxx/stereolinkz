@@ -128,5 +128,7 @@ export function customerStatus(
       return { label: "Rate lock ended", tone: "gold" };
     case "FLAGGED":
       return { label: "Being checked", tone: "gold" };
+    case "RATE_TO_AGREE":
+      return { label: "Coins received", tone: "ok" };
   }
 }

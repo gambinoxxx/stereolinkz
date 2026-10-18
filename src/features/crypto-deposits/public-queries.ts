@@ -9,7 +9,7 @@ import { cache } from "react";
 
 import type { CryptoNetwork } from "@/generated/prisma/client";
 import { readSnapshot } from "@/features/boards/history";
-import { NETWORKS, OFFICIAL_TOKENS } from "@/features/crypto-deposits/tokens";
+import { DEALABLE_TOKENS, NETWORKS } from "@/features/crypto-deposits/tokens";
 import { db } from "@/lib/server/db";
 
 export type CryptoCoinOption = {
@@ -60,7 +60,7 @@ export const getCryptoDesk = cache(
 
     const coins: CryptoCoinOption[] = [];
     for (const row of snapshot.rows) {
-      const networks = OFFICIAL_TOKENS.filter(
+      const networks = DEALABLE_TOKENS.filter(
         (t) =>
           t.ticker === row.ticker &&
           wallets.some((w) => w.ticker === t.ticker && w.network === t.network),

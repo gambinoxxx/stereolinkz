@@ -9,9 +9,22 @@ change.
 
 ## Current Goal
 
-- Phase 13b: Data (BTC and ETH in the coin list, address checks, schema).
+- Phase 13b: Watcher (BTC Esplora provider, CoinGecko price, margin check
+  in the planner, RATE_TO_AGREE).
 
 ## Completed
+
+- 2026-10-18: Phase 13b, Data. Migration `20261018120000_btc_deposits`
+  (additive; dev branch only): CryptoNetwork BTC and ETH, status
+  RATE_TO_AGREE, Organization `cryptoMarginPct` (1.5) / `cryptoMinFeeUsd`
+  ($2), Deal `quoteUsd` / `feeUsd` / `payoutUsd` / `quotePrice` (fixed by
+  trigger `deal_market_quote_immutable`) and `confirmPrice`. `tokens.ts`:
+  BTC (native, 8 decimals, MARKET, dealable) and ETH (native, 18, never
+  dealable); `address.ts`: BTC base58check / bech32 / bech32m and ETH EIP-55
+  (`keccak.ts`, own keccak-256 checked against published vectors);
+  transitions DEPOSIT_SEEN → RATE_TO_AGREE (system) and RATE_TO_AGREE →
+  DEPOSIT_COMPLETE / CANCELLED (member); `uniqueSats`. Tests: keccak,
+  BIP-173/350 and EIP-55 vectors, satoshis, transitions.
 
 - 2026-10-17: Phase 13 complete. Tagged phase-13-complete. Done when:
   - [x] A real USDT TRC20 deposit is detected and confirmed automatically:

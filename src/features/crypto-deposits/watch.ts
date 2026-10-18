@@ -41,6 +41,10 @@ export function providerFor(network: CryptoNetwork): DepositProvider | null {
       return tronProvider({ decimalsFor });
     case "BEP20":
       return null; // not enabled (tokens.ts)
+    case "BTC":
+      return null; // Phase 13b: added with the BTC provider
+    case "ETH":
+      return null; // never a deal: checker and balances only
   }
 }
 

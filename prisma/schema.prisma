@@ -57,6 +57,9 @@ model Organization {
   cryptoMinQty        Decimal       @default(20) @db.Decimal(18, 2) // smallest deal, in coins
   cryptoMaxUsd        Decimal       @default(5000) @db.Decimal(18, 2) // above it: "Message us on WhatsApp"
   payoutAlertEmails   Boolean       @default(false) // team email when a crypto payout is due (only with Resend)
+  // Market-priced coins (BTC, Phase 13b): fee = max(margin %, minimum $)
+  cryptoMarginPct     Decimal       @default(1.5) @db.Decimal(5, 2)
+  cryptoMinFeeUsd     Decimal       @default(2) @db.Decimal(10, 2)
 
   memberships       Membership[]
   currencies        Currency[]
@@ -312,6 +315,7 @@ enum DealStatus {
   PAID_OUT // Phase 13
   EXPIRED // Phase 13
   FLAGGED // Phase 13
+  RATE_TO_AGREE // Phase 13b: a market-priced deposit fell below the payout; the team agrees on WhatsApp
 }
 
 // Crypto deposits (Phase 13). Networks the app can watch; the official
@@ -319,6 +323,8 @@ enum DealStatus {
 enum CryptoNetwork {
   TRC20
   BEP20
+  BTC // Phase 13b: Bitcoin itself
+  ETH // Phase 13b: checker and balances only, never a website deal
 }
 
 // One of our receiving addresses, watched read-only. No private key or
@@ -473,6 +479,13 @@ model Deal {
   payoutOverdueAlertAt DateTime? // the overdue alert went out (once)
   flagReason           String? // team only; never shown to the customer
   lastDepositCheckAt   DateTime? // on-demand checks: one per 10 s per deal
+  // Market-priced coins (BTC, Phase 13b): quoted in dollars. Fixed at
+  // creation (trigger), except confirmPrice, read when the deposit confirms.
+  quoteUsd             Decimal?          @db.Decimal(18, 2) // whole dollars the customer is selling
+  feeUsd               Decimal?          @db.Decimal(18, 2) // conversion fee
+  payoutUsd            Decimal?          @db.Decimal(18, 2) // quoteUsd − feeUsd: what the naira is worked out on
+  quotePrice           Decimal?          @db.Decimal(24, 8) // dollars per coin at quote
+  confirmPrice         Decimal?          @db.Decimal(24, 8) // dollars per coin when the deposit confirmed
   matchedTransfer      ObservedTransfer?
 
   trackingTokenHash String // SHA-256 of the customer's link token; the token itself is never stored

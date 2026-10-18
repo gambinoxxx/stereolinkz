@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   addDecimalStrings,
+  btcToSats,
+  satsToBtc,
+  uniqueSats,
   coinsForNaira,
   hexWordToUnits,
   sameAmount,
@@ -82,5 +85,23 @@ describe("coinsForNaira", () => {
     expect(coinsForNaira("795000", "1590")).toBe("500.00");
     expect(coinsForNaira("1000", "1590")).toBe("0.62");
     expect(coinsForNaira("1000", "0")).toBeNull();
+  });
+});
+
+describe("satoshis", () => {
+  it("convert exactly both ways", () => {
+    expect(btcToSats("0.00491237")).toBe(BigInt(491237));
+    expect(btcToSats("1")).toBe(BigInt(100000000));
+    expect(satsToBtc(BigInt(491237))).toBe("0.00491237");
+    expect(() => btcToSats("0.000000001")).toThrow();
+  });
+
+  it("add a free suffix the other waiting deals don't use", () => {
+    const base = BigInt(491000);
+    const got = uniqueSats(base, [BigInt(491001)], () => 0.999)!;
+    expect(got > base && got <= base + BigInt(999)).toBe(true);
+    expect(got).not.toBe(BigInt(491001));
+    const all = Array.from({ length: 999 }, (_, i) => base + BigInt(i + 1));
+    expect(uniqueSats(base, all)).toBeNull();
   });
 });

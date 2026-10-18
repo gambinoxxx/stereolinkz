@@ -24,7 +24,14 @@ export const TRANSITIONS: Partial<
     FLAGGED: "SYSTEM",
     CANCELLED: "MEMBER",
   },
-  DEPOSIT_SEEN: { DEPOSIT_COMPLETE: "SYSTEM", FLAGGED: "SYSTEM" },
+  DEPOSIT_SEEN: {
+    DEPOSIT_COMPLETE: "SYSTEM",
+    FLAGGED: "SYSTEM",
+    // Phase 13b: a market-priced deposit worth less than the payout.
+    RATE_TO_AGREE: "SYSTEM",
+  },
+  // The team agrees the payout on WhatsApp, or cancels.
+  RATE_TO_AGREE: { DEPOSIT_COMPLETE: "MEMBER", CANCELLED: "MEMBER" },
   DEPOSIT_COMPLETE: { PAID_OUT: "MEMBER" },
   // Re-quote (new rate and lock), flag a late deposit for a look, or cancel.
   EXPIRED: {

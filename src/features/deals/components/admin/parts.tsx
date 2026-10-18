@@ -88,6 +88,8 @@ export function teamStatusLabel(
       return { label: "Expired", tone: "off" };
     case "FLAGGED":
       return { label: "Flagged", tone: "bad" };
+    case "RATE_TO_AGREE":
+      return { label: "Rate to agree", tone: "gold" };
   }
 }
 

@@ -4,7 +4,11 @@ import "server-only";
 // the deposit check worked out again from the stored transfer, the payout
 // timer, wallets for Settings and unmatched transfers. Scoped by org.
 import { checkDeposit, type CheckKey } from "@/features/crypto-deposits/check";
-import { NETWORKS, OFFICIAL_TOKENS } from "@/features/crypto-deposits/tokens";
+import {
+  DEALABLE_TOKENS,
+  NETWORKS,
+  OFFICIAL_TOKENS,
+} from "@/features/crypto-deposits/tokens";
 import type { CryptoNetwork } from "@/generated/prisma/client";
 import { db } from "@/lib/server/db";
 
@@ -140,7 +144,7 @@ export async function countUnmatchedDeposits(organizationId: string) {
       organizationId,
       matchedDealId: null,
       blockTime: { gte: since },
-      OR: OFFICIAL_TOKENS.map((o) => ({
+      OR: DEALABLE_TOKENS.map((o) => ({
         network: o.network,
         tokenContract: o.contract,
       })),
@@ -155,7 +159,7 @@ export async function listUnmatchedDeposits(organizationId: string) {
       organizationId,
       matchedDealId: null,
       blockTime: { gte: since },
-      OR: OFFICIAL_TOKENS.map((o) => ({
+      OR: DEALABLE_TOKENS.map((o) => ({
         network: o.network,
         tokenContract: o.contract,
       })),
