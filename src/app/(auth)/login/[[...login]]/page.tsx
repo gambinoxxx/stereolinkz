@@ -36,6 +36,7 @@ export default async function LoginPage() {
       <div className="flex items-center justify-center px-6 py-8">
         <div className="flex w-full max-w-[380px] flex-col gap-4">
           <SignIn
+            fallbackRedirectUrl="/admin"
             appearance={{
               variables: {
                 colorPrimary: "var(--accent-primary)",

@@ -15,6 +15,17 @@ change.
 
 ## Completed
 
+- 2026-10-18: Sign-in redirect fix. After signing in at /login, people
+  landed on "/" in production (NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
+  is missing there). `<SignIn fallbackRedirectUrl="/admin">` (not force, so
+  an earlier page still wins); the env variable stays as a backup. Signed-out
+  visits to an admin page now keep it: the proxy passes the requested path
+  in `x-rateboard-path` (always overwritten), and `requireMember()` sends
+  them to `/login?redirect_url=<path>`, for /admin paths only
+  (`lib/path-header.ts`, tested). Checked with the env variable blank: plain
+  /login → /admin; /admin/deals/SLZ-1009 signed out → sign-in → back to
+  the deal; a spoofed header is ignored.
+
 - 2026-10-18: Phase 13b complete. Tagged phase-13b-complete. Done when:
   - [x] A real BTC deposit is detected and completes automatically within
     the margin: on the dev branch SLZ-1013 ($50, fee $2, payout $48) was

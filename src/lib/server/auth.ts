@@ -1,10 +1,12 @@
 import "server-only";
 
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import type { MemberRole } from "@/generated/prisma/enums";
+import { loginUrlFor, PATH_HEADER } from "@/lib/path-header";
 import { db } from "@/lib/server/db";
 
 export type Member = {
@@ -44,7 +46,7 @@ const lookupMember = cache(
 // For pages, layouts and server actions: never returns without a member.
 export async function requireMember(): Promise<Member> {
   const { userId, member } = await lookupMember();
-  if (!userId) redirect("/login");
+  if (!userId) redirect(loginUrlFor((await headers()).get(PATH_HEADER)));
   if (!member) redirect("/not-authorized");
   return member;
 }

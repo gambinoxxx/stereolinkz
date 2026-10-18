@@ -1,9 +1,18 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+import { PATH_HEADER } from "@/lib/path-header";
 
 // Attaches the Clerk session to every request. It does not protect routes:
 // access is checked next to the data (requireMember() in every admin
-// layout, page query, server action and route handler).
-export default clerkMiddleware();
+// layout, page query, server action and route handler). It also passes the
+// requested path on, always overwritten so a client can't set it, so a
+// signed-out visit to /admin/deals/SLZ-1009 can return there after sign-in.
+export default clerkMiddleware((_auth, req) => {
+  const headers = new Headers(req.headers);
+  headers.set(PATH_HEADER, req.nextUrl.pathname + req.nextUrl.search);
+  return NextResponse.next({ request: { headers } });
+});
 
 export const config = {
   matcher: [
