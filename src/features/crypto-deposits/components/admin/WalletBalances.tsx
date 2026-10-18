@@ -19,10 +19,12 @@ export type WalletCard = {
 
 const REFRESH_MS = 60_000;
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-6)}`;
-// "24847.874401" → "24,847.874401"
+// "24847.874401" → "24,847.874401". At most 8 decimals, rounded down (ETH
+// has 18; USDT and BTC fit already).
 const amount = (v: string) => {
   const [int = "0", frac] = v.split(".");
-  return `${formatRate(int)}${frac ? `.${frac}` : ""}`;
+  const shown = frac?.slice(0, 8).replace(/0+$/, "");
+  return `${formatRate(int)}${shown ? `.${shown}` : ""}`;
 };
 
 // Live balances of our watched wallets (read-only), refreshed every minute

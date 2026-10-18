@@ -5,14 +5,53 @@ change.
 
 ## Current Phase
 
-- Phase 13b: BTC deposits, ETH transfer checker, wallet balances, in progress
+- Phase 13b: BTC deposits, ETH transfer checker, wallet balances, complete
+  (tagged `phase-13b-complete`); production migrations applied, push pending
 
 ## Current Goal
 
-- Phase 13b: verification (live BTC deposit on the dev branch, screens at
-  1440 / 390), then end-of-phase checks.
+- Push Phase 13b and the brand polish on the owner's go, then the owner's
+  production setup (below), then Phase 14.
 
 ## Completed
+
+- 2026-10-18: Phase 13b complete. Tagged phase-13b-complete. Done when:
+  - [x] A real BTC deposit is detected and completes automatically within
+    the margin: on the dev branch SLZ-1013 ($50, fee $2, payout $48) was
+    matched to a real payment (0.02388061 BTC, tx e9a49c36…, to a public
+    test address; `expectedQty` pointed at it), DEPOSIT_SEEN with 0
+    confirmations, then DEPOSIT_COMPLETE by the watcher at 1 confirmation;
+    quote $81,896.97, confirm $81,894.81 (within the margin). All moves
+    SYSTEM; customer REQUESTED.
+  - [x] A price drop beyond the margin, underpayment, wrong address and
+    late deposits are held, flagged or expired, never completed:
+    `plan.test.ts` ("holds for the team when the price fell beyond the
+    margin", "completes when the coins still cover the payout", "waits,
+    never guesses, when no price is available", "allows a block a few
+    minutes after the lock, not much later", "still flags an underpayment
+    before looking at the price", "expires a late deposit, never completes
+    it"), `check.test.ts` ("flags a transfer to another address", "flags an
+    underpayment with what arrived", "expires a late deposit"), and
+    `market.db.test.ts` on the dev branch. RATE_TO_AGREE checked through the
+    buttons: SLZ-1018 (forced on dev) showed "coins received" to the
+    customer, and "Agree the payout" saved ₦52,000 with a note, logged
+    RATE_CHANGED + STATUS_CHANGED (MEMBER) and started the payout timer.
+  - [x] An ETH transfer's confirmations show on both the customer and admin
+    checker: a real transfer to the dev ETH test address (0xbb15bb4f…,
+    0.0000945 ETH) showed "Sent to our ETH address · Transaction succeeded ·
+    64 / 64 · final" on `/deal/check-eth` and `/admin/deals/wallets`;
+    someone else's transfer showed "wasn't sent to our ETH address";
+    unknown hash "can't find that transaction".
+  - [x] The admin balances page shows live USDT, BTC and ETH balances: BTC
+    (confirmed + unconfirmed) and ETH on the page; USDT + TRX, BTC and ETH
+    in `providers/live.test.ts` (LIVE_PROVIDERS=1, with ETHERSCAN_API_KEY).
+  Verification fixes: native-coin check row ("Native BTC, not a token"),
+  network names on the admin deal page ("on Bitcoin", "BTC · Bitcoin"),
+  agreed naira formatted, balance times in the org timezone, balances shown
+  to at most 8 decimals. Screens at 1440 and 390: sell form, deposit page,
+  coins-received view, admin BTC detail + agree panel, wallets, ETH checker,
+  Settings. Checks: build, lint, tsc, 438 tests (+8 opt-in DB, +5 live
+  provider tests), format:check.
 
 - 2026-10-18: Brand polish. Stereolinkz favicon set (`src/app/favicon.ico`,
   `icon.png` 512, `apple-icon.png` 180, by file convention; gold bars on
@@ -965,7 +1004,12 @@ change.
 
 ## Next Up
 
-- Phase 13: Crypto deposits (`deal-crypto*.html`, `deal-detail-crypto.html`)
+- Owner, Phase 13b in production (after the push): ETHERSCAN_API_KEY in
+  Vercel (done 2026-10-18); add the real BTC (and ETH) receiving addresses in
+  Settings → Deal desk, checked on mempool.space / Etherscan; confirm the fee
+  wording ("Conversion fee: $6 (1.5%, at least $2). It covers price changes
+  and network fees"); a small real BTC deposit through the website; crypto
+  stays off until legal go-ahead.
 - Owner, Phase 12 in production: no legal advice yet ("just testing",
   2026-10-17), so services go back off after testing; verify a sending
   domain in Resend, set team email on, and the real payment accounts
@@ -1653,6 +1697,17 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-18: Phase 13b complete and tagged `phase-13b-complete`. Owner
+  applied `20261018120000_btc_deposits` and `20261018130000_deal_amount_8dp`
+  to production (status "up to date") before the push; both are additive
+  and the Phase 13 code runs on them. Brand polish committed on main
+  (favicon set, branded emails); its 390px header crowding (label against
+  the logo) is the owner's call. Dev branch test data: wallets
+  `qa-wallet-btc`, `qa-wallet-eth` and a TRC20 test wallet (all deactivated),
+  deals SLZ-1013…1018. Opt-in DB tests: the overdue sweep is organization
+  wide, so overdue QA deals on dev slow it (Resend calls); a slow dev branch
+  once timed the hooks out and left TST- rows (cleaned).
 
 - 2026-10-17: Phase 13 complete and tagged `phase-13-complete`, committed
   but NOT pushed. Production still needs, in order: (1) apply migration
