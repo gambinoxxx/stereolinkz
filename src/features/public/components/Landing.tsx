@@ -15,6 +15,7 @@ import { CoinRain } from "@/features/public/components/CoinRain";
 import { FaqList } from "@/features/public/components/FaqList";
 import { Globe } from "@/features/public/components/Globe";
 import { HeroStage } from "@/features/public/components/HeroStage";
+import { LandingMotion } from "@/features/public/components/LandingMotion";
 import { Mega } from "@/features/public/components/Mega";
 import { MotionRoot } from "@/features/public/components/MotionRoot";
 import {
@@ -674,6 +675,7 @@ export function Landing({ data }: { data: PublicLanding }) {
       </div>
 
       <MotionRoot />
+      <LandingMotion />
     </div>
   );
 }

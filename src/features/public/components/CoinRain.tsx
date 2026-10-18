@@ -1,9 +1,3 @@
-"use client";
-
-import { useRef } from "react";
-
-import { useInView } from "@/features/public/motion/hooks";
-
 const SYMBOLS = ["₦", "$", "£", "€", "₮", "₿"];
 const KINDS = ["g", "v", "g", "v", "t", "o"];
 
@@ -17,12 +11,11 @@ const COINS = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 // Coins falling behind the closing call to action. A CSS animation that
-// only plays while the box is on screen; off with reduced motion.
+// plays only while the box is on screen (.run, set by LandingMotion);
+// hidden with reduced motion.
 export function CoinRain() {
-  const box = useRef<HTMLDivElement>(null);
-  const inView = useInView(box);
   return (
-    <div className={`rain${inView ? " run" : ""}`} ref={box} aria-hidden="true">
+    <div className="rain" data-motion="rain" aria-hidden="true">
       {COINS.map((c, i) => (
         <span
           key={i}
