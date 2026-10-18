@@ -5,12 +5,11 @@ change.
 
 ## Current Phase
 
-- Phase 13: Crypto deposits, complete
+- Phase 13b: BTC deposits, ETH transfer checker, wallet balances, in progress
 
 ## Current Goal
 
-- None. Next: Phase 14 (Hardening and launch), after the owner's Phase 13
-  deploy steps below.
+- Phase 13b: Data (BTC and ETH in the coin list, address checks, schema).
 
 ## Completed
 
@@ -964,6 +963,20 @@ change.
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
+
+- 2026-10-18: Phase 13b added before Phase 14 (owner). BTC is sold online
+  with a conversion margin: the customer is quoted in dollars, the fee is
+  max(1.5%, $2) taken from the payout, and the BTC amount to send is the
+  dollars at the live price plus a unique number of satoshis. At full
+  confirmations the deposit completes automatically if the coins are still
+  worth at least the payout dollars; otherwise it waits in RATE_TO_AGREE for
+  the team to agree on WhatsApp. ETH is never a website deal: a read-only
+  transfer checker (customer page and admin) and the admin balance view
+  only. Providers: Esplora (Blockstream; mempool.space as fallback URL) for
+  BTC, CoinGecko simple price (no key) for prices, Etherscan API V2 (free
+  tier covers Ethereum mainnet; ETHERSCAN_API_KEY) for ETH. Customer-facing
+  fee wording ("Conversion fee: $6 (1.5%), covers price changes and network
+  fees") is a draft for the owner to confirm.
 
 - 2026-10-17: Phase 13 decisions (owner, after the research).
   - **Tokens: USDT on TRC20 only** (`TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`,

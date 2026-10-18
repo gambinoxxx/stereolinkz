@@ -945,6 +945,60 @@ BTC/ETH, per-deal addresses, automatic payouts.
 
 ---
 
+## Phase 13b: BTC deposits, ETH transfer checker, wallet balances
+
+- **Goal:** Customers sell BTC online with the same watched-deposit flow as
+  USDT, priced with a conversion margin so small price moves complete
+  automatically; ETH stays on WhatsApp but both sides can check an ETH
+  transfer's confirmations; the team sees our wallets' live balances.
+- **Depends on:** Phase 13
+- **Read:** `architecture.md` → Deal Desk (crypto), Invariants 14–16;
+  Phase 13 decisions in `progress-tracker.md`
+- **Design:** none new; reuse `deal-crypto*.html`, `deal-detail-crypto.html`
+  (BTC rows follow the USDT layout)
+
+### Build
+
+**Data**
+- BTC in the vetted coin list (native, 8 decimals, priced from the market);
+  ETH listed for the checker and balances only (never a website deal)
+- BTC address checks (base58check 1… / 3…, bech32 bc1q…, bech32m bc1p…);
+  ETH address checks (0x + 40 hex, EIP-55 checksum); keys and phrases refused
+- Deal fields for market-priced coins: dollar amount, conversion fee,
+  payout dollars, coin price at quote and at confirmation; Organization
+  margin % (1.5) and minimum fee ($2); status RATE_TO_AGREE
+
+**Watcher**
+- BTC provider (Esplora API: Blockstream, mempool.space as a fallback URL);
+  coin price provider (CoinGecko simple price)
+- At full confirmations, a BTC deposit completes only if the coins are still
+  worth at least the payout dollars at the current price; otherwise
+  RATE_TO_AGREE for the team to agree on WhatsApp. No price → wait, never guess.
+
+**Customer and admin**
+- Sell crypto form: BTC with dollars ⇄ naira, the BTC amount to send, and
+  the conversion fee shown before sending; deposit page with BTC
+  confirmations; "rate to agree" view
+- Admin: BTC detail (prices at quote and confirmation, margin), agree-payout
+  panel for RATE_TO_AGREE, wallet balances page (USDT TRC20, BTC, ETH)
+- ETH transfer checker: on a public page for customers (rate-limited, read
+  only) and in the admin; shows destination, amount, status, confirmations
+
+### Done when
+
+- [ ] A real BTC deposit is detected and completes automatically within the margin
+- [ ] A price drop beyond the margin, underpayment, wrong address and late
+      deposits are held, flagged or expired, never completed (fixture tests)
+- [ ] An ETH transfer's confirmations show on both the customer and admin checker
+- [ ] The admin balances page shows live USDT, BTC and ETH balances
+
+### Not in this phase
+
+ETH or BNB website deals, BEP20 tokens, per-deal addresses, automatic
+payouts, refunds from the app.
+
+---
+
 ## Phase 14: Hardening and launch
 
 - **Goal:** Production-ready and live for Stereolinkz, with every
