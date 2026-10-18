@@ -11,13 +11,11 @@ import { parseWalletInput } from "@/features/crypto-deposits/wallet-input";
 import { Prisma } from "@/generated/prisma/client";
 import { type ActionResult, safeAction } from "@/lib/server/action";
 import { db } from "@/lib/server/db";
+import { revalidatePublicPages } from "@/features/public/revalidate";
 
 function revalidateWallets() {
-  for (const path of [
-    "/admin/settings/deal-desk",
-    "/deal/new",
-    "/deal/new/crypto",
-  ])
+  revalidatePublicPages();
+  for (const path of ["/admin/settings/deal-desk", "/admin/deals/wallets"])
     revalidatePath(path);
 }
 

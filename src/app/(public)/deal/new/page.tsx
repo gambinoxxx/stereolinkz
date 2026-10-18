@@ -23,8 +23,9 @@ import {
 } from "@/features/deals/services";
 
 export const metadata: Metadata = { title: "Start a deal · Stereolinkz" };
-// The list follows Settings → Deal desk straight away.
-export const dynamic = "force-dynamic";
+// Cached (ISR): Settings, wallet changes and board generation refresh it
+// at once (revalidatePublicPages); at most an hour old otherwise.
+export const revalidate = 3600;
 
 const ICONS = {
   "school-fees": GraduationCap,
@@ -43,7 +44,7 @@ export default async function DealStartPage() {
     : [];
   const desk =
     ctx && ctx.org.servicesEnabled.includes("CRYPTO_SELL")
-      ? await getCryptoDesk(ctx.org.id)
+      ? await getCryptoDesk(ctx.org.id, { livePrices: false })
       : null;
   const coins = desk?.coins ?? [];
   // "USDT on TRC20 and Bitcoin (BTC)": a stablecoin with its networks,

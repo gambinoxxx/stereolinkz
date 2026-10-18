@@ -6,13 +6,14 @@ import { orgSettingsInput } from "@/features/settings/schema";
 import { type ActionResult, safeAction } from "@/lib/server/action";
 import { uploadImage, validateImage } from "@/lib/server/blob";
 import { db } from "@/lib/server/db";
+import { revalidatePublicPages } from "@/features/public/revalidate";
 
 // Pages that read the organization's settings. Saved boards don't change:
 // each keeps the brand copied into its snapshot (Invariants 3 and 5).
 // "/" reads the name, colours and WhatsApp number for its links.
 function revalidateSettingsPages() {
+  revalidatePublicPages();
   for (const path of [
-    "/",
     "/admin",
     "/admin/settings",
     "/admin/generator",

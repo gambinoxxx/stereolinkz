@@ -32,6 +32,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { assertNever } from "@/lib/assert-never";
 import { db } from "@/lib/server/db";
 import { isCheckViolation } from "@/lib/server/prisma-errors";
+import { revalidatePublicPages } from "@/features/public/revalidate";
 
 export type GeneratedBoard = {
   boardId: string;
@@ -63,8 +64,8 @@ type Prepared<Row> =
 // shows the newest board of each type (Invariant 13): it changes when a
 // board is generated, never when a rate is only saved.
 function revalidateBoardPages() {
+  revalidatePublicPages();
   for (const path of [
-    "/",
     "/admin",
     "/admin/forex",
     "/admin/pof",
@@ -280,7 +281,7 @@ const regenerate = safeAction(
 
     revalidatePath("/admin/history");
     // A new image of the newest board is what the landing page shows.
-    revalidatePath("/");
+    revalidatePublicPages();
     const { renderMs, uploadMs, saveMs } = stored.timings;
     console.info(
       `[regenerateBoard] ${template.key}: render ${renderMs} ms, upload ${uploadMs} ms, save ${saveMs} ms (${stored.image.byteSize} bytes)`,

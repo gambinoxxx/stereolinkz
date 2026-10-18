@@ -40,8 +40,14 @@ export type CryptoDesk = {
   ethCheck: boolean; // an ETH wallet is set up: link to /deal/check-eth
 };
 
+// livePrices: false lists market-priced coins (BTC) without a price, for
+// the cached pages; the sell form then fetches the live price in the
+// browser (getMarketPrices). The server quotes always use the live price.
 export const getCryptoDesk = cache(
-  async (organizationId: string): Promise<CryptoDesk | null> => {
+  async (
+    organizationId: string,
+    { livePrices = true }: { livePrices?: boolean } = {},
+  ): Promise<CryptoDesk | null> => {
     const [org, board, wallets] = await Promise.all([
       db.organization.findUniqueOrThrow({
         where: { id: organizationId },
@@ -83,8 +89,10 @@ export const getCryptoDesk = cache(
       const token = DEALABLE_TOKENS.find((t) => t.ticker === row.ticker)!;
       // No live price, no online quote for a market-priced coin.
       const priceUsd =
-        token.pricing === "MARKET" ? await usdPrice(row.ticker) : null;
-      if (token.pricing === "MARKET" && !priceUsd) continue;
+        token.pricing === "MARKET" && livePrices
+          ? await usdPrice(row.ticker)
+          : null;
+      if (token.pricing === "MARKET" && livePrices && !priceUsd) continue;
       coins.push({
         ticker: row.ticker,
         name: row.name,

@@ -8,17 +8,13 @@ import {
 } from "@/features/deals/settings-schema";
 import { type ActionResult, safeAction } from "@/lib/server/action";
 import { db } from "@/lib/server/db";
+import { revalidatePublicPages } from "@/features/public/revalidate";
 
 // The settings tab, and the public pages that list services or show an
 // account (they render per request, but drop any cached copy too).
 function revalidateDealSettings() {
-  for (const path of [
-    "/",
-    "/admin/settings/deal-desk",
-    "/admin/deals",
-    "/deal/new",
-    "/deal/new/crypto",
-  ])
+  revalidatePublicPages();
+  for (const path of ["/admin/settings/deal-desk", "/admin/deals"])
     revalidatePath(path);
 }
 

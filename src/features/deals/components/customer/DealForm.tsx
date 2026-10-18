@@ -4,9 +4,10 @@ import { put } from "@vercel/blob/client";
 import { ArrowRight, Info, Loader2, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 
 import { BankMark } from "@/components/bank-mark";
+import { useFormToken } from "@/features/deals/components/customer/use-form-token";
 import {
   DEAL_COPY,
   INTL_PURPOSE_LABELS,
@@ -48,10 +49,22 @@ export type DealFormProps = {
   enabled: DealService[];
   forex: Board<DealForexRow>;
   pof: Board<DealPofRow>;
-  formToken: string;
   cashLink: string;
-  prefill: { amount?: string; currency?: string; dir?: "sell" | "buy" };
 };
+
+// The landing page's calculator links here with ?amount=, ?currency= and
+// ?dir=. Read in the browser (the page is cached), checked like any input.
+function readPrefill(search: string) {
+  const q = new URLSearchParams(search);
+  const amount = q.get("amount") ?? undefined;
+  const currency = q.get("currency")?.toUpperCase();
+  const dir = q.get("dir");
+  return {
+    amount: amount && /^[\d,.\s]{1,16}$/.test(amount) ? amount : undefined,
+    currency: currency && /^[A-Z]{3}$/.test(currency) ? currency : undefined,
+    dir: dir === "buy" || dir === "sell" ? dir : undefined,
+  } as const;
+}
 
 const MAX_FILES = 3;
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -73,25 +86,20 @@ export function DealForm({
   enabled,
   forex,
   pof,
-  formToken,
   cashLink,
-  prefill,
 }: DealFormProps) {
   const id = useId();
   const router = useRouter();
+  const getFormToken = useFormToken();
   const currencies = forex?.rows ?? [];
   const firstCode =
-    (prefill.currency &&
-      currencies.some((r) => r.code === prefill.currency) &&
-      prefill.currency) ||
-    currencies[slug === "school-fees" && currencies[1] ? 1 : 0]?.code ||
-    "";
+    currencies[slug === "school-fees" && currencies[1] ? 1 : 0]?.code || "";
   const forexDirs = (["sell", "buy"] as const).filter((d) =>
     enabled.includes(d === "sell" ? "FOREX_SELL" : "FOREX_BUY"),
   );
 
   const [v, setV] = useState({
-    amount: prefill.amount ?? "",
+    amount: "",
     currency: firstCode,
     country: slug === "pay-abroad" ? PAY_COUNTRIES[0]! : SCHOOL_COUNTRIES[0]!,
     schoolName: "",
@@ -106,9 +114,7 @@ export function DealForm({
     neededBy: "",
     pofPurpose: "STUDY_VISA" as (typeof POF_PURPOSES)[number],
     destinationCountry: "",
-    dir: (prefill.dir && forexDirs.includes(prefill.dir)
-      ? prefill.dir
-      : (forexDirs[0] ?? "sell")) as "sell" | "buy",
+    dir: (forexDirs[0] ?? "sell") as "sell" | "buy",
     payoutBank: "",
     payoutAccount: "",
     name: "",
@@ -119,6 +125,24 @@ export function DealForm({
   });
   const set = <K extends keyof typeof v>(key: K, value: (typeof v)[K]) =>
     setV((s) => ({ ...s, [key]: value }));
+  // Apply the calculator's prefill once, after the first render.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const p = readPrefill(window.location.search);
+      setV((s) => ({
+        ...s,
+        amount: p.amount ?? s.amount,
+        currency:
+          p.currency && currencies.some((r) => r.code === p.currency)
+            ? p.currency
+            : s.currency,
+        dir: p.dir && forexDirs.includes(p.dir) ? p.dir : s.dir,
+      }));
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // Once per page: the boards don't change while it's open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -213,7 +237,6 @@ export function DealForm({
         : undefined,
     consent: v.consent,
     website: v.website,
-    formToken,
   };
 
   function addFiles(list: FileList | null) {
@@ -244,7 +267,7 @@ export function DealForm({
     if (pending) return;
     setFormError(null);
     const local: Record<string, string> = {};
-    const parsed = submitDealInput.safeParse(payload);
+    const parsed = submitDealInput.safeParse({ ...payload, formToken: "" });
     if (!parsed.success)
       for (const issue of parsed.error.issues)
         local[issue.path.join(".")] ??= issue.message;
@@ -257,7 +280,10 @@ export function DealForm({
     }
     setErrors({});
     setPending("Sending…");
-    const result = await submitDeal(payload);
+    const result = await submitDeal({
+      ...payload,
+      formToken: await getFormToken(),
+    });
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
       setFormError(result.error);

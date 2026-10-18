@@ -3,7 +3,13 @@
 import { ArrowRight, ArrowUpDown, Check, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, type FormEvent, useId, useState } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 
 import { coinsForNaira } from "@/features/crypto-deposits/amounts";
 import {
@@ -12,7 +18,9 @@ import {
 } from "@/features/crypto-deposits/market-quote";
 import { nameCheck } from "@/features/crypto-deposits/names";
 import type { CryptoDesk } from "@/features/crypto-deposits/public-queries";
+import { useMarketPrices } from "@/features/crypto-deposits/components/use-market-prices";
 import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
+import { useFormToken } from "@/features/deals/components/customer/use-form-token";
 import { submitCryptoDeal } from "@/features/deals/public-actions";
 import { amountString } from "@/features/deals/schema";
 import { estimateNaira } from "@/features/public/estimate";
@@ -26,16 +34,29 @@ const digits = (v: string) => v.replace(/[,\s]/g, "");
 // deal-crypto.html. Figures here are for display; the server quotes again
 // from the board it reads itself, and sets the exact amount to send.
 export function CryptoForm({
-  desk,
-  formToken,
+  desk: cachedDesk,
   otherCoinsLink,
 }: {
-  desk: CryptoDesk;
-  formToken: string;
+  desk: CryptoDesk; // from the cached page: market coins have no price yet
   otherCoinsLink: string;
 }) {
   const id = useId();
   const router = useRouter();
+  const getFormToken = useFormToken();
+  const prices = useMarketPrices(
+    cachedDesk.coins.some((c) => c.pricing === "MARKET"),
+  );
+  const desk = useMemo(
+    () => ({
+      ...cachedDesk,
+      coins: cachedDesk.coins.map((c) =>
+        c.pricing === "MARKET"
+          ? { ...c, priceUsd: prices?.[c.ticker] ?? null }
+          : c,
+      ),
+    }),
+    [cachedDesk, prices],
+  );
   const [v, setV] = useState({
     ticker: desk.coins[0]!.ticker,
     network: desk.coins[0]!.networks[0]!.network,
@@ -152,7 +173,6 @@ export function CryptoForm({
     customer: { name: v.name, whatsapp: v.whatsapp, email: v.email },
     consent: v.consent,
     website: v.website,
-    formToken,
   };
 
   async function onSubmit(event: FormEvent) {
@@ -160,7 +180,10 @@ export function CryptoForm({
     if (pending) return;
     setFormError(null);
     const local: Record<string, string> = {};
-    const parsed = submitCryptoDealInput.safeParse(payload);
+    const parsed = submitCryptoDealInput.safeParse({
+      ...payload,
+      formToken: "",
+    });
     if (!parsed.success)
       for (const issue of parsed.error.issues)
         local[issue.path.join(".")] ??= issue.message;
@@ -183,7 +206,10 @@ export function CryptoForm({
     }
     setErrors({});
     setPending(true);
-    const result = await submitCryptoDeal(payload);
+    const result = await submitCryptoDeal({
+      ...payload,
+      formToken: await getFormToken(),
+    });
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
       setFormError(result.error);
@@ -312,13 +338,38 @@ export function CryptoForm({
                       inputMode="decimal"
                       autoComplete="off"
                       placeholder="0"
-                      value={v.ngn}
+                      value={v.ngn || nairaFor(v.qty, coin)}
                       onChange={(e) => onNgn(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
               {fieldError("qty")}
+              {market && !coin.priceUsd && (
+                <div className={`note${prices ? " warn" : ""}`} role="status">
+                  {prices ? (
+                    <Info
+                      size={18}
+                      strokeWidth={2.2}
+                      aria-hidden="true"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    />
+                  ) : (
+                    <Loader2
+                      size={18}
+                      strokeWidth={2.2}
+                      aria-hidden="true"
+                      className="animate-spin"
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    />
+                  )}
+                  <span>
+                    {prices
+                      ? `We can’t get the live ${coin.ticker} price right now. Try again in a minute, or ask us on WhatsApp.`
+                      : `Getting the live ${coin.ticker} price…`}
+                  </span>
+                </div>
+              )}
               {market && coin.priceUsd && (
                 <div className="note ok">
                   <Info

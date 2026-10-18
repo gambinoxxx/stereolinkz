@@ -15,7 +15,10 @@ import type { EthCheck } from "@/features/crypto-deposits/providers/eth";
 import { usdPrice } from "@/features/crypto-deposits/prices";
 import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
-import { officialToken } from "@/features/crypto-deposits/tokens";
+import {
+  DEALABLE_TOKENS,
+  officialToken,
+} from "@/features/crypto-deposits/tokens";
 import {
   checkDeposits,
   type ClaimResult,
@@ -42,6 +45,7 @@ import {
   checkFormToken,
   createTrackingToken,
   hashIp,
+  issueFormToken,
 } from "@/features/deals/security";
 import type { ActionResult } from "@/lib/server/action";
 import {
@@ -94,6 +98,37 @@ function fieldErrors(issues: { path: PropertyKey[]; message: string }[]) {
     out[issue.path.map(String).join(".")] ??= issue.message;
   return out;
 }
+
+// ── Opening a form ────────────────────────────────────────────────────
+// The deal forms are cached pages, so nothing per visitor is in their HTML:
+// the signed timestamp for the bot check is fetched when the form opens.
+// No database, no input.
+export const startDealForm = publicAction(
+  "startDealForm",
+  async (): Promise<ActionResult<{ formToken: string }>> => ({
+    ok: true,
+    data: { formToken: issueFormToken() },
+  }),
+);
+
+// Live dollar prices of the market-priced coins (BTC) for the sell form's
+// estimate, fetched in the browser and refreshed while it's open. From the
+// price feed's 30 s cache; null when there's no price (the form says so).
+// The server quotes again at submit, whatever the form showed.
+const MARKET_TICKERS = [
+  ...new Set(
+    DEALABLE_TOKENS.filter((t) => t.pricing === "MARKET").map((t) => t.ticker),
+  ),
+];
+export const getMarketPrices = publicAction(
+  "getMarketPrices",
+  async (): Promise<ActionResult<Record<string, string | null>>> => {
+    const prices = await Promise.all(
+      MARKET_TICKERS.map(async (t) => [t, await usdPrice(t)] as const),
+    );
+    return { ok: true, data: Object.fromEntries(prices) };
+  },
+);
 
 // ── Submit ────────────────────────────────────────────────────────────
 

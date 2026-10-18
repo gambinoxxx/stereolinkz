@@ -3,7 +3,7 @@ import "server-only";
 // What the public deal pages read (Invariant 14): the public organization
 // (PUBLIC_ORG_SLUG), which services it has switched on, and the latest
 // Forex and POF board snapshots for estimates. Never the rate tables.
-// Rendered per request (the forms carry a fresh signed timestamp).
+// Cached with the pages that read it (ISR; revalidatePublicPages).
 import { cache } from "react";
 
 import { readSnapshot } from "@/features/boards/history";
