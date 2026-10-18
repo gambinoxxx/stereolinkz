@@ -3,7 +3,7 @@
 // The ONLY unauthenticated writes in the app (Invariant 14). Every action
 // runs through publicAction: generic errors, nothing personal in the logs.
 // Customers reach an existing deal only with its tracking token.
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
@@ -59,6 +59,9 @@ import {
 } from "@/lib/server/deal-files";
 import { db } from "@/lib/server/db";
 import { compareDecimalStrings } from "@/lib/decimal";
+import { checkCode, programmeSettings } from "@/features/referrals/attach";
+import { REF_COOKIE } from "@/features/referrals/rules";
+import type { NewDeal } from "@/features/deals/create";
 
 const CHECK = "Please check the highlighted fields.";
 const TOO_MANY =
@@ -130,6 +133,46 @@ export const getMarketPrices = publicAction(
   },
 );
 
+// ── Referral codes (Phase 13c) ────────────────────────────────────────
+// The form's optional code (prefilled from the ?ref= cookie). Unknown or
+// inactive: a field error, and the customer can submit without it. Off or
+// not for this service: ignored. The fraud and new-customer rules run
+// when the deal is created, and only the team sees their outcome.
+async function referralFor(
+  organizationId: string,
+  raw: string | undefined,
+  service: NewDeal["service"],
+): Promise<
+  | { ok: true; referral: NewDeal["referral"] }
+  | { ok: false; result: ActionResult<never> }
+> {
+  const now = new Date();
+  const check = await checkCode(organizationId, raw, service, now);
+  if (!check.ok)
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        error: check.error,
+        fieldErrors: { referralCode: check.error },
+      },
+    };
+  if (!check.code) return { ok: true, referral: undefined };
+  const settings = await programmeSettings(organizationId);
+  return {
+    ok: true,
+    referral: {
+      code: check.code,
+      newCustomersOnly: settings.referralNewCustomersOnly,
+    },
+  };
+}
+
+// Once a deal exists, the ?ref= cookie has done its job.
+async function clearReferralCookie() {
+  (await cookies()).delete(REF_COOKIE);
+}
+
 // ── Submit ────────────────────────────────────────────────────────────
 
 export const submitDeal = publicAction(
@@ -175,6 +218,9 @@ export const submitDeal = publicAction(
         ? { ...details, bankName: quote.bankName }
         : details;
 
+    const ref = await referralFor(ctx.org.id, input.referralCode, service);
+    if (!ref.ok) return ref.result;
+
     const ip = await clientIp();
     const { token, hash } = createTrackingToken();
     try {
@@ -196,7 +242,9 @@ export const submitDeal = publicAction(
         actor: { type: "CUSTOMER" },
         message: "Requested on the website",
         limits: WEBSITE_LIMITS,
+        referral: ref.referral,
       });
+      await clearReferralCookie();
       // Emails go after the response; they never hold up or fail the deal.
       after(() => notifyNewDeal(deal.id, token));
       return { ok: true, data: { ref: deal.ref, token } };
@@ -324,6 +372,13 @@ export const submitCryptoDeal = publicAction(
       };
     }
 
+    const ref = await referralFor(
+      ctx.org.id,
+      input.referralCode,
+      "CRYPTO_SELL",
+    );
+    if (!ref.ok) return ref.result;
+
     const ip = await clientIp();
     const tracking = createTrackingToken();
     try {
@@ -361,7 +416,9 @@ export const submitCryptoDeal = publicAction(
           lockMinutes: desk.lockMinutes,
           market: marketTerms?.quote,
         },
+        referral: ref.referral,
       });
+      await clearReferralCookie();
       after(() => notifyNewDeal(deal.id, tracking.token));
       return { ok: true, data: { ref: deal.ref, token: tracking.token } };
     } catch (error) {

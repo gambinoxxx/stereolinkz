@@ -174,6 +174,8 @@ export const submitDealInput = z
     // signed time the form was issued.
     website: z.string().max(200),
     formToken: z.string().max(200),
+    // Referral programme (Phase 13c): optional, checked on the server.
+    referralCode: z.string().max(40).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.details.service === "POF" && value.currency !== "NGN")

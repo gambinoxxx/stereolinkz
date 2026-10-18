@@ -18,6 +18,11 @@ import { nairaText } from "@/features/deals/format";
 import { notifyPaidOut } from "@/features/deals/notify";
 import { normalizeRef } from "@/features/deals/refs";
 import {
+  PROFIT_REQUIRED,
+  profitField,
+  recordProfitAndReward,
+} from "@/features/referrals/rewards";
+import {
   DealTransitionError,
   transitionDeal,
 } from "@/features/deals/transitions";
@@ -51,6 +56,7 @@ async function loadCryptoDeal(organizationId: string, rawRef: unknown) {
       expectedQty: true,
       quotedRate: true,
       agreedRate: true,
+      referralCodeId: true,
       organization: {
         select: { rateLockMinutes: true, payoutTargetMinutes: true },
       },
@@ -70,6 +76,8 @@ async function move(
     >;
     data?: Prisma.InputJsonValue;
     events?: Prisma.DealEventCreateManyInput[];
+    // More writes in the same transaction, after the status change.
+    after?: (tx: Prisma.TransactionClient) => Promise<void>;
   } = {},
 ): Promise<ActionResult<{ status: DealStatus }>> {
   try {
@@ -83,6 +91,7 @@ async function move(
       );
       if (extra.events?.length)
         await tx.dealEvent.createMany({ data: extra.events });
+      await extra.after?.(tx);
     });
   } catch (error) {
     if (error instanceof DealTransitionError)
@@ -109,6 +118,8 @@ const paidOutInput = z.object({
     .min(3, "Enter the bank transfer reference.")
     .max(60),
   paidFromAccountId: z.string().min(1, "Choose the account you paid from."),
+  // Our profit on the deal (Phase 13c): required with a referral code.
+  profit: profitField,
 });
 
 export const markPaidOut = safeAction(
@@ -129,6 +140,13 @@ export const markPaidOut = safeAction(
     }
     const deal = await loadCryptoDeal(member.organizationId, parsed.data.ref);
     if (!deal) return NOT_FOUND;
+    const { profit } = parsed.data;
+    if (deal.referralCodeId && profit === null)
+      return {
+        ok: false,
+        error: PROFIT_REQUIRED,
+        fieldErrors: { profit: PROFIT_REQUIRED },
+      };
     const account = await db.paymentAccount.findFirst({
       where: {
         id: parsed.data.paidFromAccountId,
@@ -151,11 +169,18 @@ export const markPaidOut = safeAction(
         set: {
           payoutReference: parsed.data.reference,
           paidFromAccountId: account.id,
+          ...(profit !== null && { profitNaira: profit }),
         },
         data: {
           reference: parsed.data.reference,
           paidFromAccountId: account.id,
         },
+        after: (tx) =>
+          recordProfitAndReward(tx, {
+            dealId: deal.id,
+            profit,
+            membershipId: member.membershipId,
+          }),
       },
     );
     if (result.ok) after(() => notifyPaidOut(deal.id));

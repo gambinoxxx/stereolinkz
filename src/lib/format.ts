@@ -138,7 +138,18 @@ function zonedParts(date: Date, timeZone: string): ZonedParts {
 // checked once more, so a daylight-saving change on that day is handled.
 export function startOfDayInTimeZone(now: Date, timeZone: string): Date {
   const p = zonedParts(now, timeZone);
-  const localMidnight = Date.UTC(p.year, p.month - 1, p.day);
+  return zonedMidnight(p.year, p.month - 1, p.day, timeZone);
+}
+
+// The instant a wall-clock midnight happens in the zone (month is 0-based
+// and may overflow into the next year, like Date.UTC).
+function zonedMidnight(
+  year: number,
+  monthIndex: number,
+  day: number,
+  timeZone: string,
+): Date {
+  const localMidnight = Date.UTC(year, monthIndex, day);
   const offsetAt = (instant: number) => {
     const z = zonedParts(new Date(instant), timeZone);
     const wall = Date.UTC(z.year, z.month - 1, z.day, z.hour, z.minute);
@@ -146,6 +157,19 @@ export function startOfDayInTimeZone(now: Date, timeZone: string): Date {
   };
   const first = localMidnight - offsetAt(localMidnight);
   return new Date(localMidnight - offsetAt(first));
+}
+
+// The org's calendar month containing `now`: [start, next month's start).
+// Referral caps count by it (Phase 13c).
+export function monthInTimeZone(
+  now: Date,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const p = zonedParts(now, timeZone);
+  return {
+    start: zonedMidnight(p.year, p.month - 1, 1, timeZone),
+    end: zonedMidnight(p.year, p.month, 1, timeZone),
+  };
 }
 
 // Boards: "Sun, 27 Sept 2026".

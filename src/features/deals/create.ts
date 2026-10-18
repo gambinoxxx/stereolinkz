@@ -12,6 +12,7 @@ import {
   uniqueSats,
 } from "@/features/crypto-deposits/amounts";
 import type { Quote } from "@/features/deals/quote";
+import { type CodeRow, decideAttach } from "@/features/referrals/attach";
 import { formatRef } from "@/features/deals/refs";
 import type { DealDetails } from "@/features/deals/schema";
 import type { DealActorRef } from "@/features/deals/transitions";
@@ -62,6 +63,9 @@ export type NewDeal = {
       priceUsd: string;
     };
   };
+  // Referral (Phase 13c): a code already checked (checkCode); the fraud and
+  // new-customer rules run in the transaction, and the outcome is logged.
+  referral?: { code: CodeRow; newCustomersOnly: boolean };
   now?: Date;
 };
 
@@ -177,6 +181,14 @@ export async function insertDeal(
     };
   }
   const status = crypto ? "AWAITING_DEPOSIT" : "NEW";
+  const referral = input.referral
+    ? await decideAttach(tx, {
+        organizationId: input.organizationId,
+        code: input.referral.code,
+        customerWhatsapp: input.customer.whatsapp,
+        newCustomersOnly: input.referral.newCustomersOnly,
+      })
+    : null;
   const deal = await tx.deal.create({
     data: {
       organizationId: input.organizationId,
@@ -199,6 +211,7 @@ export async function insertDeal(
       ownerMembershipId: input.ownerMembershipId,
       trackingTokenHash: input.trackingTokenHash,
       ipHash: input.ipHash,
+      referralCodeId: referral?.attach ? input.referral!.code.id : null,
       statusChangedAt: now,
       createdAt: now,
       ...(crypto && {
@@ -240,6 +253,20 @@ export async function insertDeal(
       createdAt: now,
     },
   });
+  if (referral)
+    await tx.dealEvent.create({
+      data: {
+        dealId: deal.id,
+        type: "REFERRAL",
+        message: referral.message,
+        data: { code: input.referral!.code.code, applied: referral.attach },
+        actorType: input.actor.type,
+        actorMembershipId:
+          input.actor.type === "MEMBER" ? input.actor.membershipId : null,
+        // Just after REQUESTED, so the activity reads in order.
+        createdAt: new Date(now.getTime() + 1),
+      },
+    });
   return { id: deal.id, ref };
 }
 

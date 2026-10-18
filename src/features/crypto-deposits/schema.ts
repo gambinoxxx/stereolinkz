@@ -26,5 +26,7 @@ export const submitCryptoDealInput = z.object({
   consent: z.literal(true, { error: "Please agree to continue." }),
   website: z.string().max(200),
   formToken: z.string().max(200),
+  // Referral programme (Phase 13c): optional, checked on the server.
+  referralCode: z.string().max(40).optional(),
 });
 export type SubmitCryptoDealInput = z.input<typeof submitCryptoDealInput>;

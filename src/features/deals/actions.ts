@@ -23,6 +23,11 @@ import {
 } from "@/features/deals/schema";
 import { createTrackingToken } from "@/features/deals/security";
 import {
+  PROFIT_REQUIRED,
+  profitField,
+  recordProfitAndReward,
+} from "@/features/referrals/rewards";
+import {
   DealTransitionError,
   transitionDeal,
 } from "@/features/deals/transitions";
@@ -52,6 +57,7 @@ type LoadedDeal = {
   agreedNaira: string | null;
   customerName: string;
   paymentAccountId: string | null;
+  referralCodeId: string | null;
 };
 
 async function loadDeal(
@@ -73,6 +79,7 @@ async function loadDeal(
       agreedNaira: true,
       customerName: true,
       paymentAccountId: true,
+      referralCodeId: true,
     },
   });
   return d
@@ -96,18 +103,22 @@ async function move(
       "status" | "statusChangedAt" | "id" | "organizationId"
     >;
     data?: Prisma.InputJsonValue;
+    // More writes in the same transaction, after the status change.
+    after?: (tx: Prisma.TransactionClient) => Promise<void>;
   } = {},
 ): Promise<ActionResult<{ status: DealStatus }>> {
+  const { after: afterMove, ...options } = extra;
   try {
-    await db.$transaction((tx) =>
-      transitionDeal(
+    await db.$transaction(async (tx) => {
+      await transitionDeal(
         tx,
         deal,
         to,
         { type: "MEMBER", membershipId: member.membershipId },
-        { message, ...extra },
-      ),
-    );
+        { message, ...options },
+      );
+      await afterMove?.(tx);
+    });
   } catch (error) {
     if (error instanceof DealTransitionError)
       return {
@@ -336,14 +347,42 @@ export const markDealSent = safeAction(
   },
 );
 
+// Completed, with our profit on the deal (Phase 13c): required when the
+// deal has a referral code, since the reward is a share of it.
+const completeInput = z.object({ ref: z.string(), profit: profitField });
+
 export const markDealCompleted = safeAction(
   async (
     member,
-    rawRef: unknown,
+    raw: unknown,
   ): Promise<ActionResult<{ status: DealStatus }>> => {
-    const deal = await loadDeal(member.organizationId, rawRef);
+    const parsed = completeInput.safeParse(
+      typeof raw === "string" ? { ref: raw } : raw,
+    );
+    if (!parsed.success)
+      return {
+        ok: false,
+        error: "Please check the highlighted fields.",
+        fieldErrors: { profit: parsed.error.issues[0]?.message ?? "" },
+      };
+    const deal = await loadDeal(member.organizationId, parsed.data.ref);
     if (!deal) return NOT_FOUND;
-    return move(member, deal, "COMPLETED", "Deal completed");
+    const { profit } = parsed.data;
+    if (deal.referralCodeId && profit === null)
+      return {
+        ok: false,
+        error: PROFIT_REQUIRED,
+        fieldErrors: { profit: PROFIT_REQUIRED },
+      };
+    return move(member, deal, "COMPLETED", "Deal completed", {
+      set: profit === null ? undefined : { profitNaira: profit },
+      after: (tx) =>
+        recordProfitAndReward(tx, {
+          dealId: deal.id,
+          profit,
+          membershipId: member.membershipId,
+        }),
+    });
   },
 );
 

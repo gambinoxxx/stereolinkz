@@ -44,24 +44,36 @@ model Organization {
 
   // Deal desk (Phase 12; Settings → Deal desk). Every service starts off:
   // the owner switches each one on after legal advice.
-  dealServicesEnabled DealService[] @default([])
-  dealRefPrefix       String        @default("SLZ") // references read SLZ-1047
-  dealRefCounter      Int           @default(1000) // incremented in the same transaction as each insert
-  contactSlaMinutes   Int           @default(15) // NEW deals not contacted after this show amber/red
-  rateLockMinutes     Int           @default(30) // crypto (Phase 13)
-  payoutTargetMinutes Int           @default(10) // crypto (Phase 13)
-  dealDefaultOwnerId  String? // Membership that owns new deals; null = unassigned
-  dealDefaultOwner    Membership?   @relation("DealDefaultOwner", fields: [dealDefaultOwnerId], references: [id], onDelete: SetNull)
-  dealAlertEmails     Boolean       @default(false) // team email on new deals (only with Resend)
+  dealServicesEnabled      DealService[] @default([])
+  dealRefPrefix            String        @default("SLZ") // references read SLZ-1047
+  dealRefCounter           Int           @default(1000) // incremented in the same transaction as each insert
+  contactSlaMinutes        Int           @default(15) // NEW deals not contacted after this show amber/red
+  rateLockMinutes          Int           @default(30) // crypto (Phase 13)
+  payoutTargetMinutes      Int           @default(10) // crypto (Phase 13)
+  dealDefaultOwnerId       String? // Membership that owns new deals; null = unassigned
+  dealDefaultOwner         Membership?   @relation("DealDefaultOwner", fields: [dealDefaultOwnerId], references: [id], onDelete: SetNull)
+  dealAlertEmails          Boolean       @default(false) // team email on new deals (only with Resend)
   // Crypto deposits (Phase 13; Settings → Deal desk)
-  cryptoMinQty        Decimal       @default(20) @db.Decimal(18, 2) // smallest deal, in coins
-  cryptoMaxUsd        Decimal       @default(5000) @db.Decimal(18, 2) // above it: "Message us on WhatsApp"
-  payoutAlertEmails   Boolean       @default(false) // team email when a crypto payout is due (only with Resend)
+  cryptoMinQty             Decimal       @default(20) @db.Decimal(18, 2) // smallest deal, in coins
+  cryptoMaxUsd             Decimal       @default(5000) @db.Decimal(18, 2) // above it: "Message us on WhatsApp"
+  payoutAlertEmails        Boolean       @default(false) // team email when a crypto payout is due (only with Resend)
   // Market-priced coins (BTC, Phase 13b): fee = max(margin %, minimum $)
-  cryptoMarginPct     Decimal       @default(1.5) @db.Decimal(5, 2)
-  cryptoMinFeeUsd     Decimal       @default(2) @db.Decimal(10, 2)
+  cryptoMarginPct          Decimal       @default(1.5) @db.Decimal(5, 2)
+  cryptoMinFeeUsd          Decimal       @default(2) @db.Decimal(10, 2)
+  // Referral programme (Phase 13c; Settings → Referrals, owner only). On
+  // only while enabled and now is within startsAt…endsAt.
+  referralEnabled          Boolean       @default(false)
+  referralStartsAt         DateTime?
+  referralEndsAt           DateTime? // default: two months after switching on
+  referralRewardPct        Decimal       @default(15) @db.Decimal(5, 2) // % of OUR profit on the deal
+  referralHoldDays         Int           @default(7)
+  referralNewCustomersOnly Boolean       @default(true)
+  referralMonthlyCapNaira  Decimal?      @db.Decimal(24, 8) // per referrer, per calendar month
+  referralServices         DealService[] @default([SCHOOL_FEES, INTL_PAYMENT, POF, FOREX_SELL, FOREX_BUY, CRYPTO_SELL])
 
   memberships       Membership[]
+  referralCodes     ReferralCode[]
+  referralRewards   ReferralReward[]
   currencies        Currency[]
   banks             Bank[]
   coins             Coin[]
@@ -92,10 +104,17 @@ model Membership {
   role           MemberRole   @default(ADMIN)
   createdAt      DateTime     @default(now())
 
-  defaultOwnerOf Organization[] @relation("DealDefaultOwner")
-  ownedDeals     Deal[]         @relation("DealOwner")
-  agreedDeals    Deal[]         @relation("DealAgreedBy")
-  dealEvents     DealEvent[]
+  defaultOwnerOf  Organization[]   @relation("DealDefaultOwner")
+  ownedDeals      Deal[]           @relation("DealOwner")
+  agreedDeals     Deal[]           @relation("DealAgreedBy")
+  dealEvents      DealEvent[]
+  // Phase 13c: their own WhatsApp number (normalised), so their referral
+  // code is never attached to their own deals.
+  whatsapp        String?
+  referralCodes   ReferralCode[]
+  rewardsApproved ReferralReward[] @relation("RewardApprovedBy")
+  rewardsPaid     ReferralReward[] @relation("RewardPaidBy")
+  rewardsVoided   ReferralReward[] @relation("RewardVoidedBy")
 
   @@unique([organizationId, clerkUserId])
   @@index([clerkUserId])
@@ -400,6 +419,8 @@ enum DealEventType {
   ALERT_SENT
   DEPOSIT_UPDATE // the watcher saw a transfer or new confirmations (Phase 13)
   TXID_SUBMITTED // the customer pasted a TxID that matched a transfer
+  REFERRAL // Phase 13c: a code attached, changed, refused, or a reward created
+  PROFIT_RECORDED // Phase 13c: our profit on the deal, entered at completion
 }
 
 enum DealFileKind {
@@ -488,6 +509,15 @@ model Deal {
   confirmPrice         Decimal?          @db.Decimal(24, 8) // dollars per coin when the deposit confirmed
   matchedTransfer      ObservedTransfer?
 
+  // Referral programme (Phase 13c). The code attaches at creation (or by
+  // the team while NEW / AWAITING_DEPOSIT), then is locked (trigger).
+  // profitNaira is OUR profit, entered when the deal completes or is paid
+  // out; the reward is a share of it. Set once (trigger).
+  referralCodeId String?
+  referralCode   ReferralCode?   @relation(fields: [referralCodeId], references: [id], onDelete: Restrict)
+  profitNaira    Decimal?        @db.Decimal(24, 8)
+  referralReward ReferralReward?
+
   trackingTokenHash String // SHA-256 of the customer's link token; the token itself is never stored
   ipHash            String? // keyed hash of the submitting IP, for the rate limit only
 
@@ -504,6 +534,7 @@ model Deal {
   @@index([organizationId, customerWhatsapp])
   @@index([ipHash, createdAt])
   @@index([walletId, status])
+  @@index([referralCodeId])
 }
 
 // Append-only (a trigger in the migration refuses UPDATE). No updatedAt.
@@ -568,4 +599,88 @@ model PaymentAccount {
   updatedAt DateTime @updatedAt
 
   @@index([organizationId, active, sortOrder])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Referral programme (Phase 13c)
+// ─────────────────────────────────────────────────────────────
+
+enum ReferralKind {
+  STAFF // a team member's code (Stage A)
+  CUSTOMER // a customer's code, from their first completed deal (Stage B)
+}
+
+// A shareable code: stereolinkz.com/?ref=LYDIA. Never deleted (rewards
+// keep pointing at it); deactivated instead.
+model ReferralCode {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  code             String // A–Z 0–9, 4–12 characters, unique per org
+  kind             ReferralKind
+  membershipId     String? // STAFF
+  membership       Membership?  @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  customerWhatsapp String? // CUSTOMER (normalised)
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  deactivatedAt    DateTime?
+
+  deals   Deal[]
+  rewards ReferralReward[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, kind])
+}
+
+// PENDING covers "in the hold period", "cap reached" and "flagged"; READY
+// is worked out from the date (holdUntil, notBefore), never stored.
+enum ReferralRewardStatus {
+  PENDING
+  APPROVED
+  PAID
+  VOID
+}
+
+// One reward per deal. The snapshot (code, deal ref, service, pct, profit,
+// amount) never changes after insert (trigger in the migration).
+model ReferralReward {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  dealId         String       @unique
+  deal           Deal         @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  codeId         String
+  referralCode   ReferralCode @relation(fields: [codeId], references: [id], onDelete: Restrict)
+  referrerKey    String // "m:<membershipId>" or "w:<whatsapp>": the monthly cap is per referrer
+
+  code        String // snapshot: "LYDIA"
+  dealRef     String // snapshot: "SLZ-1047"
+  service     DealService
+  pct         Decimal     @db.Decimal(5, 2)
+  profitNaira Decimal     @db.Decimal(24, 8)
+  amountNaira Decimal     @db.Decimal(24, 8) // whole naira, rounded down
+
+  status    ReferralRewardStatus @default(PENDING)
+  holdUntil DateTime // READY from here (unless capped or flagged)
+  notBefore DateTime? // cap reached: can't be approved before this (next month)
+  flag      String? // "Check: possible self-referral"; READY only once cleared
+
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    Membership? @relation("RewardApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  paidAt        DateTime?
+  paidById      String?
+  paidBy        Membership? @relation("RewardPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  bankReference String?
+  voidedAt      DateTime?
+  voidedById    String?
+  voidedBy      Membership? @relation("RewardVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([organizationId, referrerKey, approvedAt])
+  @@index([codeId])
 }
