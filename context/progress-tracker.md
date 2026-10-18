@@ -15,6 +15,32 @@ change.
 
 ## Completed
 
+- 2026-10-18: Performance, before (baseline for the perf work). `next
+  build`: static `/` (ISR 1h), `/robots.txt`, `/sitemap.xml`,
+  `/not-authorized`, icons; dynamic (ƒ) everything else, including
+  `/deal/new`, `/deal/new/[service]`, `/deal/new/crypto`, `/deal/[ref]`,
+  `/deal/check-eth` and every `/admin` route. Next 16's build no longer
+  prints first-load JS, so it's measured in the browser instead
+  (`tmp/qa/perf.mjs`: cold load at 390px, cache off, compressed bytes;
+  local `next start` against the Neon dev branch in eu-central-1 from the
+  US, so server times are inflated by distance; compare before / after
+  only):
+
+  | Route | JS KB | Total KB | TTFB ms | FCP ms |
+  |---|---|---|---|---|
+  | `/` | 188.4 | 529.2 | 13 | 576 |
+  | `/deal/new` | 193.3 | 414.2 | 1,898 | 2,060 |
+  | `/deal/new/pof` | 332.9 | 613.6 | 1,599 | 1,768 |
+  | `/deal/new/crypto` | 140.0 | 347.8 | 1,685 | 1,872 |
+  | `/admin` | 45.7 | 370.0 | 4,006 | 4,232 |
+  | `/admin/deals` | 623.5 | 848.6 | 5,295 | 5,444 |
+  | `/admin/forex` | 788.7 | 1,001.6 | 1,191 | 1,476 |
+
+  Vercel Speed Insights added (`components/speed-insights.tsx`): URLs are
+  sent without query or hash and with deal references as `[ref]`, so a
+  tracking token never leaves the browser. Owner: enable Speed Insights
+  on the Vercel project.
+
 - 2026-10-18: Fix: the wallet form accepts BTC and ETH. Adding a BTC or ETH
   wallet failed with "Please check the highlighted fields." because the
   wallet schema still allowed only TRC20 and BEP20. The parse and checks

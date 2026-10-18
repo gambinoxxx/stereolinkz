@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import "./globals.css";
 
+import { SpeedInsights } from "@/components/speed-insights";
 import { siteUrl } from "@/lib/site-url";
 
 // ₦ only exists in Archivo's latin-ext subset.
@@ -21,7 +22,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${archivo.variable} h-full`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
