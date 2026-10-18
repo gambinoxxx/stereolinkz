@@ -1486,3 +1486,21 @@
     animation: none;
   }
 }
+
+/* Loading skeleton (deal/[ref]/loading.tsx): the same boxes as the page. */
+.dk .sk {
+  display: block;
+  background: var(--lav2);
+  border-radius: 12px;
+  animation: dk-sk 1.6s ease-in-out infinite;
+}
+@keyframes dk-sk {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dk .sk {
+    animation: none;
+  }
+}
