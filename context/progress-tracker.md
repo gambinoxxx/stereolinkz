@@ -14,6 +14,17 @@ change.
 
 ## Completed
 
+- 2026-10-18: Brand polish. Stereolinkz favicon set (`src/app/favicon.ico`,
+  `icon.png` 512, `apple-icon.png` 180, by file convention; gold bars on
+  brand purple) and branded deal emails: one email-safe `shell()` in
+  `emails.ts` (tables, inline styles, 600px, no web fonts, gradient header
+  with the PNG logo from `/email/logo.png`, status badge in brand / ok /
+  warn tones, hero amount, detail rows, one button, team or customer
+  footer). Subjects, plain text and every signature unchanged, including
+  the Phase 13b rate-to-agree alert (warn tone). Team alerts still carry no
+  customer name, phone, email, files or WhatsApp link. Tests for the full
+  document, the logo, the new-deal estimate and button, and the warn tone.
+
 - 2026-10-18: Phase 13b, Customer and admin. `market-quote.ts` (exact
   dollars → fee → payout → naira → BTC, and naira → dollars); sell form
   with BTC in dollars, the BTC amount at the live price and the conversion
