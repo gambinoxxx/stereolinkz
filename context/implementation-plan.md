@@ -999,6 +999,98 @@ payouts, refunds from the app.
 
 ---
 
+## Phase 13c: Referral programme
+
+- **Goal:** Staff (Stage A), then customers (Stage B), share a code; when a
+  referred deal completes, the referrer earns a share of **our profit** on
+  it (15% by default, never a share of the trade amount), held, approved
+  and paid by the owner, with fraud checks and no customer details shown.
+- **Depends on:** Phase 13b
+- **Read:** `architecture.md` → Invariants (7, 14, 15 especially), Deal
+  Desk; the owner's brief in `progress-tracker.md` (2026-10-18)
+- **Design:** none; admin pages reuse the settings, deals and table
+  patterns; the deal forms get one optional field.
+
+### Rules (both stages)
+
+- Reward = `referralRewardPct` (15) % of `Deal.profitNaira`, rounded down
+  to whole naira, Decimal maths only. The team enters "Our profit on this
+  deal" (₦, ≥ 0) when moving a deal to COMPLETED or PAID_OUT: required only
+  if the deal has a code, prefilled with `feeNaira`; logged as an event.
+- The programme is on only while `referralEnabled` and now is within
+  `referralStartsAt`…`referralEndsAt` (default two months from switching
+  on). Off: the code field and `?ref=` are ignored for new deals; rewards
+  already earned are still honoured.
+- A code attaches at creation (or by a member while the deal is NEW or
+  AWAITING_DEPOSIT, logged), then is locked (database trigger too).
+- New customers only (default on): the WhatsApp number has no earlier
+  COMPLETED or PAID_OUT deal. Eligible services: `referralServices`.
+- Reward statuses PENDING → (READY, from the date: hold over, not capped,
+  not flagged) → APPROVED → PAID (bank reference, date), or VOID (reason).
+  OWNER only: approve, pay, void, programme settings, codes (checked in
+  each server action).
+- Monthly cap per referrer: a reward that would pass it is created PENDING
+  with "cap reached" and can't be approved until next month.
+- Fraud: a staff code on a deal from that staff member's own WhatsApp
+  (`Membership.whatsapp`) or a customer code from its owner's number is
+  not attached (logged); a customer code whose payout account name
+  matches its owner is created PENDING with "check: possible
+  self-referral".
+- Privacy: referrer views show deal ref, service, date, reward and status
+  only, never the customer's name, number, email or files.
+
+### Stage A: staff codes and the ledger
+
+- Data: `ReferralCode` (STAFF | CUSTOMER), `ReferralReward` (one per deal,
+  snapshot of pct, profit, amount, ref and code), `Deal.referralCodeId`,
+  `Deal.profitNaira`, `Membership.whatsapp`, Organization programme
+  fields; all new fields nullable or defaulted.
+- Website: `?ref=CODE` → first-party cookie, 30 days, SameSite=Lax,
+  cleared when a deal is created; optional "Referral code" field on the
+  deal forms while the programme is on; friendly error for unknown or
+  inactive codes; no reward amounts shown to customers.
+- Admin: Settings → Referrals (programme, staff codes with copy-link);
+  deal page (code, profit, reward); Referrals ledger (filters, totals,
+  approve ready, mark paid with bank reference, CSV); dashboard card
+  "Referral rewards ready to pay".
+
+### Stage B: customer codes
+
+- A customer's first deal completing while the programme is on creates
+  their code (first name + 3 digits, one per number); shown on the
+  tracking page and in the payout receipt email; private earnings page
+  `/refer/[code]?t=TOKEN` (token hash stored, noindex, no-referrer).
+- Customers are paid by bank transfer after the team confirms the account
+  on WhatsApp; the bank reference is recorded on the reward.
+
+### Done when
+
+Stage A:
+- [ ] A staff code from `?ref=` or the form attaches to a new deal while
+  the programme is on, and is ignored when it's off or out of its window
+- [ ] Completing the deal with a profit creates a PENDING reward of 15% of
+  the profit (rounded down); it becomes READY after the hold, the owner
+  approves and pays it (bank reference), or voids it with a reason
+- [ ] Returning customers, a staff member's own number and the monthly
+  cap are blocked or held, never silently paid
+- [ ] Only the owner can change the programme, codes and rewards (server
+  side); the ledger never shows customer contact details
+- [ ] Ledger filters, totals, bulk approve and pay, CSV export, dashboard
+  card, at 1440 and 390
+
+Stage B:
+- [ ] A first completed deal creates the customer's code, shown on the
+  tracking page and in the receipt email
+- [ ] The private earnings page shows only their rewards, by token
+- [ ] Customer self-referral checks (same number, matching payout name)
+
+### Not in this phase
+
+Automatic payouts, reward tiers, codes for non-customers, analytics
+beyond the ledger.
+
+---
+
 ## Phase 14: Hardening and launch
 
 - **Goal:** Production-ready and live for Stereolinkz, with every

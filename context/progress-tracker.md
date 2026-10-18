@@ -5,13 +5,14 @@ change.
 
 ## Current Phase
 
-- Phase 13b: BTC deposits, ETH transfer checker, wallet balances, complete
-  (tagged `phase-13b-complete`); production migrations applied, push pending
+- Phase 13c: Referral programme, Stage A (staff codes and the ledger), in
+  progress
 
 ## Current Goal
 
-- Push Phase 13b and the brand polish on the owner's go, then the owner's
-  production setup (below), then Phase 14.
+- Phase 13c Stage A: data, attach on creation, profit and rewards at
+  completion, settings, ledger; then screenshots and the owner's review
+  before Stage B.
 
 ## Completed
 
