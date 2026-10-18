@@ -20,6 +20,10 @@ export default async function WalletsPage() {
     orderBy: { createdAt: "asc" },
     select: { id: true, ticker: true, network: true, address: true },
   });
+  const org = await db.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { timezone: true },
+  });
   const hasEth = wallets.some((w) => w.network === "ETH");
   return (
     <>
@@ -28,6 +32,7 @@ export default async function WalletsPage() {
         description="Live balances of the receiving addresses the app watches. Read-only: the app never holds keys or sends crypto."
       />
       <WalletBalances
+        timeZone={org.timezone}
         wallets={wallets.map((w) => ({
           id: w.id,
           ticker: w.ticker,

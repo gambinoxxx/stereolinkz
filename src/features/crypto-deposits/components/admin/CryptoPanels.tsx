@@ -25,7 +25,11 @@ import {
 } from "@/features/crypto-deposits/actions";
 import type { TeamCrypto } from "@/features/crypto-deposits/admin-queries";
 import type { CheckKey } from "@/features/crypto-deposits/check";
-import { explorerName, NETWORKS } from "@/features/crypto-deposits/tokens";
+import {
+  explorerName,
+  NATIVE,
+  NETWORKS,
+} from "@/features/crypto-deposits/tokens";
 import { KV, Panel } from "@/features/deals/components/admin/parts";
 import { nairaText } from "@/features/deals/format";
 import type { TeamDeal } from "@/features/deals/queries";
@@ -94,7 +98,12 @@ function useRun() {
 
 const CHECK_LABEL = (c: TeamCrypto): Record<CheckKey, string> => ({
   destination: "Sent to our address",
-  contract: `Official ${c.ticker} contract on ${NETWORKS[c.network].chain}`,
+  // Native coins (BTC) have no token contract: the check is that it's the
+  // coin itself, not a token named after it.
+  contract:
+    c.officialContract === NATIVE
+      ? `Native ${c.ticker}, not a token`
+      : `Official ${c.ticker} contract on ${NETWORKS[c.network].chain}`,
   network: "Network matches the deal",
   amount: "Amount received",
   confirmations: "Confirmations",
@@ -121,7 +130,10 @@ export function CryptoCheckPanel({
     : null;
   const values: Record<CheckKey, string> = {
     destination: ends(t?.toAddress ?? c.depositAddress),
-    contract: ends(t?.tokenContract ?? c.officialContract ?? "—"),
+    contract:
+      c.officialContract === NATIVE
+        ? NETWORKS[c.network].chain
+        : ends(t?.tokenContract ?? c.officialContract ?? "—"),
     network: t?.network ?? c.network,
     amount: `${t ? coins(t.amount) : "—"} / ${coins(c.expectedQty)} ${c.ticker}`,
     confirmations: `${Math.min(c.confirmations ?? 0, c.minConfirmations)} / ${c.minConfirmations}`,
@@ -567,7 +579,7 @@ export function CryptoDealPanel({
     <Panel title="Deal">
       <KV
         rows={[
-          ["Coin", `${c.ticker} · ${c.network}`],
+          ["Coin", `${c.ticker} · ${NETWORKS[c.network].label}`],
           ["Expected", `${coins(c.expectedQty)} ${c.ticker}`],
           [
             "Rate",

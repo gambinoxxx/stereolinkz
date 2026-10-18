@@ -27,7 +27,14 @@ const amount = (v: string) => {
 
 // Live balances of our watched wallets (read-only), refreshed every minute
 // while the page is open.
-export function WalletBalances({ wallets }: { wallets: WalletCard[] }) {
+// Times in the organization's timezone, like the rest of the admin.
+export function WalletBalances({
+  wallets,
+  timeZone,
+}: {
+  wallets: WalletCard[];
+  timeZone: string;
+}) {
   const [rows, setRows] = useState<
     Record<string, { balance: Balance; checkedAt: string }>
   >({});
@@ -123,7 +130,13 @@ export function WalletBalances({ wallets }: { wallets: WalletCard[] }) {
                   className="mt-2 text-[12.5px] text-text-muted"
                   suppressHydrationWarning
                 >
-                  Checked {new Date(row.checkedAt).toLocaleTimeString()}
+                  Checked{" "}
+                  {new Date(row.checkedAt).toLocaleTimeString("en-NG", {
+                    timeZone,
+                    hour: "numeric",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
                 </div>
               )}
             </section>

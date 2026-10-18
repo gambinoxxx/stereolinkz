@@ -21,6 +21,7 @@ import {
   CryptoPayoutPanel,
   CryptoReviewPanel,
 } from "@/features/crypto-deposits/components/admin/CryptoPanels";
+import { NETWORKS } from "@/features/crypto-deposits/tokens";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -351,8 +352,10 @@ export function DealDetail({
           <p className="mt-1 text-text-secondary">
             {deal.customerName}
             {det?.service === "SCHOOL_FEES" ? ` · ${det.schoolName}` : ""}
-            {crypto ? ` · ${amount} on ${crypto.network}` : ""} ·{" "}
-            {crypto ? "started" : "requested"}{" "}
+            {crypto
+              ? ` · ${amount} on ${NETWORKS[crypto.network].label}`
+              : ""}{" "}
+            · {crypto ? "started" : "requested"}{" "}
             {lbl(labels.when, deal.createdAt)}{" "}
             {deal.events.at(-1)?.actorType === "MEMBER"
               ? "by the team"

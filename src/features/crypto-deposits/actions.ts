@@ -14,6 +14,7 @@ import {
   walletBalance,
 } from "@/features/crypto-deposits/providers/balances";
 import type { EthCheck } from "@/features/crypto-deposits/providers/eth";
+import { nairaText } from "@/features/deals/format";
 import { notifyPaidOut } from "@/features/deals/notify";
 import { normalizeRef } from "@/features/deals/refs";
 import {
@@ -319,7 +320,7 @@ export const agreeCryptoPayout = safeAction(
       member,
       deal,
       "DEPOSIT_COMPLETE",
-      `Payout agreed on WhatsApp: ₦${naira} (${note})`,
+      `Payout agreed on WhatsApp: ${nairaText(naira)} (${note})`,
       {
         set: {
           agreedNaira: naira,
@@ -335,7 +336,7 @@ export const agreeCryptoPayout = safeAction(
           {
             dealId: deal.id,
             type: "RATE_CHANGED",
-            message: `Payout agreed at ₦${naira} after the price moved`,
+            message: `Payout agreed at ${nairaText(naira)} after the price moved`,
             data: { naira, note },
             actorType: "MEMBER",
             actorMembershipId: member.membershipId,
