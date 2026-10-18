@@ -120,8 +120,8 @@ function shell(s: Shell): string {
 
         <tr><td style="background:${BRAND.primaryDark};background-image:linear-gradient(135deg,${BRAND.primaryDark},${BRAND.primary});border-radius:16px 16px 0 0;padding:22px 28px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td><a href="${esc(site.href)}"><img src="${esc(logo)}" width="249" height="40" alt="Stereolinkz" style="display:block;border:0;height:40px;width:249px;color:#ffffff;font-size:20px;font-weight:700;"></a></td>
-            <td align="right" style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">${esc(s.kicker)}</td>
+            <td><a href="${esc(site.href)}"><img src="${esc(logo)}" width="200" height="32" alt="Stereolinkz" style="display:block;border:0;height:32px;width:200px;color:#ffffff;font-size:20px;font-weight:700;"></a></td>
+            <td align="right" style="padding-left:12px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${BRAND.gold};font-weight:700;">${esc(s.kicker)}</td>
           </tr></table>
         </td></tr>
 
