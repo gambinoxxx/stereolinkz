@@ -15,6 +15,14 @@ change.
 
 ## Completed
 
+- 2026-10-18: Fix: bank logos fit their circles on the deal form. The POF
+  bank card rule `.dk .bank span` also matched BankMark's round span, giving
+  the logo the card's padding, border and grid; now `.dk .bank > span`, and
+  `.dk .bank .mark` centres itself (`deal.css` only; `bank-mark.tsx`
+  unchanged). Checked on /deal/new/pof at 1440 and 390: 34px circles with
+  no padding or border, selected card violet, a monogram (logo blocked)
+  centred too.
+
 - 2026-10-18: Sign-in redirect fix. After signing in at /login, people
   landed on "/" in production (NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
   is missing there). `<SignIn fallbackRedirectUrl="/admin">` (not force, so

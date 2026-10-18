@@ -1018,7 +1018,7 @@
   position: absolute;
   opacity: 0;
 }
-.dk .bank span {
+.dk .bank > span {
   display: grid;
   grid-template-columns: 36px 1fr;
   gap: 0 10px;
@@ -1145,6 +1145,7 @@
 }
 .dk .bank .mark {
   grid-row: span 2;
+  justify-self: center;
 }
 .dk .file button {
   margin-left: auto;
