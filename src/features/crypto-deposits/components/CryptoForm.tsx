@@ -21,6 +21,7 @@ import type { CryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { useMarketPrices } from "@/features/crypto-deposits/components/use-market-prices";
 import { submitCryptoDealInput } from "@/features/crypto-deposits/schema";
 import { useFormToken } from "@/features/deals/components/customer/use-form-token";
+import { ReferralCodeField } from "@/features/referrals/components/ReferralCodeField";
 import { submitCryptoDeal } from "@/features/deals/public-actions";
 import { amountString } from "@/features/deals/schema";
 import { estimateNaira } from "@/features/public/estimate";
@@ -36,9 +37,11 @@ const digits = (v: string) => v.replace(/[,\s]/g, "");
 export function CryptoForm({
   desk: cachedDesk,
   otherCoinsLink,
+  referralOpen,
 }: {
   desk: CryptoDesk; // from the cached page: market coins have no price yet
   otherCoinsLink: string;
+  referralOpen: boolean; // the referral programme is on for crypto
 }) {
   const id = useId();
   const router = useRouter();
@@ -68,6 +71,7 @@ export function CryptoForm({
     name: "",
     whatsapp: "",
     email: "",
+    referralCode: "",
     consent: false,
     website: "",
   });
@@ -173,6 +177,7 @@ export function CryptoForm({
     customer: { name: v.name, whatsapp: v.whatsapp, email: v.email },
     consent: v.consent,
     website: v.website,
+    referralCode: referralOpen ? v.referralCode : undefined,
   };
 
   async function onSubmit(event: FormEvent) {
@@ -575,6 +580,14 @@ export function CryptoForm({
                   />
                   {fieldError("customer.email")}
                 </div>
+                {referralOpen && (
+                  <ReferralCodeField
+                    id={fid("referralCode")}
+                    value={v.referralCode}
+                    onChange={(value) => set("referralCode", value)}
+                    error={errors.referralCode}
+                  />
+                )}
               </div>
               <div className="hp" aria-hidden="true">
                 <label htmlFor={fid("website")}>Website</label>

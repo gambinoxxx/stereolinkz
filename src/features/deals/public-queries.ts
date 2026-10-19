@@ -7,6 +7,7 @@ import "server-only";
 import { cache } from "react";
 
 import { readSnapshot } from "@/features/boards/history";
+import { isProgrammeActive } from "@/features/referrals/rules";
 import type { QuoteBoards } from "@/features/deals/quote";
 import type { DealService } from "@/generated/prisma/enums";
 import { db } from "@/lib/server/db";
@@ -34,6 +35,9 @@ export type DealDeskContext = {
     contactLine: string | null;
     servicesEnabled: DealService[];
     defaultOwnerId: string | null;
+    // Phase 13c: the services the referral programme is on for right now
+    // (empty while it's off); the forms show the code field for these.
+    referralServices: DealService[];
   };
   forex: {
     boardId: string;
@@ -78,6 +82,10 @@ export const getDealDeskContext = cache(
         contactLine: true,
         dealServicesEnabled: true,
         dealDefaultOwnerId: true,
+        referralEnabled: true,
+        referralStartsAt: true,
+        referralEndsAt: true,
+        referralServices: true,
       },
     });
     if (!org) return null;
@@ -92,6 +100,9 @@ export const getDealDeskContext = cache(
         contactLine: org.contactLine,
         servicesEnabled: org.dealServicesEnabled,
         defaultOwnerId: org.dealDefaultOwnerId,
+        referralServices: isProgrammeActive(org, new Date())
+          ? org.referralServices
+          : [],
       },
       forex:
         fx?.snapshot.type === "FOREX"

@@ -1,9 +1,11 @@
 import Link from "next/link";
 
-// "General | Deal desk" (settings-deal-desk.html .tabs2), under the header.
+// "General | Deal desk | Referrals" (settings-deal-desk.html .tabs2),
+// under the header.
 const TABS = [
   { key: "general", href: "/admin/settings", label: "General" },
   { key: "deal-desk", href: "/admin/settings/deal-desk", label: "Deal desk" },
+  { key: "referrals", href: "/admin/settings/referrals", label: "Referrals" },
 ] as const;
 
 export function SettingsTabs({

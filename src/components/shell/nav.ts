@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Coins,
+  Gift,
   History,
   Inbox,
   Landmark,
@@ -19,6 +20,7 @@ export const NAV_GROUPS: NavItem[][] = [
   [
     { href: "/admin", label: "Dashboard", icon: LayoutGrid },
     { href: "/admin/deals", label: "Deals", icon: Inbox },
+    { href: "/admin/referrals", label: "Referrals", icon: Gift },
     { href: "/admin/forex", label: "Forex rates", icon: ArrowLeftRight },
     { href: "/admin/pof", label: "POF rates", icon: Percent },
     { href: "/admin/crypto", label: "Crypto rates", icon: Coins },

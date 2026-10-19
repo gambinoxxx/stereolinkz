@@ -50,6 +50,7 @@ export default async function DealFormPage({
       enabled={ctx.org.servicesEnabled}
       forex={ctx.forex}
       pof={ctx.pof}
+      referralServices={ctx.org.referralServices}
       cashLink={whatsappLink(
         ctx.org.contactLine,
         `Hi ${ctx.org.name}, I’d like to ask about cash forex`,

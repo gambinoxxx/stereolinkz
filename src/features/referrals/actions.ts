@@ -16,11 +16,7 @@ import {
   decideAttach,
   programmeSettings,
 } from "@/features/referrals/attach";
-import {
-  defaultWindow,
-  isApprovable,
-  passesCap,
-} from "@/features/referrals/rules";
+import { isApprovable, passesCap } from "@/features/referrals/rules";
 import {
   attachCodeInput,
   payRewardsInput,
@@ -98,18 +94,6 @@ export const updateReferralSettings = safeAction(
     return { ok: true, data: { saved: true } };
   },
 );
-
-// The dates the form starts with when the programme has never run.
-export async function suggestedWindow(): Promise<{
-  startsOn: string;
-  endsOn: string;
-}> {
-  const w = defaultWindow(new Date());
-  return {
-    startsOn: w.startsAt.toISOString().slice(0, 10),
-    endsOn: w.endsAt.toISOString().slice(0, 10),
-  };
-}
 
 // ── Staff codes ───────────────────────────────────────────────────────
 

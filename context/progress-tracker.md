@@ -10,11 +10,48 @@ change.
 
 ## Current Goal
 
-- Phase 13c Stage A: data, attach on creation, profit and rewards at
-  completion, settings, ledger; then screenshots and the owner's review
-  before Stage B.
+- Phase 13c Stage A: the owner's review of the screenshots; then apply
+  `20261019120000_referrals` to production and push; then Stage B.
 
 ## Completed
+
+- 2026-10-19: Phase 13c, Stage A (staff codes and the ledger), built,
+  awaiting the owner's review before Stage B. Done when:
+  - [x] A staff code from `?ref=` or the form attaches to a new deal while
+    the programme is on, and is ignored when it's off or out of its window:
+    `/?ref=ibeh` → cookie `slz_ref=IBEH` (30 days, SameSite=Lax) → POF form
+    prefilled → SLZ-1044 "Referral code IBEH applied", cookie cleared; an
+    unknown code gives the inline error and no deal; switching the
+    programme off removes the field from the cached forms at once
+    (`referrals.db.test.ts`: off-window and other services ignored).
+  - [x] Completing with a profit creates a PENDING reward of 15% of it
+    (rounded down): SLZ-1044 ₦84,000 → ₦12,600 pending until 26 Oct;
+    with a 0-day hold SLZ-1045 ₦50,000 → ₦7,500 READY → approved → paid
+    (GTB-REF-778812) through the ledger; void with a reason; CSV export.
+  - [x] Returning customers, the staff member's own number and the monthly
+    cap are blocked or held: SLZ-1046 (owner's number) and SLZ-1047
+    (customer with a completed deal) created without the code, the reason
+    on the deal; the cap holds a reward to next month (database test).
+  - [x] Only the owner changes the programme, codes and rewards (each
+    action checks the role first; a test reads them), and the ledger
+    reads only the reward snapshot (test: no customer fields).
+  - [x] Ledger filters, totals, approve ready, mark paid, CSV, dashboard
+    card "Referral rewards ready to pay: ₦9,000 (1)", at 1440 and 390.
+  Built: migration `20261019120000_referrals` (additive; guards for code
+  shape, reward values, forward-only reward status with PAID / VOID final,
+  the snapshot, the deal's code locked after NEW / AWAITING_DEPOSIT, profit
+  set once); `features/referrals/` (rules, attach, rewards, actions,
+  queries, CSV); Settings → Referrals (programme, staff codes with copy
+  link, team numbers); Referrals ledger (`/admin/referrals`, nav item);
+  deal page referral panel, "Complete the deal" panel with "Our profit on
+  this deal" (prefilled with the fee), profit on crypto paid-out; the code
+  field on every deal form. Fixed on the way: `revalidatePublicPages`
+  refreshed the four service forms by a route pattern that never matched
+  (the (public) group), so they waited up to an hour after a board or
+  Settings change; now by URL (also live since the perf push, fixed in
+  this one). Checks: build, lint, tsc, 465 tests, the four opt-in
+  database files (20 tests, run one file at a time: they share the
+  reference counter), format:check.
 
 - 2026-10-18: Performance, after. Commits: speed insights, loading
   skeletons, cache deal forms, parallel queries, woff2 board fonts, defer

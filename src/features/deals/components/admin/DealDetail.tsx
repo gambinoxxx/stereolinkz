@@ -38,7 +38,6 @@ import {
   addDealNote,
   agreeDealRate,
   cancelDeal,
-  markDealCompleted,
   markDealSent,
   markPaymentReceived,
   setDealOwner,
@@ -64,6 +63,11 @@ import {
   rateText,
 } from "@/features/deals/format";
 import { teamMessages } from "@/features/deals/messages";
+import {
+  CompletePanel,
+  type DealReferralView,
+  ReferralPanel,
+} from "@/features/referrals/components/admin/DealReferral";
 import { dealSteps, TEAM_LABELS } from "@/features/deals/progress";
 import type { Member, TeamDeal } from "@/features/deals/queries";
 import { agreedNairaFor } from "@/features/deals/quote";
@@ -91,6 +95,7 @@ export function DealDetail({
   labels,
   crypto = null,
   currentCryptoRate = null,
+  referral,
 }: {
   deal: TeamDeal;
   members: Member[];
@@ -99,6 +104,7 @@ export function DealDetail({
   slaMinutes?: number;
   crypto?: TeamCrypto | null; // CRYPTO_SELL deals (deal-detail-crypto.html)
   currentCryptoRate?: string | null; // latest board, for re-quotes
+  referral: DealReferralView; // Phase 13c
 }) {
   const id = useId();
   const router = useRouter();
@@ -205,9 +211,18 @@ export function DealDetail({
             ? { label: "Mark sent", onClick: () => setDialog("sent") }
             : deal.status === "PROCESSING"
               ? {
+                  // With our profit (Phase 13c): the panel below.
                   label: "Mark completed",
-                  onClick: () =>
-                    run(() => markDealCompleted(deal.ref), "Deal completed"),
+                  onClick: () => {
+                    const panel = document.getElementById("complete");
+                    panel?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                    panel
+                      ?.querySelector("input")
+                      ?.focus({ preventScroll: true });
+                  },
                 }
               : null;
 
@@ -389,9 +404,11 @@ export function DealDetail({
             <Button
               variant="outline"
               disabled={busy}
-              onClick={() =>
-                run(() => markDealCompleted(deal.ref), "Deal completed")
-              }
+              onClick={() => {
+                const panel = document.getElementById("complete");
+                panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+                panel?.querySelector("input")?.focus({ preventScroll: true });
+              }}
             >
               Mark completed
             </Button>
@@ -442,7 +459,12 @@ export function DealDetail({
             <CryptoCheckPanel deal={deal} crypto={crypto} labels={labels} />
             {(deal.status === "DEPOSIT_COMPLETE" ||
               deal.status === "PAID_OUT") && (
-              <CryptoPayoutPanel deal={deal} crypto={crypto} labels={labels} />
+              <CryptoPayoutPanel
+                deal={deal}
+                crypto={crypto}
+                labels={labels}
+                referralCode={referral.code}
+              />
             )}
             {deal.status === "RATE_TO_AGREE" && (
               <CryptoAgreePanel
@@ -461,6 +483,14 @@ export function DealDetail({
           </div>
         ) : (
           <div className="flex flex-col gap-[18px]">
+            {(deal.status === "PROCESSING" ||
+              deal.status === "PAYMENT_RECEIVED") && (
+              <CompletePanel
+                dealRef={deal.ref}
+                feeNaira={deal.feeNaira}
+                code={referral.code}
+              />
+            )}
             <Panel
               title={
                 det?.service === "POF"
@@ -710,6 +740,13 @@ export function DealDetail({
           {crypto && (
             <CryptoDealPanel deal={deal} crypto={crypto} labels={labels} />
           )}
+          <ReferralPanel
+            dealRef={deal.ref}
+            editable={
+              deal.status === "NEW" || deal.status === "AWAITING_DEPOSIT"
+            }
+            view={referral}
+          />
           <Panel title="Customer">
             <KV
               rows={[

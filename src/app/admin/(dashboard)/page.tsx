@@ -1,4 +1,11 @@
-import { BellRing, ChevronRight, Inbox, Pencil, Sparkles } from "lucide-react";
+import {
+  BellRing,
+  ChevronRight,
+  Gift,
+  Inbox,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { z } from "zod";
 
@@ -9,7 +16,8 @@ import { DashboardView } from "@/features/dashboard/components/DashboardView";
 import { getDashboard } from "@/features/dashboard/queries";
 import { countPayoutsDue } from "@/features/crypto-deposits/admin-queries";
 import { countDealsNeedingAction } from "@/features/deals/queries";
-import { formatLongDate } from "@/lib/format";
+import { rewardsToPay } from "@/features/referrals/queries";
+import { formatLongDate, formatRate } from "@/lib/format";
 import { getViewer, requireMember } from "@/lib/server/auth";
 
 // Regenerating from the board detail runs in this page's function.
@@ -26,13 +34,14 @@ export default async function DashboardPage({
   const { organizationId } = await requireMember();
   const { board } = searchSchema.parse(await searchParams);
   const now = new Date();
-  const [data, viewer, detail, dealsNeedingAction, payoutsDue] =
+  const [data, viewer, detail, dealsNeedingAction, payoutsDue, rewards] =
     await Promise.all([
       getDashboard(organizationId, now),
       getViewer().catch(() => null),
       board ? getBoardDetail(organizationId, board, now) : null,
       countDealsNeedingAction(organizationId, now),
       countPayoutsDue(organizationId),
+      rewardsToPay(organizationId, now),
     ]);
 
   return (
@@ -106,6 +115,34 @@ export default async function DashboardPage({
           />
         </span>
       </Link>
+      {/* Referral rewards the owner can approve or pay (Phase 13c). */}
+      {rewards.count > 0 && (
+        <Link
+          href="/admin/referrals"
+          className="-mt-2.5 mb-5 flex items-center gap-2.5 rounded-control border border-border-default bg-bg-surface px-3.5 py-3 text-[14px] text-text-secondary"
+        >
+          <Gift
+            aria-hidden="true"
+            className="size-[18px] shrink-0 text-accent-primary"
+            strokeWidth={1.9}
+          />
+          <span>
+            Referral rewards ready to pay:{" "}
+            <b className="text-text-primary tabular-nums">
+              ₦{formatRate(rewards.total)}
+            </b>{" "}
+            ({rewards.count})
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1 font-semibold">
+            Referrals
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4"
+              strokeWidth={1.9}
+            />
+          </span>
+        </Link>
+      )}
       <DashboardView
         data={data}
         detail={detail}

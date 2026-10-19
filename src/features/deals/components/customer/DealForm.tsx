@@ -8,6 +8,7 @@ import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 
 import { BankMark } from "@/components/bank-mark";
 import { useFormToken } from "@/features/deals/components/customer/use-form-token";
+import { ReferralCodeField } from "@/features/referrals/components/ReferralCodeField";
 import {
   DEAL_COPY,
   INTL_PURPOSE_LABELS,
@@ -50,6 +51,7 @@ export type DealFormProps = {
   forex: Board<DealForexRow>;
   pof: Board<DealPofRow>;
   cashLink: string;
+  referralServices: DealService[]; // the code field shows for these
 };
 
 // The landing page's calculator links here with ?amount=, ?currency= and
@@ -87,6 +89,7 @@ export function DealForm({
   forex,
   pof,
   cashLink,
+  referralServices,
 }: DealFormProps) {
   const id = useId();
   const router = useRouter();
@@ -120,6 +123,7 @@ export function DealForm({
     name: "",
     whatsapp: "",
     email: "",
+    referralCode: "",
     consent: false,
     website: "",
   });
@@ -158,6 +162,7 @@ export function DealForm({
           : v.dir === "sell"
             ? "FOREX_SELL"
             : "FOREX_BUY";
+  const referralOpen = referralServices.includes(service);
 
   const details: DealDetails = useMemo(() => {
     switch (service) {
@@ -237,6 +242,7 @@ export function DealForm({
         : undefined,
     consent: v.consent,
     website: v.website,
+    referralCode: referralOpen ? v.referralCode : undefined,
   };
 
   function addFiles(list: FileList | null) {
@@ -1004,6 +1010,14 @@ export function DealForm({
                   />
                   {fieldError("customer.email")}
                 </div>
+                {referralOpen && (
+                  <ReferralCodeField
+                    id={fid("referralCode")}
+                    value={v.referralCode}
+                    onChange={(value) => set("referralCode", value)}
+                    error={errors.referralCode}
+                  />
+                )}
               </div>
               {/* Bots fill every field; people never see this one. */}
               <div className="hp" aria-hidden="true">

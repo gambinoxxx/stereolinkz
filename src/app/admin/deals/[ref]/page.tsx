@@ -6,6 +6,7 @@ import { getCryptoDesk } from "@/features/crypto-deposits/public-queries";
 import { DealDetail } from "@/features/deals/components/admin/DealDetail";
 import { getDealForTeam, listMembers } from "@/features/deals/queries";
 import { normalizeRef } from "@/features/deals/refs";
+import { getDealReferral } from "@/features/referrals/queries";
 import { requireMember } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { formatBoardDay, formatBoardTime } from "@/lib/format";
@@ -35,13 +36,15 @@ export default async function DealDetailPage({
   if (!deal) notFound();
   // Crypto: the deposit details and the latest board (its rate for this
   // coin is offered on a re-quote; no live price needed) at the same time.
-  const [crypto, desk] =
+  const [[crypto, desk], referral] = await Promise.all([
     deal.service === "CRYPTO_SELL"
-      ? await Promise.all([
+      ? Promise.all([
           getCryptoForTeam(organizationId, deal.id),
           getCryptoDesk(organizationId, { livePrices: false }),
         ])
-      : [null, null];
+      : Promise.resolve([null, null] as const),
+    getDealReferral(deal.id),
+  ]);
   const currentCryptoRate = crypto
     ? (desk?.coins.find((c) => c.ticker === crypto.ticker)?.rate ?? null)
     : null;
@@ -79,6 +82,7 @@ export default async function DealDetailPage({
       slaMinutes={org.contactSlaMinutes}
       crypto={crypto}
       currentCryptoRate={currentCryptoRate}
+      referral={referral ?? { code: null, profitNaira: null, reward: null }}
     />
   );
 }

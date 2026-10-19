@@ -23,6 +23,7 @@ export default async function CryptoFormPage() {
   return (
     <CryptoForm
       desk={desk}
+      referralOpen={ctx.org.referralServices.includes("CRYPTO_SELL")}
       otherCoinsLink={whatsappLink(
         ctx.org.contactLine,
         `Hi ${ctx.org.name}, I want to sell other crypto`,

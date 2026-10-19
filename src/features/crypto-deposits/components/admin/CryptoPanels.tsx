@@ -30,6 +30,7 @@ import {
   NATIVE,
   NETWORKS,
 } from "@/features/crypto-deposits/tokens";
+import { ProfitInput } from "@/features/referrals/components/admin/DealReferral";
 import { KV, Panel } from "@/features/deals/components/admin/parts";
 import { nairaText } from "@/features/deals/format";
 import type { TeamDeal } from "@/features/deals/queries";
@@ -329,14 +330,17 @@ export function CryptoPayoutPanel({
   deal,
   crypto: c,
   labels,
+  referralCode = null,
 }: {
   deal: TeamDeal;
   crypto: TeamCrypto;
   labels: Labels;
+  referralCode?: string | null; // Phase 13c: then our profit is required
 }) {
   const id = useId();
   const { busy, errors, run } = useRun();
   const [reference, setReference] = useState("");
+  const [profit, setProfit] = useState("");
   const [from, setFrom] = useState(
     deal.accounts.find((a) => a.active)?.id ?? "",
   );
@@ -445,10 +449,23 @@ export function CryptoPayoutPanel({
                 ))}
               </Select>
             </div>
+            <div className="sheet:col-span-2">
+              <ProfitInput
+                value={profit}
+                onChange={setProfit}
+                code={referralCode}
+                error={errors.profit}
+              />
+            </div>
           </div>
           <Button
             className="mt-3.5 w-full"
-            disabled={busy || reference.trim().length < 3 || !from}
+            disabled={
+              busy ||
+              reference.trim().length < 3 ||
+              !from ||
+              (!!referralCode && !profit.trim())
+            }
             onClick={() =>
               run(
                 () =>
@@ -456,6 +473,7 @@ export function CryptoPayoutPanel({
                     ref: deal.ref,
                     reference,
                     paidFromAccountId: from,
+                    profit,
                   }),
                 "Paid out. The customer’s page is updated.",
               )
