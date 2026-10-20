@@ -15,6 +15,10 @@ const archivo = Archivo({
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: "RateBoard · Stereolinkz",
+  // Meta Business domain verification for stereolinkz.com.
+  other: {
+    "facebook-domain-verification": "me7nlar2eqmx9u5oh202gcz3m3k7kh",
+  },
 };
 
 // Clerk is added by the signed-in sections (AuthProvider), not here, so
