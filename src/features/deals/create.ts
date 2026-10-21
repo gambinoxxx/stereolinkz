@@ -63,9 +63,9 @@ export type NewDeal = {
       priceUsd: string;
     };
   };
-  // Referral (Phase 13c): a code already checked (checkCode); the fraud and
-  // new-customer rules run in the transaction, and the outcome is logged.
-  referral?: { code: CodeRow; newCustomersOnly: boolean };
+  // Referral: a code already checked (checkCode); the five attribution
+  // rules run in the transaction, and the outcome is logged on the deal.
+  referral?: { code: CodeRow };
   now?: Date;
 };
 
@@ -186,7 +186,8 @@ export async function insertDeal(
         organizationId: input.organizationId,
         code: input.referral.code,
         customerWhatsapp: input.customer.whatsapp,
-        newCustomersOnly: input.referral.newCustomersOnly,
+        service: input.service,
+        now,
       })
     : null;
   const deal = await tx.deal.create({
@@ -212,6 +213,7 @@ export async function insertDeal(
       trackingTokenHash: input.trackingTokenHash,
       ipHash: input.ipHash,
       referralCodeId: referral?.attach ? input.referral!.code.id : null,
+      referralCampaignId: referral?.attach ? referral.campaignId : null,
       statusChangedAt: now,
       createdAt: now,
       ...(crypto && {

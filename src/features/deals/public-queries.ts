@@ -7,7 +7,8 @@ import "server-only";
 import { cache } from "react";
 
 import { readSnapshot } from "@/features/boards/history";
-import { isProgrammeActive } from "@/features/referrals/rules";
+import { campaignInForce, serviceEligible } from "@/features/referrals/rules";
+import { DESK_SERVICES } from "@/features/deals/services";
 import type { QuoteBoards } from "@/features/deals/quote";
 import type { DealService } from "@/generated/prisma/enums";
 import { db } from "@/lib/server/db";
@@ -35,8 +36,8 @@ export type DealDeskContext = {
     contactLine: string | null;
     servicesEnabled: DealService[];
     defaultOwnerId: string | null;
-    // Phase 13c: the services the referral programme is on for right now
-    // (empty while it's off); the forms show the code field for these.
+    // The services a referral campaign in force covers right now (empty
+    // when none is on); the forms show the code field for these.
     referralServices: DealService[];
   };
   forex: {
@@ -82,13 +83,20 @@ export const getDealDeskContext = cache(
         contactLine: true,
         dealServicesEnabled: true,
         dealDefaultOwnerId: true,
-        referralEnabled: true,
-        referralStartsAt: true,
-        referralEndsAt: true,
-        referralServices: true,
+        referralCampaigns: {
+          where: { active: true },
+          select: {
+            active: true,
+            startsAt: true,
+            endsAt: true,
+            includeCrypto: true,
+          },
+          take: 1,
+        },
       },
     });
     if (!org) return null;
+    const campaign = org.referralCampaigns[0];
     const [fx, pof] = await Promise.all([
       newestBoard(org.id, "FOREX"),
       newestBoard(org.id, "POF"),
@@ -100,9 +108,10 @@ export const getDealDeskContext = cache(
         contactLine: org.contactLine,
         servicesEnabled: org.dealServicesEnabled,
         defaultOwnerId: org.dealDefaultOwnerId,
-        referralServices: isProgrammeActive(org, new Date())
-          ? org.referralServices
-          : [],
+        referralServices:
+          campaign && campaignInForce(campaign, new Date())
+            ? DESK_SERVICES.filter((s) => serviceEligible(campaign, s))
+            : [],
       },
       forex:
         fx?.snapshot.type === "FOREX"

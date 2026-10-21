@@ -130,3 +130,75 @@ export function passesCap(
 
 export const SELF_REFERRAL_FLAG = "Check: possible self-referral";
 export const CAP_FLAG_NOTE = "Cap reached";
+
+// ── Customer side (campaigns, customer codes) ─────────────────────────
+
+// Only a referred customer's FIRST deal earns a reward. One named switch,
+// so the rule can change later without hunting for it.
+export const FIRST_DEAL_ONLY = true;
+
+// Customer codes: "SLZ" + 5 characters from an alphabet with no 0/O, 1/I
+// or L, so a code read aloud or typed from a photo can't be mistaken.
+export const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+export const CUSTOMER_CODE_PATTERN =
+  /^SLZ[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{5}$/;
+
+// From random bytes (crypto.randomBytes in the caller), with rejection
+// sampling so every character is equally likely. Null if the bytes ran
+// out (the caller asks again).
+export function customerCodeFrom(bytes: Uint8Array): string | null {
+  const limit = 256 - (256 % CODE_ALPHABET.length); // 248: no modulo bias
+  let code = "SLZ";
+  for (const b of bytes) {
+    if (b >= limit) continue;
+    code += CODE_ALPHABET[b % CODE_ALPHABET.length];
+    if (code.length === 8) return code;
+  }
+  return null;
+}
+
+export type Campaign = {
+  id: string;
+  active: boolean;
+  startsAt: Date;
+  endsAt: Date;
+  rewardBps: number;
+  includeCrypto: boolean;
+};
+
+// In force: switched on and now inside its dates.
+export function campaignInForce(
+  c: Pick<Campaign, "active" | "startsAt" | "endsAt">,
+  now: Date,
+): boolean {
+  return c.active && now >= c.startsAt && now < c.endsAt;
+}
+
+// Every deal service counts, except crypto unless the campaign includes it.
+export function serviceEligible(
+  c: Pick<Campaign, "includeCrypto">,
+  service: DealService,
+): boolean {
+  return service !== "CRYPTO_SELL" || c.includeCrypto;
+}
+
+// bps of our profit (1500 = 15%), rounded DOWN to whole naira, exactly:
+// rewardFromBps("12345.67", 1500) → "1851".
+export function rewardFromBps(profit: string, bps: number): string {
+  const product = multiplyDecimalStrings(profit, String(bps));
+  if (product.startsWith("-")) return "0";
+  const whole = BigInt(product.split(".")[0] || "0");
+  return (whole / BigInt(10000)).toString();
+}
+
+// "15" from 1500, "12.5" from 1250, for labels and the pct column.
+export const bpsToPct = (bps: number) =>
+  (bps / 100).toFixed(2).replace(/\.?0+$/, "");
+
+// For the referrer's masked list: "+234 803 123 4567" → "+234 ••• ••• 4567".
+export function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length < 4
+    ? "•••"
+    : `+${digits.slice(0, 3)} ••• ••• ${digits.slice(-4)}`;
+}

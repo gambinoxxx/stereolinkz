@@ -7,8 +7,8 @@ import "server-only";
 // files: LEDGER_SELECT (ledger-select.ts) is the whole list, held to
 // that by a test.
 import {
+  bpsToPct,
   displayStatus,
-  isProgrammeActive,
   pendingReason,
   type RewardDisplayStatus,
 } from "@/features/referrals/rules";
@@ -177,17 +177,16 @@ export async function rewardsToPay(
   return { total: total.toString(), count };
 }
 
-export type ProgrammeView = {
-  enabled: boolean;
+export type CampaignRow = {
+  id: string;
+  name: string;
+  startsOn: string; // "2026-11-01", org time zone
+  endsOn: string; // the last day it runs
+  pct: string; // "15"
+  includeCrypto: boolean;
   active: boolean;
-  startsOn: string | null; // "2026-10-18", org time zone
-  endsOn: string | null; // the last day on
-  rewardPct: string;
-  holdDays: number;
-  newCustomersOnly: boolean;
-  monthlyCap: string | null;
-  services: DealService[];
-  timeZone: string;
+  status: "running" | "scheduled" | "ended" | "off";
+  deals: number;
 };
 
 const dayIn = (d: Date, timeZone: string) =>
@@ -198,38 +197,62 @@ const dayIn = (d: Date, timeZone: string) =>
     day: "2-digit",
   }).format(d);
 
-export async function getProgramme(
+// Settings → Referrals: the campaigns, newest first, and the programme
+// rules that apply to every campaign.
+export async function getReferralSettings(
   organizationId: string,
   now = new Date(),
-): Promise<ProgrammeView> {
-  const o = await db.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-    select: {
-      timezone: true,
-      referralEnabled: true,
-      referralStartsAt: true,
-      referralEndsAt: true,
-      referralRewardPct: true,
-      referralHoldDays: true,
-      referralNewCustomersOnly: true,
-      referralMonthlyCapNaira: true,
-      referralServices: true,
-    },
-  });
+): Promise<{
+  campaigns: CampaignRow[];
+  holdDays: number;
+  monthlyCap: string | null;
+  timeZone: string;
+}> {
+  const [org, campaigns] = await Promise.all([
+    db.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: {
+        timezone: true,
+        referralHoldDays: true,
+        referralMonthlyCapNaira: true,
+      },
+    }),
+    db.referralCampaign.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        startsAt: true,
+        endsAt: true,
+        rewardBps: true,
+        includeCrypto: true,
+        active: true,
+        _count: { select: { deals: true } },
+      },
+    }),
+  ]);
   return {
-    enabled: o.referralEnabled,
-    active: isProgrammeActive(o, now),
-    startsOn: o.referralStartsAt ? dayIn(o.referralStartsAt, o.timezone) : null,
-    // endsAt is the start of the day after the last day.
-    endsOn: o.referralEndsAt
-      ? dayIn(new Date(o.referralEndsAt.getTime() - 1), o.timezone)
-      : null,
-    rewardPct: o.referralRewardPct.toFixed(),
-    holdDays: o.referralHoldDays,
-    newCustomersOnly: o.referralNewCustomersOnly,
-    monthlyCap: o.referralMonthlyCapNaira?.toFixed() ?? null,
-    services: o.referralServices,
-    timeZone: o.timezone,
+    campaigns: campaigns.map((c) => ({
+      id: c.id,
+      name: c.name,
+      startsOn: dayIn(c.startsAt, org.timezone),
+      endsOn: dayIn(new Date(c.endsAt.getTime() - 1), org.timezone),
+      pct: bpsToPct(c.rewardBps),
+      includeCrypto: c.includeCrypto,
+      active: c.active,
+      status: !c.active
+        ? "off"
+        : now < c.startsAt
+          ? "scheduled"
+          : now >= c.endsAt
+            ? "ended"
+            : "running",
+      deals: c._count.deals,
+    })),
+    holdDays: org.referralHoldDays,
+    monthlyCap: org.referralMonthlyCapNaira?.toFixed() ?? null,
+    timeZone: org.timezone,
   };
 }
 
@@ -272,20 +295,35 @@ export async function listStaffCodes(
   }));
 }
 
-// A deal's referral details for the admin deal page.
+// A deal's referral details for the admin deal page: its code and
+// campaign, our profit and the reward, and the customer's own code (from
+// a completed deal) with the date its private link was last made.
 export async function getDealReferral(dealId: string, now = new Date()) {
   const d = await db.deal.findUnique({
     where: { id: dealId },
     select: {
+      organizationId: true,
+      customerWhatsapp: true,
       profitNaira: true,
       referralCode: { select: { code: true, kind: true } },
+      referralCampaign: { select: { name: true } },
       referralReward: { select: LEDGER_SELECT },
     },
   });
   if (!d) return null;
+  const own = await db.referralCode.findFirst({
+    where: {
+      organizationId: d.organizationId,
+      kind: "CUSTOMER",
+      customerWhatsapp: d.customerWhatsapp,
+      active: true,
+    },
+    select: { code: true, pageTokenAt: true },
+  });
   const r = d.referralReward;
   return {
     code: d.referralCode?.code ?? null,
+    campaign: d.referralCampaign?.name ?? null,
     profitNaira: d.profitNaira?.toFixed() ?? null,
     reward: r
       ? {
@@ -299,6 +337,9 @@ export async function getDealReferral(dealId: string, now = new Date()) {
                 ? pendingReason(r, now)
                 : null,
         }
+      : null,
+    customerCode: own
+      ? { code: own.code, linkMadeAt: own.pageTokenAt?.toISOString() ?? null }
       : null,
   };
 }

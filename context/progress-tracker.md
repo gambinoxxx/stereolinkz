@@ -15,6 +15,26 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), attribution, rewards and customer
+  codes. `attach.ts`: a typed unknown or inactive code → "We couldn't find
+  that code. Check it or leave it blank."; the five rules (a campaign in
+  force, the code active, not the owner's number, a new customer, the
+  service eligible: crypto only with `includeCrypto`) run in the creation
+  transaction, silently, and record the campaign on the deal. `rewards.ts`:
+  at COMPLETED / PAID_OUT the reward is the campaign's bps of our profit,
+  rounded down, bps stored; nothing for profit 0 or less; FIRST_DEAL_ONLY;
+  the payout-name flag for customer codes; and the completing customer's
+  own code (`SLZ` + 5 from an alphabet with no 0/O/1/I/L) with a private
+  page token (hash only), once per number even from two completions at
+  once (per-number lock, ON CONFLICT redraw), emailed after the response.
+  Completion transactions get 10 s / 15 s (the reward and code add a few
+  queries). Team: attach a code to a NEW deal (reason, all rules), remove
+  (reason; a pending or approved reward is voided), "New private link"
+  (shown once); every reward change logs REWARD_CHANGED. Settings →
+  Referrals: campaigns (create, start, end; one at a time) and the rules
+  (hold days, monthly cap; new customers only is always on). Tests:
+  `customer-rules.test.ts` and `referrals.db.test.ts` (8, on dev).
+
 - 2026-10-22: Referrals (customer side), data. Migration
   `20261022120000_referral_campaigns` on the dev branch (ep-soft-haze):
   `ReferralCampaign` (one active per org, bps 0–10000, endsAt after

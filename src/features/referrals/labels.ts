@@ -33,22 +33,23 @@ export function dayLabel(day: string): string {
   return `${d} ${MONTHS[(m ?? 1) - 1]} ${y}`;
 }
 
-// "Active until 18 Dec 2026", "Starts 1 Nov 2026", "Ended 18 Dec 2026", "Off".
-export function programmeLabel(p: {
-  enabled: boolean;
-  active: boolean;
-  startsOn: string | null;
-  endsOn: string | null;
-  timeZone: string;
-}): { text: string; tone: "on" | "off" } {
-  if (!p.enabled || !p.startsOn || !p.endsOn)
-    return { text: "Off", tone: "off" };
-  if (p.active)
-    return { text: `Active until ${dayLabel(p.endsOn)}`, tone: "on" };
-  const today = isoDayIn(new Date(), p.timeZone);
-  return p.startsOn > today
-    ? { text: `Starts ${dayLabel(p.startsOn)}`, tone: "off" }
-    : { text: `Ended ${dayLabel(p.endsOn)}`, tone: "off" };
+// A campaign's state in words: "Active until 20 Dec 2026", "Starts 1 Nov
+// 2026", "Ended 20 Dec 2026" or "Off".
+export function campaignLabel(c: {
+  status: "running" | "scheduled" | "ended" | "off";
+  startsOn: string;
+  endsOn: string;
+}): string {
+  switch (c.status) {
+    case "running":
+      return `Active until ${dayLabel(c.endsOn)}`;
+    case "scheduled":
+      return `Starts ${dayLabel(c.startsOn)}`;
+    case "ended":
+      return `Ended ${dayLabel(c.endsOn)}`;
+    case "off":
+      return "Off";
+  }
 }
 
 export const STATUS_LABELS: Record<RewardDisplayStatus, string> = {

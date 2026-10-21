@@ -5,6 +5,7 @@
 // the same transaction as its event, every other change logged as an
 // event. Payment received and completed are only ever set here, by a member.
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createDeal } from "@/features/deals/create";
@@ -22,7 +23,9 @@ import {
   payoutInput,
 } from "@/features/deals/schema";
 import { createTrackingToken } from "@/features/deals/security";
+import { notifyReferralCode } from "@/features/referrals/notify";
 import {
+  type NewCustomerCode,
   PROFIT_REQUIRED,
   profitField,
   recordProfitAndReward,
@@ -118,7 +121,7 @@ async function move(
         { message, ...options },
       );
       await afterMove?.(tx);
-    });
+    }, MOVE_TX);
   } catch (error) {
     if (error instanceof DealTransitionError)
       return {
@@ -133,6 +136,10 @@ async function move(
   revalidateDeal(deal.ref);
   return { ok: true, data: { status: to } };
 }
+
+// A completion also records the profit, the reward and the customer's
+// code: a few more queries, so more time than Prisma's 5 s default.
+const MOVE_TX = { maxWait: 10_000, timeout: 15_000 };
 
 const NOT_FOUND: ActionResult<never> = {
   ok: false,
@@ -374,15 +381,21 @@ export const markDealCompleted = safeAction(
         error: PROFIT_REQUIRED,
         fieldErrors: { profit: PROFIT_REQUIRED },
       };
-    return move(member, deal, "COMPLETED", "Deal completed", {
+    let newCode: NewCustomerCode = null;
+    const result = await move(member, deal, "COMPLETED", "Deal completed", {
       set: profit === null ? undefined : { profitNaira: profit },
-      after: (tx) =>
-        recordProfitAndReward(tx, {
+      after: async (tx) => {
+        newCode = await recordProfitAndReward(tx, {
           dealId: deal.id,
           profit,
           membershipId: member.membershipId,
-        }),
+        });
+      },
     });
+    // The customer's own referral code, by email (after the response).
+    const created = newCode as NewCustomerCode;
+    if (result.ok && created) after(() => notifyReferralCode(deal.id, created));
+    return result;
   },
 );
 

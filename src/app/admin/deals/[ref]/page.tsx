@@ -82,7 +82,15 @@ export default async function DealDetailPage({
       slaMinutes={org.contactSlaMinutes}
       crypto={crypto}
       currentCryptoRate={currentCryptoRate}
-      referral={referral ?? { code: null, profitNaira: null, reward: null }}
+      referral={
+        referral ?? {
+          code: null,
+          campaign: null,
+          profitNaira: null,
+          reward: null,
+          customerCode: null,
+        }
+      }
     />
   );
 }

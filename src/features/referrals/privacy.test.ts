@@ -47,8 +47,16 @@ describe("every referral action that changes the programme or rewards", () => {
       const name = actions[i]!;
       const body = actions[i + 1]!;
       names.push(name);
-      // Any team member may set a deal's code (before it's agreed).
-      if (name === "setDealReferralCode") continue;
+      // Any team member may add a code to a New deal, remove one, or make
+      // a customer's new private link (each with its own checks).
+      if (
+        [
+          "attachDealReferral",
+          "removeDealReferral",
+          "newReferralPageLink",
+        ].includes(name)
+      )
+        continue;
       const guard = body.indexOf("ownerOnly(member)");
       const firstDb = body.search(/\bdb\.|\$transaction|parse\(/);
       expect(guard, `${name} checks the owner`).toBeGreaterThan(-1);
@@ -59,7 +67,10 @@ describe("every referral action that changes the programme or rewards", () => {
     }
     expect(names).toEqual(
       expect.arrayContaining([
-        "updateReferralSettings",
+        "updateProgrammeRules",
+        "createCampaign",
+        "startCampaign",
+        "endCampaign",
         "createStaffCode",
         "deactivateReferralCode",
         "approveRewards",

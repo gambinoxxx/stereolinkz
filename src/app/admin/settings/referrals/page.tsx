@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { ReferralSettings } from "@/features/referrals/components/admin/ReferralSettings";
 import { isoDayIn } from "@/features/referrals/labels";
+import {
+  getReferralSettings,
+  listStaffCodes,
+} from "@/features/referrals/queries";
 import { defaultWindow } from "@/features/referrals/rules";
-import type { ReferralSettingsForm } from "@/features/referrals/schema";
-import { getProgramme, listStaffCodes } from "@/features/referrals/queries";
 import { requireMember } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { getUserDisplayName } from "@/lib/server/users";
@@ -12,12 +14,13 @@ import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Referral settings · RateBoard" };
 
-// Settings → Referrals (Phase 13c): the programme and staff codes. Anyone
-// on the team can look; only the owner can change (the actions check).
+// Settings → Referrals: campaigns, the rules for all of them, staff codes
+// and team numbers. Everyone on the team can look; only the owner can
+// change (each action checks).
 export default async function ReferralSettingsPage() {
   const { organizationId, role } = await requireMember();
-  const [programme, codes, memberships] = await Promise.all([
-    getProgramme(organizationId),
+  const [settings, codes, memberships] = await Promise.all([
+    getReferralSettings(organizationId),
     listStaffCodes(organizationId),
     db.membership.findMany({
       where: { organizationId },
@@ -32,26 +35,23 @@ export default async function ReferralSettingsPage() {
       whatsapp: m.whatsapp,
     })),
   );
-  // A programme that has never run starts with today plus two months.
+  // A new campaign starts today and runs two months.
   const window = defaultWindow(new Date());
-  const day = (d: Date) => isoDayIn(d, programme.timeZone);
   return (
     <ReferralSettings
       isOwner={role === "OWNER"}
-      programme={programme}
-      initial={{
-        enabled: programme.enabled,
-        startsOn: programme.startsOn ?? day(window.startsAt),
-        endsOn: programme.endsOn ?? day(window.endsAt),
-        rewardPct: programme.rewardPct,
-        holdDays: programme.holdDays,
-        newCustomersOnly: programme.newCustomersOnly,
-        monthlyCap: programme.monthlyCap?.replace(/\.0+$/, "") ?? "",
-        services: programme.services as ReferralSettingsForm["services"],
+      campaigns={settings.campaigns}
+      rules={{
+        holdDays: settings.holdDays,
+        monthlyCap: settings.monthlyCap?.replace(/\.0+$/, "") ?? "",
       }}
       codes={codes}
       members={members}
       siteOrigin={siteUrl().origin}
+      defaults={{
+        startsOn: isoDayIn(window.startsAt, settings.timeZone),
+        endsOn: isoDayIn(window.endsAt, settings.timeZone),
+      }}
     />
   );
 }

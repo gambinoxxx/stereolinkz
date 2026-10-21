@@ -430,3 +430,43 @@ export function teamWhatsAppHandoverEmail(): Omit<Email, "to"> {
     }),
   };
 }
+
+// Referrals: a customer's own code, sent when their first deal completes
+// (only if they gave an email). The reward is a share of OUR profit, never
+// of the deal amount; the text says so.
+export function customerReferralCodeEmail(d: {
+  brand: string;
+  code: string;
+  shareUrl: string; // stereolinkz.com/r/CODE
+  pageUrl: string; // the private referrals page
+  pct: string | null; // the running campaign's %, if one is on
+}): Omit<Email, "to"> {
+  const earn = d.pct
+    ? `Share your link and earn ${d.pct}% of our profit on your friends’ first deal (not ${d.pct}% of the deal amount).`
+    : "Share your link: when a referral campaign is running, you earn a share of our profit on your friends’ first deal.";
+  const lines = [
+    `Thank you for your deal with ${d.brand}. Your referral code is ${d.code}.`,
+    earn,
+    `Your link: ${d.shareUrl}`,
+    `See what you’ve earned (keep this link private): ${d.pageUrl}`,
+  ];
+  return {
+    subject: `Your ${d.brand} referral code: ${d.code}`,
+    text: lines.join("\n"),
+    html: shell({
+      preheader: `Your referral code is ${d.code}.`,
+      kicker: "Referrals",
+      badge: d.code,
+      title: `Earn with ${d.brand}`,
+      intro: earn,
+      hero: { label: "Your code", value: d.code, sub: d.shareUrl },
+      rows: [
+        ["Your link", d.shareUrl],
+        ["Paid", "After the deal completes, to the account you used"],
+      ],
+      button: { href: d.pageUrl, label: "View my referrals" },
+      note: "Keep the “View my referrals” link to yourself: anyone with it can see your rewards.",
+      audience: "customer",
+    }),
+  };
+}

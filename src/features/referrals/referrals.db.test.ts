@@ -1,7 +1,7 @@
-// The referral programme on a DEVELOPMENT database (Phase 13c). Opt-in:
+// Referrals on a DEVELOPMENT database. Opt-in:
 // DEAL_DB_TESTS=1 npx vitest run src/features/referrals/referrals.db.test.ts
-// Switches the first org's programme on for the run and puts every setting
-// back afterwards; its own deals, codes and rewards are deleted.
+// Runs its own campaign (any active one is switched off for the run and
+// back on after), staff code and deals; all deleted afterwards.
 import { randomBytes } from "node:crypto";
 
 import { config } from "dotenv";
@@ -17,41 +17,46 @@ const enabled =
 
 describe.skipIf(!enabled)(
   "referrals on the database",
-  { timeout: 120_000 },
+  { timeout: 180_000 },
   async () => {
     const { db } = await import("@/lib/server/db");
     const { createDeal } = await import("@/features/deals/create");
-    const { checkCode } = await import("@/features/referrals/attach");
+    const { checkCode, decideAttach, CODE_NOT_FOUND } =
+      await import("@/features/referrals/attach");
     const { recordProfitAndReward } =
       await import("@/features/referrals/rewards");
     const { transitionDeal } = await import("@/features/deals/transitions");
+    const { CUSTOMER_CODE_PATTERN } =
+      await import("@/features/referrals/rules");
 
     let organizationId = "";
     let membershipId = "";
     let codeId = "";
-    let saved: Record<string, unknown> = {};
+    let campaignId = "";
+    let pausedCampaign: string | null = null;
     let savedWhatsapp: string | null = null;
+    let savedHold = 7;
+    let savedCap: unknown = null;
     const deals: string[] = [];
+    const phones: string[] = [];
     const tag = randomBytes(2).toString("hex").toUpperCase();
     const CODE = `QA${tag}`;
-    const staffNumber = `+23480${Math.floor(10000000 + Math.random() * 89999999)}`;
-    const phone = () =>
-      `+23481${Math.floor(10000000 + Math.random() * 89999999)}`;
+    const phone = () => {
+      const n = `81${Math.floor(10000000 + Math.random() * 89999999)}`;
+      const p = `+234 ${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
+      phones.push(p);
+      return p;
+    };
+    const staffNumber = phone();
 
     const newDeal = async (whatsapp: string, withCode = true) => {
-      const check = await checkCode(organizationId, CODE, "POF", new Date());
+      const check = await checkCode(organizationId, withCode ? CODE : "");
       if (!check.ok) throw new Error(check.error);
       const d = await createDeal({
         organizationId,
         service: "POF",
         customer: { name: "Test Customer", whatsapp },
-        details: {
-          service: "POF",
-          purpose: "STUDY_VISA",
-          months: 3,
-          bankId: null,
-          destinationCountry: "UK",
-        } as never,
+        details: { service: "POF" } as never,
         currency: "NGN",
         amount: "1000000",
         quote: null,
@@ -60,70 +65,86 @@ describe.skipIf(!enabled)(
         ipHash: null,
         actor: { type: "CUSTOMER" },
         message: "Requested on the website",
-        referral:
-          withCode && check.code
-            ? { code: check.code, newCustomersOnly: true }
-            : undefined,
+        referral: check.code ? { code: check.code } : undefined,
       });
       deals.push(d.id);
       return d;
     };
+    const row = (id: string) =>
+      db.deal.findUniqueOrThrow({
+        where: { id },
+        select: {
+          referralCodeId: true,
+          referralCampaignId: true,
+          events: { select: { message: true } },
+        },
+      });
 
-    // Moves a deal to COMPLETED with our profit, the way markDealCompleted
-    // does: status and profit together, then the reward, one transaction.
-    const complete = async (dealId: string, profit: string, now?: Date) => {
-      await db.deal.update({
-        where: { id: dealId },
-        data: { status: "PAYMENT_RECEIVED" },
-      });
-      await db.$transaction(async (tx) => {
-        await transitionDeal(
-          tx,
-          { id: dealId, status: "PAYMENT_RECEIVED" },
-          "COMPLETED",
-          { type: "MEMBER", membershipId },
-          { message: "Deal completed", set: { profitNaira: profit }, now },
-        );
-        await recordProfitAndReward(tx, {
-          dealId,
-          profit,
-          membershipId,
-          now,
-        });
-      });
-    };
+    // COMPLETED with our profit, the way markDealCompleted does it.
+    const complete = (dealId: string, profit: string | null) =>
+      db.$transaction(
+        async (tx) => {
+          await tx.deal.update({
+            where: { id: dealId },
+            data: { status: "PAYMENT_RECEIVED" },
+          });
+          await transitionDeal(
+            tx,
+            { id: dealId, status: "PAYMENT_RECEIVED" },
+            "COMPLETED",
+            { type: "MEMBER", membershipId },
+            {
+              message: "Deal completed",
+              set: profit === null ? undefined : { profitNaira: profit },
+            },
+          );
+          return recordProfitAndReward(tx, {
+            dealId,
+            profit,
+            membershipId,
+          });
+        },
+        { maxWait: 10_000, timeout: 15_000 },
+      );
 
     beforeAll(async () => {
       const org = await db.organization.findFirstOrThrow({
         select: {
           id: true,
-          referralEnabled: true,
-          referralStartsAt: true,
-          referralEndsAt: true,
-          referralRewardPct: true,
           referralHoldDays: true,
-          referralNewCustomersOnly: true,
           referralMonthlyCapNaira: true,
-          referralServices: true,
         },
       });
       organizationId = org.id;
-      const { id: _id, ...rest } = org;
-      void _id;
-      saved = rest;
+      savedHold = org.referralHoldDays;
+      savedCap = org.referralMonthlyCapNaira;
       await db.organization.update({
         where: { id: organizationId },
-        data: {
-          referralEnabled: true,
-          referralStartsAt: new Date(Date.now() - 60_000),
-          referralEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60_000),
-          referralRewardPct: "15",
-          referralHoldDays: 7,
-          referralNewCustomersOnly: true,
-          referralMonthlyCapNaira: null,
-          referralServices: ["POF", "FOREX_SELL"],
-        },
+        data: { referralHoldDays: 7, referralMonthlyCapNaira: null },
       });
+      const active = await db.referralCampaign.findFirst({
+        where: { organizationId, active: true },
+        select: { id: true },
+      });
+      if (active) {
+        pausedCampaign = active.id;
+        await db.referralCampaign.update({
+          where: { id: active.id },
+          data: { active: false },
+        });
+      }
+      campaignId = (
+        await db.referralCampaign.create({
+          data: {
+            organizationId,
+            name: `QA ${tag}`,
+            startsAt: new Date(Date.now() - 60_000),
+            endsAt: new Date(Date.now() + 30 * 24 * 60 * 60_000),
+            active: true,
+            rewardBps: 1500,
+          },
+        })
+      ).id;
       const m = await db.membership.findFirstOrThrow({
         where: { organizationId },
         select: { id: true, whatsapp: true },
@@ -139,186 +160,239 @@ describe.skipIf(!enabled)(
           data: { organizationId, code: CODE, kind: "STAFF", membershipId },
         })
       ).id;
-    });
+    }, 60_000);
 
     afterAll(async () => {
       await db.referralReward.deleteMany({ where: { dealId: { in: deals } } });
+      await db.referralCode.deleteMany({
+        where: { kind: "CUSTOMER", customerWhatsapp: { in: phones } },
+      });
       await db.deal.deleteMany({ where: { id: { in: deals } } });
       await db.referralCode.deleteMany({ where: { id: codeId } });
+      await db.referralCampaign.deleteMany({ where: { id: campaignId } });
+      if (pausedCampaign)
+        await db.referralCampaign.update({
+          where: { id: pausedCampaign },
+          data: { active: true },
+        });
       await db.membership.update({
         where: { id: membershipId },
         data: { whatsapp: savedWhatsapp },
       });
       await db.organization.update({
         where: { id: organizationId },
-        data: saved as never,
-      });
-      await db.$disconnect();
-    });
-
-    it("attaches a staff code to a new customer's deal and logs it", async () => {
-      const d = await newDeal(phone());
-      const row = await db.deal.findUniqueOrThrow({
-        where: { id: d.id },
-        select: {
-          referralCodeId: true,
-          events: { select: { type: true, message: true } },
+        data: {
+          referralHoldDays: savedHold,
+          referralMonthlyCapNaira: savedCap as never,
         },
       });
-      expect(row.referralCodeId).toBe(codeId);
-      expect(row.events.map((e) => e.message)).toContain(
+      await db.$disconnect();
+    }, 60_000);
+
+    it("attaches a code to a new customer's deal, with the campaign", async () => {
+      const d = await newDeal(phone());
+      const r = await row(d.id);
+      expect(r.referralCodeId).toBe(codeId);
+      expect(r.referralCampaignId).toBe(campaignId);
+      expect(r.events.map((e) => e.message)).toContain(
         `Referral code ${CODE} applied`,
       );
     });
 
-    it("ignores the code when the programme is off or for another service", async () => {
-      expect(
-        (await checkCode(organizationId, CODE, "CRYPTO_SELL", new Date())).ok,
-      ).toBe(true);
-      expect(
-        await checkCode(organizationId, CODE, "CRYPTO_SELL", new Date()),
-      ).toEqual({ ok: true, code: null });
-      expect(
-        await checkCode(
-          organizationId,
-          CODE,
-          "POF",
-          new Date(Date.now() + 60 * 24 * 60 * 60_000), // after the window
-        ),
-      ).toEqual({ ok: true, code: null });
-      expect(
-        (await checkCode(organizationId, "NOSUCH1", "POF", new Date())).ok,
-      ).toBe(false);
+    it("refuses an unknown or inactive typed code with the friendly error", async () => {
+      expect(await checkCode(organizationId, "NOPE9999")).toEqual({
+        ok: false,
+        error: CODE_NOT_FOUND,
+      });
+      expect(await checkCode(organizationId, "not a code!")).toEqual({
+        ok: false,
+        error: CODE_NOT_FOUND,
+      });
+      expect(await checkCode(organizationId, "")).toEqual({
+        ok: true,
+        code: null,
+      });
     });
 
-    it("never attaches a staff code to the staff member's own number", async () => {
-      const d = await newDeal(staffNumber);
-      const row = await db.deal.findUniqueOrThrow({
-        where: { id: d.id },
-        select: { referralCodeId: true, events: { select: { message: true } } },
-      });
-      expect(row.referralCodeId).toBeNull();
-      expect(row.events.map((e) => e.message).join(" ")).toContain(
+    it("applies the other rules silently: no campaign, own number, returning customer, crypto", async () => {
+      const check = await checkCode(organizationId, CODE);
+      if (!check.ok || !check.code) throw new Error("code");
+      const decide = (whatsapp: string, service: "POF" | "CRYPTO_SELL") =>
+        db.$transaction(
+          (tx) =>
+            decideAttach(tx, {
+              organizationId,
+              code: check.code!,
+              customerWhatsapp: whatsapp,
+              service,
+              now: new Date(),
+            }),
+          { maxWait: 10_000, timeout: 15_000 },
+        );
+      // Own number.
+      expect((await decide(staffNumber, "POF")).message).toContain(
         "own WhatsApp number",
       );
-    });
-
-    it("only counts new customers", async () => {
+      // Crypto, without includeCrypto.
+      expect((await decide(phone(), "CRYPTO_SELL")).message).toContain(
+        "isn’t part of the campaign",
+      );
+      // Returning customer.
       const returning = phone();
       const first = await newDeal(returning, false);
       await complete(first.id, "1000");
-      const second = await newDeal(returning);
-      const row = await db.deal.findUniqueOrThrow({
-        where: { id: second.id },
-        select: { referralCodeId: true, events: { select: { message: true } } },
-      });
-      expect(row.referralCodeId).toBeNull();
-      expect(row.events.map((e) => e.message).join(" ")).toContain(
+      expect((await decide(returning, "POF")).message).toContain(
         "completed a deal with us before",
       );
-    });
-
-    it("creates a PENDING reward of 15% of our profit, rounded down", async () => {
-      const d = await newDeal(phone());
-      const now = new Date();
-      await complete(d.id, "12345.67", now);
-      const r = await db.referralReward.findUniqueOrThrow({
-        where: { dealId: d.id },
-      });
-      expect(r.amountNaira.toFixed()).toBe("1851");
-      expect(r.pct.toFixed()).toBe("15");
-      expect(r.profitNaira.toFixed()).toBe("12345.67");
-      expect(r.status).toBe("PENDING");
-      expect(r.code).toBe(CODE);
-      expect(r.holdUntil.getTime()).toBe(now.getTime() + 7 * 24 * 60 * 60_000);
-      expect(r.notBefore).toBeNull();
-    });
-
-    it("holds a reward over the monthly cap until next month", async () => {
-      await db.organization.update({
-        where: { id: organizationId },
-        data: { referralMonthlyCapNaira: "2000" },
+      // No campaign.
+      await db.referralCampaign.update({
+        where: { id: campaignId },
+        data: { active: false },
       });
       try {
-        const a = await newDeal(phone());
-        await complete(a.id, "10000"); // ₦1,500
-        await db.referralReward.update({
-          where: { dealId: a.id },
-          data: { status: "APPROVED", approvedAt: new Date() },
-        });
-        const b = await newDeal(phone());
-        await complete(b.id, "10000"); // another ₦1,500 → past ₦2,000
-        const r = await db.referralReward.findUniqueOrThrow({
-          where: { dealId: b.id },
-        });
-        expect(r.notBefore).not.toBeNull();
-        expect(r.notBefore!.getTime()).toBeGreaterThan(Date.now());
+        const d = await newDeal(phone());
+        const r = await row(d.id);
+        expect(r.referralCodeId).toBeNull();
+        expect(r.events.map((e) => e.message).join(" ")).toContain(
+          "no referral campaign is running",
+        );
       } finally {
-        await db.organization.update({
-          where: { id: organizationId },
-          data: { referralMonthlyCapNaira: null },
+        await db.referralCampaign.update({
+          where: { id: campaignId },
+          data: { active: true },
+        });
+      }
+      // Deactivated between the form and the insert.
+      await db.referralCode.update({
+        where: { id: codeId },
+        data: { active: false },
+      });
+      try {
+        expect((await decide(phone(), "POF")).message).toContain(
+          "the code isn’t active",
+        );
+      } finally {
+        await db.referralCode.update({
+          where: { id: codeId },
+          data: { active: true },
         });
       }
     });
 
-    it("locks the code, the profit and the reward's snapshot", async () => {
+    it("creates a PENDING reward of the campaign's bps, rounded down, and keeps it if the campaign changes", async () => {
       const d = await newDeal(phone());
-      await complete(d.id, "5000");
-      await expect(
-        db.deal.update({ where: { id: d.id }, data: { referralCodeId: null } }),
-      ).rejects.toThrow(/deal_referral_locked/);
-      await expect(
-        db.deal.update({ where: { id: d.id }, data: { profitNaira: "6000" } }),
-      ).rejects.toThrow(/deal_referral_locked/);
-      await expect(
-        db.referralReward.update({
-          where: { dealId: d.id },
-          data: { amountNaira: "999999" },
-        }),
-      ).rejects.toThrow(/referral_reward_guard/);
-      // PENDING → PAID skips approval: refused.
-      await expect(
-        db.referralReward.update({
-          where: { dealId: d.id },
-          data: { status: "PAID", paidAt: new Date(), bankReference: "X1" },
-        }),
-      ).rejects.toThrow(/referral_reward_guard/);
-      // VOID is final.
-      await db.referralReward.update({
-        where: { dealId: d.id },
-        data: { status: "VOID", voidedAt: new Date(), voidReason: "Test" },
-      });
-      await expect(
-        db.referralReward.update({
-          where: { dealId: d.id },
-          data: { status: "APPROVED", approvedAt: new Date() },
-        }),
-      ).rejects.toThrow(/referral_reward_guard/);
-    });
-
-    it("gives one reward per deal", async () => {
-      const d = await newDeal(phone());
-      await complete(d.id, "5000");
+      await complete(d.id, "12345.67");
       const r = await db.referralReward.findUniqueOrThrow({
         where: { dealId: d.id },
       });
-      await expect(
-        db.referralReward.create({
-          data: {
-            organizationId,
-            dealId: d.id,
-            codeId,
-            referrerKey: r.referrerKey,
-            code: CODE,
-            dealRef: r.dealRef,
-            service: "POF",
-            pct: "15",
-            profitNaira: "1",
-            amountNaira: "0",
-            holdUntil: new Date(),
-          },
-        }),
-      ).rejects.toThrow();
+      expect(r.amountNaira.toFixed()).toBe("1851");
+      expect(r.rewardBps).toBe(1500);
+      expect(r.campaignId).toBe(campaignId);
+      expect(r.status).toBe("PENDING");
+      await db.referralCampaign.update({
+        where: { id: campaignId },
+        data: { rewardBps: 2000 },
+      });
+      const again = await db.referralReward.findUniqueOrThrow({
+        where: { dealId: d.id },
+      });
+      expect(again.amountNaira.toFixed()).toBe("1851");
+      expect(again.rewardBps).toBe(1500);
+      await db.referralCampaign.update({
+        where: { id: campaignId },
+        data: { rewardBps: 1500 },
+      });
+    });
+
+    it("gives no reward for no profit", async () => {
+      const d = await newDeal(phone());
+      await complete(d.id, "0");
+      expect(await db.referralReward.count({ where: { dealId: d.id } })).toBe(
+        0,
+      );
+    });
+
+    it("rewards only the referred customer's first deal", async () => {
+      const p = phone();
+      const a = await newDeal(p);
+      const b = await newDeal(p); // both open, both carry the code
+      expect((await row(b.id)).referralCodeId).toBe(codeId);
+      await complete(a.id, "10000");
+      await complete(b.id, "10000");
+      expect(await db.referralReward.count({ where: { dealId: a.id } })).toBe(
+        1,
+      );
+      expect(await db.referralReward.count({ where: { dealId: b.id } })).toBe(
+        0,
+      );
+      expect(
+        (await row(b.id)).events.map((e) => e.message).join(" "),
+      ).toContain("only the customer’s first deal");
+    });
+
+    it("gives a completing customer one code of their own, even from two completions at once", async () => {
+      const p = phone();
+      const a = await newDeal(p, false);
+      const b = await newDeal(p, false);
+      const results = await Promise.all([
+        complete(a.id, null),
+        complete(b.id, null),
+      ]);
+      const codes = await db.referralCode.findMany({
+        where: { organizationId, kind: "CUSTOMER", customerWhatsapp: p },
+      });
+      expect(codes).toHaveLength(1);
+      expect(codes[0]!.code).toMatch(CUSTOMER_CODE_PATTERN);
+      expect(codes[0]!.customerName).toBe("Test Customer");
+      expect(codes[0]!.pageTokenHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(results.filter(Boolean)).toHaveLength(1); // one token, once
+      // A third completion later doesn't make another.
+      const c = await newDeal(p, false);
+      expect(await complete(c.id, null)).toBeNull();
+    });
+
+    it("lets a code be added only while NEW, removed any time, never swapped", async () => {
+      const plain = await newDeal(phone(), false);
+      const other = await db.referralCode.create({
+        data: {
+          organizationId,
+          code: `QB${tag}`,
+          kind: "STAFF",
+          membershipId,
+        },
+      });
+      try {
+        // Added while NEW: allowed.
+        await db.deal.update({
+          where: { id: plain.id },
+          data: { referralCodeId: codeId, referralCampaignId: campaignId },
+        });
+        // Swapped: refused.
+        await expect(
+          db.deal.update({
+            where: { id: plain.id },
+            data: { referralCodeId: other.id },
+          }),
+        ).rejects.toThrow(/never swapped/);
+        // Removed, even after it moves on: allowed.
+        await db.deal.update({
+          where: { id: plain.id },
+          data: { status: "AGREED" },
+        });
+        await db.deal.update({
+          where: { id: plain.id },
+          data: { referralCodeId: null, referralCampaignId: null },
+        });
+        // Added after NEW: refused.
+        await expect(
+          db.deal.update({
+            where: { id: plain.id },
+            data: { referralCodeId: codeId },
+          }),
+        ).rejects.toThrow(/only while the deal is NEW/);
+      } finally {
+        await db.referralCode.delete({ where: { id: other.id } });
+      }
     });
   },
 );

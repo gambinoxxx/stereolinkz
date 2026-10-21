@@ -2,7 +2,6 @@
 // (client) and the owner's actions (server).
 import { z } from "zod";
 
-import { DESK_SERVICES } from "@/features/deals/services";
 import { CODE_PATTERN } from "@/features/referrals/rules";
 
 const dateField = z
@@ -10,11 +9,35 @@ const dateField = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
   .refine((v) => !Number.isNaN(Date.parse(`${v}T12:00:00Z`)), "Pick a date.");
 
-// Settings → Referrals. Dates are whole days in the org's time zone; the
-// end date is the last day the programme is on.
-export const referralSettingsInput = z
+// Settings → Referrals → Programme rules (owner): the hold before a reward
+// can be approved, and the monthly cap per referrer.
+export const programmeRulesInput = z.object({
+  holdDays: z.coerce
+    .number({ error: "Enter days, like 7." })
+    .int("Whole days only.")
+    .min(0, "0 or more.")
+    .max(365, "At most 365 days."),
+  monthlyCap: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/[,₦\s]/g, ""))
+    .pipe(
+      z
+        .string()
+        .refine(
+          (v) => v === "" || /^\d{1,12}$/.test(v),
+          "Whole naira, like 200000, or leave it empty for no cap.",
+        ),
+    )
+    .transform((v) => (v === "" ? null : v)),
+});
+export type ProgrammeRulesForm = z.input<typeof programmeRulesInput>;
+
+// A campaign (owner). Dates are whole days in the org's time zone; the
+// end date is the last day it runs. The reward is a % of OUR profit.
+export const campaignInput = z
   .object({
-    enabled: z.boolean(),
+    name: z.string().trim().min(2, "Name it, like “Launch, Nov–Dec”.").max(60),
     startsOn: dateField,
     endsOn: dateField,
     rewardPct: z
@@ -24,36 +47,24 @@ export const referralSettingsInput = z
         z
           .string()
           .regex(/^\d{1,3}(\.\d{1,2})?$/, "A percentage, like 15.")
-          .refine((v) => Number(v) <= 100, "At most 100%."),
-      ),
-    holdDays: z.coerce
-      .number({ error: "Enter days, like 7." })
-      .int("Whole days only.")
-      .min(0, "0 or more.")
-      .max(365, "At most 365 days."),
-    newCustomersOnly: z.boolean(),
-    monthlyCap: z
-      .string()
-      .trim()
-      .transform((v) => v.replace(/[,₦\s]/g, ""))
-      .pipe(
-        z
-          .string()
           .refine(
-            (v) => v === "" || /^\d{1,12}$/.test(v),
-            "Whole naira, like 200000, or leave it empty for no cap.",
+            (v) => Number(v) > 0 && Number(v) <= 100,
+            "Between 0 and 100%.",
           ),
-      )
-      .transform((v) => (v === "" ? null : v)),
-    services: z
-      .array(z.enum(DESK_SERVICES))
-      .min(1, "Pick at least one service."),
+      ),
+    includeCrypto: z.boolean(),
   })
   .refine((v) => v.endsOn >= v.startsOn, {
     path: ["endsOn"],
-    message: "The end date must be on or after the start date.",
+    message: "The last day must be on or after the start.",
   });
-export type ReferralSettingsForm = z.input<typeof referralSettingsInput>;
+export type CampaignForm = z.input<typeof campaignInput>;
+
+// "15" → 1500, "12.5" → 1250 (whole basis points, no floats).
+export function pctToBps(pct: string): number {
+  const [whole = "0", frac = ""] = pct.split(".");
+  return Number(whole) * 100 + Number(frac.padEnd(2, "0").slice(0, 2));
+}
 
 export const staffCodeInput = z.object({
   membershipId: z.string().min(1, "Pick a team member."),
@@ -95,7 +106,13 @@ export const voidRewardInput = z.object({
   reason: z.string().trim().min(5, "Say why, for the record.").max(200),
 });
 
+const reason = z.string().trim().min(5, "Say why, for the record.").max(200);
+
+// The team attaches a code to a NEW deal (all five rules still apply).
 export const attachCodeInput = z.object({
   ref: z.string(),
-  code: z.string().trim().max(40), // empty: remove the code
+  code: z.string().trim().min(1, "Enter the code.").max(40),
+  reason,
 });
+
+export const removeReferralInput = z.object({ ref: z.string(), reason });

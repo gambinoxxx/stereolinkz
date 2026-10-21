@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Loader2, Lock } from "lucide-react";
 import { useEffect, useId, useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
@@ -12,18 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SETTINGS_SERVICES } from "@/features/deals/services";
 import {
+  createCampaign,
   createStaffCode,
   deactivateReferralCode,
+  endCampaign,
   setMemberWhatsapp,
-  updateReferralSettings,
+  startCampaign,
+  updateProgrammeRules,
 } from "@/features/referrals/actions";
-import { programmeLabel } from "@/features/referrals/labels";
-import type { ProgrammeView, StaffCodeRow } from "@/features/referrals/queries";
+import { campaignLabel, dayLabel } from "@/features/referrals/labels";
+import type { CampaignRow, StaffCodeRow } from "@/features/referrals/queries";
 import {
-  referralSettingsInput,
-  type ReferralSettingsForm,
+  type CampaignForm,
+  programmeRulesInput,
+  type ProgrammeRulesForm,
 } from "@/features/referrals/schema";
 import {
   FieldError,
@@ -38,254 +41,48 @@ const ROW =
 
 type Member = { id: string; name: string; whatsapp: string | null };
 
-// Settings → Referrals (Phase 13c): the programme (on/off, window, reward
-// %, hold, new customers only, monthly cap, services), staff codes and the
-// team's own numbers. Read-only unless you're the owner; the actions check
-// the role again on the server.
+const CAMPAIGN_VARIANT = {
+  running: "success",
+  scheduled: "brand",
+  ended: "default",
+  off: "default",
+} as const;
+
+// Settings → Referrals: campaigns (one active at a time), the programme
+// rules (hold, monthly cap), staff codes and the team's own numbers.
+// Read-only unless you're the owner; every action checks the role again.
 export function ReferralSettings({
   isOwner,
-  programme,
-  initial,
+  campaigns,
+  rules,
   codes,
   members,
   siteOrigin,
+  defaults,
 }: {
   isOwner: boolean;
-  programme: ProgrammeView;
-  initial: ReferralSettingsForm;
+  campaigns: CampaignRow[];
+  rules: ProgrammeRulesForm;
   codes: StaffCodeRow[];
   members: Member[];
   siteOrigin: string;
+  defaults: { startsOn: string; endsOn: string }; // a new campaign's dates
 }) {
-  const id = useId();
-  const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    control,
-    getValues,
-    reset,
-    setError,
-    formState: { errors, isDirty, isSubmitting },
-  } = useForm<ReferralSettingsForm, unknown, ReferralSettingsForm>({
-    resolver: zodResolver(referralSettingsInput) as never,
-    defaultValues: initial,
-  });
-  useEffect(() => reset(initial), [initial, reset]);
-
-  // The server checks the raw form values itself (not the resolver's
-  // transformed output, which it would read differently).
-  const onSubmit = handleSubmit(async () => {
-    const values = getValues();
-    const result = await updateReferralSettings(values);
-    if (!result.ok) {
-      for (const [field, message] of Object.entries(result.fieldErrors ?? {}))
-        setError(field as keyof ReferralSettingsForm, { message });
-      toast.error(result.error);
-      return;
-    }
-    reset(values);
-    toast.success("Referral settings saved");
-    router.refresh();
-  });
-  const err = (field: string) => `${id}-${field}-error`;
-  const status = programmeLabel(programme);
-
   return (
     <>
-      <form onSubmit={onSubmit} noValidate>
-        <PageHeader
-          title="Settings"
-          description="The referral programme: who earns, how much and when."
-          actions={
-            isOwner ? (
-              <Button type="submit" disabled={!isDirty || isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 aria-hidden="true" className="animate-spin" />
-                )}
-                {isSubmitting ? "Saving…" : "Save settings"}
-              </Button>
-            ) : undefined
-          }
-        />
-        <SettingsTabs current="referrals" />
-        {!isOwner && (
-          <p className="mb-5 flex items-center gap-2 rounded-control bg-bg-subtle px-3.5 py-3 text-[14px] text-text-secondary">
-            <Lock aria-hidden="true" className="size-4" strokeWidth={1.9} />
-            Only the owner can change the referral programme.
-          </p>
-        )}
-
-        <fieldset disabled={!isOwner} className="contents">
-          <Section
-            title="Programme"
-            description="A referrer earns a share of our profit on each referred deal. Off, or outside its dates, codes are ignored for new deals; rewards already earned are still paid."
-          >
-            <Controller
-              control={control}
-              name="enabled"
-              render={({ field }) => (
-                <label className={ROW}>
-                  <span>
-                    Referral programme
-                    <span
-                      className={`ml-2.5 text-[13px] font-medium ${status.tone === "on" ? "text-state-success" : "text-text-muted"}`}
-                    >
-                      {status.text}
-                    </span>
-                  </span>
-                  <Switch
-                    checked={field.value}
-                    aria-label="Referral programme on"
-                    onCheckedChange={field.onChange}
-                  />
-                </label>
-              )}
-            />
-            <div className="grid gap-3.5 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${id}-starts`}>Starts on</Label>
-                <Input
-                  id={`${id}-starts`}
-                  type="date"
-                  aria-invalid={errors.startsOn ? true : undefined}
-                  {...register("startsOn")}
-                />
-                <FieldError
-                  id={err("startsOn")}
-                  message={errors.startsOn?.message}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${id}-ends`}>Last day</Label>
-                <Input
-                  id={`${id}-ends`}
-                  type="date"
-                  aria-invalid={errors.endsOn ? true : undefined}
-                  {...register("endsOn")}
-                />
-                <FieldError
-                  id={err("endsOn")}
-                  message={errors.endsOn?.message}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${id}-pct`}>Reward (% of our profit)</Label>
-                <Input
-                  id={`${id}-pct`}
-                  inputMode="decimal"
-                  aria-invalid={errors.rewardPct ? true : undefined}
-                  {...register("rewardPct")}
-                />
-                <FieldError
-                  id={err("rewardPct")}
-                  message={errors.rewardPct?.message}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`${id}-hold`}>Hold before paying (days)</Label>
-                <Input
-                  id={`${id}-hold`}
-                  inputMode="numeric"
-                  aria-invalid={errors.holdDays ? true : undefined}
-                  {...register("holdDays")}
-                />
-                <FieldError
-                  id={err("holdDays")}
-                  message={errors.holdDays?.message}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor={`${id}-cap`}>
-                  Monthly cap per referrer (₦){" "}
-                  <span className="font-normal text-text-muted">optional</span>
-                </Label>
-                <Input
-                  id={`${id}-cap`}
-                  inputMode="numeric"
-                  placeholder="No cap"
-                  aria-invalid={errors.monthlyCap ? true : undefined}
-                  {...register("monthlyCap")}
-                />
-                <FieldError
-                  id={err("monthlyCap")}
-                  message={errors.monthlyCap?.message}
-                />
-              </div>
-            </div>
-            <Controller
-              control={control}
-              name="newCustomersOnly"
-              render={({ field }) => (
-                <label className={ROW}>
-                  <span>
-                    New customers only
-                    <span className="block text-[13px] font-normal text-text-muted">
-                      A code counts only if the WhatsApp number has no earlier
-                      completed deal.
-                    </span>
-                  </span>
-                  <Switch
-                    checked={field.value}
-                    aria-label="New customers only"
-                    onCheckedChange={field.onChange}
-                  />
-                </label>
-              )}
-            />
-          </Section>
-
-          <Section
-            title="Eligible services"
-            description="Deals that can carry a referral code."
-          >
-            <Controller
-              control={control}
-              name="services"
-              render={({ field }) => (
-                <div className="divide-y divide-border-subtle">
-                  {SETTINGS_SERVICES.map((svc) => {
-                    const on = svc.services.every((s) =>
-                      field.value.includes(s as never),
-                    );
-                    return (
-                      <label key={svc.key} className={ROW}>
-                        {svc.label}
-                        <Switch
-                          checked={on}
-                          aria-label={`Referrals for ${svc.label}`}
-                          onCheckedChange={(next) =>
-                            field.onChange(
-                              next
-                                ? [
-                                    ...new Set([
-                                      ...field.value,
-                                      ...svc.services,
-                                    ]),
-                                  ]
-                                : field.value.filter(
-                                    (s) =>
-                                      !(
-                                        svc.services as readonly string[]
-                                      ).includes(s),
-                                  ),
-                            )
-                          }
-                        />
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            />
-            <FieldError
-              id={err("services")}
-              message={errors.services?.message}
-            />
-          </Section>
-        </fieldset>
-      </form>
-
+      <PageHeader
+        title="Settings"
+        description="Referrals: campaigns, the rules that apply to all of them, and staff codes."
+      />
+      <SettingsTabs current="referrals" />
+      {!isOwner && (
+        <p className="mb-5 flex items-center gap-2 rounded-control bg-bg-subtle px-3.5 py-3 text-[14px] text-text-secondary">
+          <Lock aria-hidden="true" className="size-4" strokeWidth={1.9} />
+          Only the owner can change referrals.
+        </p>
+      )}
+      <Campaigns isOwner={isOwner} campaigns={campaigns} defaults={defaults} />
+      <ProgrammeRules isOwner={isOwner} rules={rules} />
       <StaffCodes
         isOwner={isOwner}
         codes={codes}
@@ -294,6 +91,278 @@ export function ReferralSettings({
       />
       <TeamNumbers isOwner={isOwner} members={members} />
     </>
+  );
+}
+
+function Campaigns({
+  isOwner,
+  campaigns,
+  defaults,
+}: {
+  isOwner: boolean;
+  campaigns: CampaignRow[];
+  defaults: { startsOn: string; endsOn: string };
+}) {
+  const id = useId();
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  const [v, setV] = useState<CampaignForm>({
+    name: "",
+    startsOn: defaults.startsOn,
+    endsOn: defaults.endsOn,
+    rewardPct: "15",
+    includeCrypto: false,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const run = (
+    fn: () => Promise<{ ok: boolean; error?: string }>,
+    done: string,
+  ) =>
+    start(async () => {
+      const r = await fn();
+      if (!r.ok) return void toast.error(r.error ?? "Something went wrong.");
+      toast.success(done);
+      router.refresh();
+    });
+  return (
+    <Section
+      title="Campaigns"
+      description="A referral earns a share of our profit only on deals made while a campaign is on. One at a time; start and end them here."
+    >
+      {campaigns.length === 0 ? (
+        <p className="text-[14px] text-text-secondary">
+          No campaigns yet. Create one below, then start it.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2.5">
+          {campaigns.map((c) => (
+            <li
+              key={c.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-[12px] border border-border-default px-3.5 py-3"
+            >
+              <div className="min-w-0">
+                <b className="block">{c.name}</b>
+                <span className="text-[13px] text-text-secondary">
+                  {dayLabel(c.startsOn)} – {dayLabel(c.endsOn)} · {c.pct}% of
+                  our profit
+                  {c.includeCrypto ? " · crypto included" : ""} · {c.deals} deal
+                  {c.deals === 1 ? "" : "s"}
+                </span>
+              </div>
+              <Badge variant={CAMPAIGN_VARIANT[c.status]}>
+                {campaignLabel(c)}
+              </Badge>
+              {isOwner && (
+                <div className="col-span-2">
+                  {c.active ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          !confirm(
+                            `End “${c.name}”? Rewards already earned stay.`,
+                          )
+                        )
+                          return;
+                        run(() => endCampaign(c.id), "Campaign ended");
+                      }}
+                    >
+                      End campaign
+                    </Button>
+                  ) : (
+                    c.status !== "ended" && (
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() =>
+                          run(() => startCampaign(c.id), "Campaign started")
+                        }
+                      >
+                        Start campaign
+                      </Button>
+                    )
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {isOwner && (
+        <div className="grid gap-3.5 rounded-[12px] border border-border-default p-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor={`${id}-name`}>Name</Label>
+            <Input
+              id={`${id}-name`}
+              placeholder="e.g. Launch, Nov–Dec"
+              value={v.name}
+              aria-invalid={errors.name ? true : undefined}
+              onChange={(e) => setV((s) => ({ ...s, name: e.target.value }))}
+            />
+            <FieldError id={`${id}-name-error`} message={errors.name} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-starts`}>Starts on</Label>
+            <Input
+              id={`${id}-starts`}
+              type="date"
+              value={v.startsOn}
+              onChange={(e) =>
+                setV((s) => ({ ...s, startsOn: e.target.value }))
+              }
+            />
+            <FieldError id={`${id}-starts-error`} message={errors.startsOn} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-ends`}>Last day</Label>
+            <Input
+              id={`${id}-ends`}
+              type="date"
+              value={v.endsOn}
+              onChange={(e) => setV((s) => ({ ...s, endsOn: e.target.value }))}
+            />
+            <FieldError id={`${id}-ends-error`} message={errors.endsOn} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-pct`}>Reward (% of our profit)</Label>
+            <Input
+              id={`${id}-pct`}
+              inputMode="decimal"
+              value={v.rewardPct}
+              aria-invalid={errors.rewardPct ? true : undefined}
+              onChange={(e) =>
+                setV((s) => ({ ...s, rewardPct: e.target.value }))
+              }
+            />
+            <FieldError id={`${id}-pct-error`} message={errors.rewardPct} />
+          </div>
+          <label className={`${ROW} self-end`}>
+            Include crypto deals
+            <Switch
+              checked={v.includeCrypto}
+              aria-label="Include crypto deals"
+              onCheckedChange={(on) =>
+                setV((s) => ({ ...s, includeCrypto: on }))
+              }
+            />
+          </label>
+          <div className="sm:col-span-2">
+            <Button
+              disabled={busy || v.name.trim().length < 2}
+              onClick={() =>
+                start(async () => {
+                  const r = await createCampaign(v);
+                  if (!r.ok) {
+                    setErrors(r.fieldErrors ?? {});
+                    return void toast.error(r.error);
+                  }
+                  setErrors({});
+                  setV((s) => ({ ...s, name: "" }));
+                  toast.success(
+                    "Campaign created. Start it when you’re ready.",
+                  );
+                  router.refresh();
+                })
+              }
+            >
+              {busy && <Loader2 aria-hidden="true" className="animate-spin" />}
+              Create campaign
+            </Button>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function ProgrammeRules({
+  isOwner,
+  rules,
+}: {
+  isOwner: boolean;
+  rules: ProgrammeRulesForm;
+}) {
+  const id = useId();
+  const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    reset,
+    setError,
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<ProgrammeRulesForm>({
+    resolver: zodResolver(programmeRulesInput) as never,
+    defaultValues: rules,
+  });
+  useEffect(() => reset(rules), [rules, reset]);
+  // The server checks the raw values itself.
+  const onSubmit = handleSubmit(async () => {
+    const values = getValues();
+    const r = await updateProgrammeRules(values);
+    if (!r.ok) {
+      for (const [field, message] of Object.entries(r.fieldErrors ?? {}))
+        setError(field as keyof ProgrammeRulesForm, { message });
+      return void toast.error(r.error);
+    }
+    reset(values);
+    toast.success("Rules saved");
+    router.refresh();
+  });
+  return (
+    <form onSubmit={onSubmit} noValidate>
+      <fieldset disabled={!isOwner} className="contents">
+        <Section
+          title="Rules for every campaign"
+          description="Only new customers count (no earlier completed deal), never the code owner’s own number, and only their first deal earns."
+        >
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-hold`}>Hold before paying (days)</Label>
+              <Input
+                id={`${id}-hold`}
+                inputMode="numeric"
+                aria-invalid={errors.holdDays ? true : undefined}
+                {...register("holdDays")}
+              />
+              <FieldError
+                id={`${id}-hold-error`}
+                message={errors.holdDays?.message}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-cap`}>
+                Monthly cap per referrer (₦){" "}
+                <span className="font-normal text-text-muted">optional</span>
+              </Label>
+              <Input
+                id={`${id}-cap`}
+                inputMode="numeric"
+                placeholder="No cap"
+                aria-invalid={errors.monthlyCap ? true : undefined}
+                {...register("monthlyCap")}
+              />
+              <FieldError
+                id={`${id}-cap-error`}
+                message={errors.monthlyCap?.message}
+              />
+            </div>
+          </div>
+          {isOwner && (
+            <div>
+              <Button type="submit" disabled={!isDirty || isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 aria-hidden="true" className="animate-spin" />
+                )}
+                Save rules
+              </Button>
+            </div>
+          )}
+        </Section>
+      </fieldset>
+    </form>
   );
 }
 

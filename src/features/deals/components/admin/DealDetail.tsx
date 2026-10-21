@@ -742,9 +742,7 @@ export function DealDetail({
           )}
           <ReferralPanel
             dealRef={deal.ref}
-            editable={
-              deal.status === "NEW" || deal.status === "AWAITING_DEPOSIT"
-            }
+            status={deal.status}
             view={referral}
           />
           <Panel title="Customer">

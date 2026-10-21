@@ -17,7 +17,9 @@ import type { EthCheck } from "@/features/crypto-deposits/providers/eth";
 import { nairaText } from "@/features/deals/format";
 import { notifyPaidOut } from "@/features/deals/notify";
 import { normalizeRef } from "@/features/deals/refs";
+import { notifyReferralCode } from "@/features/referrals/notify";
 import {
+  type NewCustomerCode,
   PROFIT_REQUIRED,
   profitField,
   recordProfitAndReward,
@@ -81,18 +83,21 @@ async function move(
   } = {},
 ): Promise<ActionResult<{ status: DealStatus }>> {
   try {
-    await db.$transaction(async (tx) => {
-      await transitionDeal(
-        tx,
-        deal,
-        to,
-        { type: "MEMBER", membershipId: member.membershipId },
-        { message, set: extra.set, data: extra.data },
-      );
-      if (extra.events?.length)
-        await tx.dealEvent.createMany({ data: extra.events });
-      await extra.after?.(tx);
-    });
+    await db.$transaction(
+      async (tx) => {
+        await transitionDeal(
+          tx,
+          deal,
+          to,
+          { type: "MEMBER", membershipId: member.membershipId },
+          { message, set: extra.set, data: extra.data },
+        );
+        if (extra.events?.length)
+          await tx.dealEvent.createMany({ data: extra.events });
+        await extra.after?.(tx);
+      },
+      { maxWait: 10_000, timeout: 15_000 },
+    ); // the reward and code too
   } catch (error) {
     if (error instanceof DealTransitionError)
       return {
@@ -160,6 +165,7 @@ export const markPaidOut = safeAction(
         error: "Choose the account you paid from.",
         fieldErrors: { paidFromAccountId: "Choose an account." },
       };
+    let newCode: NewCustomerCode = null;
     const result = await move(
       member,
       deal,
@@ -175,15 +181,19 @@ export const markPaidOut = safeAction(
           reference: parsed.data.reference,
           paidFromAccountId: account.id,
         },
-        after: (tx) =>
-          recordProfitAndReward(tx, {
+        after: async (tx) => {
+          newCode = await recordProfitAndReward(tx, {
             dealId: deal.id,
             profit,
             membershipId: member.membershipId,
-          }),
+          });
+        },
       },
     );
     if (result.ok) after(() => notifyPaidOut(deal.id));
+    // The customer's own referral code, by email (after the response).
+    const created = newCode as NewCustomerCode;
+    if (result.ok && created) after(() => notifyReferralCode(deal.id, created));
     return result;
   },
 );

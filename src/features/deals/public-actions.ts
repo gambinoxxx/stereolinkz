@@ -59,7 +59,7 @@ import {
 } from "@/lib/server/deal-files";
 import { db } from "@/lib/server/db";
 import { compareDecimalStrings } from "@/lib/decimal";
-import { checkCode, programmeSettings } from "@/features/referrals/attach";
+import { checkCode } from "@/features/referrals/attach";
 import { REF_COOKIE } from "@/features/referrals/rules";
 import type { NewDeal } from "@/features/deals/create";
 
@@ -133,21 +133,20 @@ export const getMarketPrices = publicAction(
   },
 );
 
-// ── Referral codes (Phase 13c) ────────────────────────────────────────
-// The form's optional code (prefilled from the ?ref= cookie). Unknown or
-// inactive: a field error, and the customer can submit without it. Off or
-// not for this service: ignored. The fraud and new-customer rules run
-// when the deal is created, and only the team sees their outcome.
+// ── Referral codes ────────────────────────────────────────────────────
+// The form's optional code (prefilled from the /r/ or ?ref= cookie). An
+// unknown or inactive TYPED code is a field error, and the customer can
+// clear it and submit. The other rules (campaign, own number, new
+// customer, service) run when the deal is created, silently: the deal
+// never fails on them, and only the team sees why a code didn't apply.
 async function referralFor(
   organizationId: string,
   raw: string | undefined,
-  service: NewDeal["service"],
 ): Promise<
   | { ok: true; referral: NewDeal["referral"] }
   | { ok: false; result: ActionResult<never> }
 > {
-  const now = new Date();
-  const check = await checkCode(organizationId, raw, service, now);
+  const check = await checkCode(organizationId, raw);
   if (!check.ok)
     return {
       ok: false,
@@ -157,14 +156,9 @@ async function referralFor(
         fieldErrors: { referralCode: check.error },
       },
     };
-  if (!check.code) return { ok: true, referral: undefined };
-  const settings = await programmeSettings(organizationId);
   return {
     ok: true,
-    referral: {
-      code: check.code,
-      newCustomersOnly: settings.referralNewCustomersOnly,
-    },
+    referral: check.code ? { code: check.code } : undefined,
   };
 }
 
@@ -218,7 +212,7 @@ export const submitDeal = publicAction(
         ? { ...details, bankName: quote.bankName }
         : details;
 
-    const ref = await referralFor(ctx.org.id, input.referralCode, service);
+    const ref = await referralFor(ctx.org.id, input.referralCode);
     if (!ref.ok) return ref.result;
 
     const ip = await clientIp();
@@ -372,11 +366,7 @@ export const submitCryptoDeal = publicAction(
       };
     }
 
-    const ref = await referralFor(
-      ctx.org.id,
-      input.referralCode,
-      "CRYPTO_SELL",
-    );
+    const ref = await referralFor(ctx.org.id, input.referralCode);
     if (!ref.ok) return ref.result;
 
     const ip = await clientIp();
