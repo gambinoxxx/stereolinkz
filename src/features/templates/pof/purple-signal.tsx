@@ -4,7 +4,7 @@ import type { BoardTemplate } from "@/features/templates/types";
 
 export const pofPurpleSignal: BoardTemplate<"POF"> = {
   key: "pof/purple-signal",
-  version: 1,
+  version: 2, // 2: the website in the small print (boards with one)
   type: "POF",
   name: "Purple Signal",
   description: "Deep purple, gold notes. Built for WhatsApp Status.",

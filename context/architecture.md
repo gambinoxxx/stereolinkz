@@ -175,7 +175,8 @@ needs, copied at generation time:
 
 - `content`: headline, subheading, note, reach, ctaLabel, finePrint,
   dateLabel and timeLabel (already formatted in the org time zone), and
-  brand (name, logoUrl, colours, contactLine)
+  brand (name, logoUrl, colours, contactLine, and optionally website:
+  the site's host, printed in the small print by template version 2)
 - `rows`:
   - FOREX: code, name, flagCode, buy, sell
   - POF: name, shortName, logoUrl, rate, note

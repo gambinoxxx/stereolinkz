@@ -4,7 +4,7 @@ import type { BoardTemplate } from "@/features/templates/types";
 
 export const forexDaylight: BoardTemplate<"FOREX"> = {
   key: "forex/daylight",
-  version: 1,
+  version: 2, // 2: the website in the small print (boards with one)
   type: "FOREX",
   name: "Daylight",
   description: "Light lavender background with purple type.",

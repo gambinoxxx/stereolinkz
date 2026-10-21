@@ -10,8 +10,8 @@ change.
 
 ## Current Goal
 
-- Phase 13c Stage A: the owner's review of the screenshots; then apply
-  `20261019120000_referrals` to production and push; then Stage B.
+- Referrals: customer side, in progress (campaigns, customer codes, /r/
+  links, the referrer page; owner's answers of 2026-10-21).
 
 ## Completed
 
@@ -1238,6 +1238,15 @@ change.
 - Starting coin list, rates and icons for production. Needed by Phase 10.
 
 ## Architecture Decisions
+
+- 2026-10-21: The website on boards is an optional field on snapshot V1
+  (`content.brand.website`), not a `boardSnapshotV2` (owner, after the
+  protected-files rule was flagged). Why: it's optional, so every stored
+  V1 snapshot still parses and renders exactly as before; a V2 would add a
+  second reader for one optional string. All six templates went to
+  version 2. Guarded by `lib/render/website-unchanged.test.ts`: the stored
+  real forex and POF boards, rendered by today's code, are byte-identical
+  to PNGs rendered by the version 1 code (before c93c5b8).
 
 - 2026-10-18: Phase 13b added before Phase 14 (owner). BTC is sold online
   with a conversion margin: the customer is quoted in dollars, the fee is
