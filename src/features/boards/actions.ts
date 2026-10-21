@@ -33,6 +33,7 @@ import { assertNever } from "@/lib/assert-never";
 import { db } from "@/lib/server/db";
 import { isCheckViolation } from "@/lib/server/prisma-errors";
 import { revalidatePublicPages } from "@/features/public/revalidate";
+import { boardWebsite } from "@/lib/site-url";
 
 export type GeneratedBoard = {
   boardId: string;
@@ -121,7 +122,11 @@ const generate = safeAction(
     });
     // 4. Snapshot, stamped with server time (Invariant 11: org time zone).
     const now = new Date();
-    const base = { org: toSnapshotOrg(org), content: input.content, now };
+    const base = {
+      org: toSnapshotOrg(org, boardWebsite()),
+      content: input.content,
+      now,
+    };
     let snapshot: BoardSnapshot;
     let rateInserts: Prisma.PrismaPromise<unknown>[];
     switch (input.type) {

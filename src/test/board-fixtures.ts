@@ -24,6 +24,7 @@ export const FIXTURE_ORG: SnapshotOrg = {
   accentColor: "#E9B949",
   contactLine: "+234 800 000 0000",
   defaultFinePrint: null,
+  website: "stereolinkz.com",
 };
 
 const fx = (

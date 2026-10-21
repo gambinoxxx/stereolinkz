@@ -26,6 +26,7 @@ describe("buildSnapshot", () => {
       primaryColor: "#6A35D9",
       accentColor: "#E9B949",
       contactLine: "+234 800 000 0000",
+      website: "stereolinkz.com", // copied, like the number
     });
   });
 

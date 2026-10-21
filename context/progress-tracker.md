@@ -15,6 +15,15 @@ change.
 
 ## Completed
 
+- 2026-10-21: Boards print the website. `content.brand.website`
+  ("stereolinkz.com", from `boardWebsite()`: the site's own host, no www,
+  none on localhost) is copied into new snapshots, optional so older
+  boards render as they did; the templates show it on the right of the
+  small-print row (no extra height; the bottom safe area is tight).
+  Checked with `npm run render:fixtures` on all six templates. The
+  WhatsApp contact number is Settings → General (`contactLine`): set to
+  +234 810 978 3417 on the dev branch; the owner sets it in production.
+
 - 2026-10-21: WhatsApp bot (branch `whatsapp-bot`, PR; not on main).
   Cloud API, Meta direct. `/api/whatsapp/webhook`: GET verification
   (verify token), POST checked with X-Hub-Signature-256 over the raw body

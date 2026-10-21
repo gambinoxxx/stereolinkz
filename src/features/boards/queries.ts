@@ -29,6 +29,7 @@ import { toDecimalString } from "@/lib/decimal";
 import { formatBoardDay } from "@/lib/format";
 import { db } from "@/lib/server/db";
 import { getUserDisplayName } from "@/lib/server/users";
+import { boardWebsite } from "@/lib/site-url";
 
 // What a new board can show: active currencies with a rate, and active
 // banks with pofActive and a rate, in sortOrder. Values are decimal
@@ -145,7 +146,7 @@ export async function getGeneratorData(
   ]);
 
   return {
-    org: toSnapshotOrg(org),
+    org: toSnapshotOrg(org, boardWebsite()),
     defaultTemplates: {
       FOREX: resolveTemplateKey("FOREX", org),
       POF: resolveTemplateKey("POF", org),

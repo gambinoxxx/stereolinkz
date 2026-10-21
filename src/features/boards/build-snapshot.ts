@@ -30,11 +30,15 @@ export type SnapshotOrg = {
   accentColor: string | null;
   contactLine: string | null;
   defaultFinePrint: string | null;
+  website?: string | null; // boardWebsite(), from the site's own address
 };
 
 // Picks the snapshot's fields from an Organization row (or anything with
 // them), so every caller copies the same ones.
-export function toSnapshotOrg(org: SnapshotOrg): SnapshotOrg {
+export function toSnapshotOrg(
+  org: SnapshotOrg,
+  website: string | null = null,
+): SnapshotOrg {
   return {
     name: org.name,
     timezone: org.timezone,
@@ -45,6 +49,7 @@ export function toSnapshotOrg(org: SnapshotOrg): SnapshotOrg {
     accentColor: org.accentColor,
     contactLine: org.contactLine,
     defaultFinePrint: org.defaultFinePrint,
+    website,
   };
 }
 
@@ -106,6 +111,7 @@ export function assembleSnapshot(input: AnyBuildInput): BoardSnapshot {
       primaryColor: org.primaryColor,
       accentColor: org.accentColor,
       contactLine: org.contactLine,
+      website: org.website ?? null,
     },
   };
 

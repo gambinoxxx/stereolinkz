@@ -298,16 +298,36 @@ function Footer({ content, theme }: { content: Content; theme: BoardTheme }) {
           </div>
         </div>
       ) : null}
-      {content.finePrint ? (
+      {content.finePrint || content.brand.website ? (
+        // Small print, with the website on the right of the same row so
+        // the board gets no taller (the bottom safe area is tight).
         <div
           style={{
             marginTop: 18,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 24,
             fontSize: 23,
             lineHeight: 1.4,
             color: theme.fine,
           }}
         >
-          {content.finePrint}
+          <div style={{ display: "flex", flex: 1, minWidth: 0 }}>
+            {content.finePrint ?? ""}
+          </div>
+          {content.brand.website ? (
+            <div
+              style={{
+                display: "flex",
+                flexShrink: 0,
+                fontWeight: 700,
+                color: theme.text,
+              }}
+            >
+              {content.brand.website}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

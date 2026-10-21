@@ -16,6 +16,9 @@ const brand = z.object({
   primaryColor: z.string().nullable(),
   accentColor: z.string().nullable(),
   contactLine: z.string().nullable(),
+  // "stereolinkz.com", printed in the small print. Optional: boards made
+  // before it was added have none and render exactly as they did.
+  website: z.string().max(60).nullable().optional(),
 });
 
 const content = z.object({
