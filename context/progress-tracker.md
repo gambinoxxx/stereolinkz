@@ -15,6 +15,17 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), data. Migration
+  `20261022120000_referral_campaigns` on the dev branch (ep-soft-haze):
+  `ReferralCampaign` (one active per org, bps 0–10000, endsAt after
+  startsAt), customer code fields (name, first deal, page token hash and
+  date; one active customer code per number), the campaign on Deal and on
+  ReferralReward (with `rewardBps`), event types REFERRAL_REMOVED and
+  REWARD_CHANGED; the deal trigger now allows a code (and campaign) to be
+  added only while NEW, removed at any time, never swapped. Additive only;
+  the old Organization referral fields stay, unused. Made with `migrate
+  diff` + `deploy`: `migrate dev` refuses a non-interactive shell.
+
 - 2026-10-21: Boards print the website. `content.brand.website`
   ("stereolinkz.com", from `boardWebsite()`: the site's own host, no www,
   none on localhost) is copied into new snapshots, optional so older

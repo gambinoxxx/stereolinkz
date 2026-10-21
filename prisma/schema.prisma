@@ -74,6 +74,7 @@ model Organization {
   memberships       Membership[]
   referralCodes     ReferralCode[]
   referralRewards   ReferralReward[]
+  referralCampaigns ReferralCampaign[]
   currencies        Currency[]
   banks             Bank[]
   coins             Coin[]
@@ -104,17 +105,18 @@ model Membership {
   role           MemberRole   @default(ADMIN)
   createdAt      DateTime     @default(now())
 
-  defaultOwnerOf  Organization[]   @relation("DealDefaultOwner")
-  ownedDeals      Deal[]           @relation("DealOwner")
-  agreedDeals     Deal[]           @relation("DealAgreedBy")
-  dealEvents      DealEvent[]
+  defaultOwnerOf   Organization[]     @relation("DealDefaultOwner")
+  ownedDeals       Deal[]             @relation("DealOwner")
+  agreedDeals      Deal[]             @relation("DealAgreedBy")
+  dealEvents       DealEvent[]
   // Phase 13c: their own WhatsApp number (normalised), so their referral
   // code is never attached to their own deals.
-  whatsapp        String?
-  referralCodes   ReferralCode[]
-  rewardsApproved ReferralReward[] @relation("RewardApprovedBy")
-  rewardsPaid     ReferralReward[] @relation("RewardPaidBy")
-  rewardsVoided   ReferralReward[] @relation("RewardVoidedBy")
+  whatsapp         String?
+  referralCodes    ReferralCode[]
+  rewardsApproved  ReferralReward[]   @relation("RewardApprovedBy")
+  rewardsPaid      ReferralReward[]   @relation("RewardPaidBy")
+  rewardsVoided    ReferralReward[]   @relation("RewardVoidedBy")
+  campaignsCreated ReferralCampaign[]
 
   @@unique([organizationId, clerkUserId])
   @@index([clerkUserId])
@@ -421,6 +423,8 @@ enum DealEventType {
   TXID_SUBMITTED // the customer pasted a TxID that matched a transfer
   REFERRAL // Phase 13c: a code attached, changed, refused, or a reward created
   PROFIT_RECORDED // Phase 13c: our profit on the deal, entered at completion
+  REFERRAL_REMOVED // the team removed the code, with a reason
+  REWARD_CHANGED // a reward was approved, paid, voided or unflagged
 }
 
 enum DealFileKind {
@@ -513,10 +517,14 @@ model Deal {
   // the team while NEW / AWAITING_DEPOSIT), then is locked (trigger).
   // profitNaira is OUR profit, entered when the deal completes or is paid
   // out; the reward is a share of it. Set once (trigger).
-  referralCodeId String?
-  referralCode   ReferralCode?   @relation(fields: [referralCodeId], references: [id], onDelete: Restrict)
-  profitNaira    Decimal?        @db.Decimal(24, 8)
-  referralReward ReferralReward?
+  referralCodeId     String?
+  referralCode       ReferralCode?     @relation(fields: [referralCodeId], references: [id], onDelete: Restrict)
+  // The campaign in force when the code attached (customer side).
+  referralCampaignId String?
+  referralCampaign   ReferralCampaign? @relation(fields: [referralCampaignId], references: [id], onDelete: Restrict)
+  unlockedCodes      ReferralCode[]    @relation("CodeFirstDeal")
+  profitNaira        Decimal?          @db.Decimal(24, 8)
+  referralReward     ReferralReward?
 
   trackingTokenHash String // SHA-256 of the customer's link token; the token itself is never stored
   ipHash            String? // keyed hash of the submitting IP, for the rate limit only
@@ -535,6 +543,7 @@ model Deal {
   @@index([ipHash, createdAt])
   @@index([walletId, status])
   @@index([referralCodeId])
+  @@index([referralCampaignId])
 }
 
 // Append-only (a trigger in the migration refuses UPDATE). No updatedAt.
@@ -621,6 +630,13 @@ model ReferralCode {
   membershipId     String? // STAFF
   membership       Membership?  @relation(fields: [membershipId], references: [id], onDelete: Restrict)
   customerWhatsapp String? // CUSTOMER (normalised)
+  customerName     String? // CUSTOMER: from the deal that unlocked it
+  firstDealId      String? // CUSTOMER: the completed deal that unlocked it
+  firstDeal        Deal?        @relation("CodeFirstDeal", fields: [firstDealId], references: [id], onDelete: SetNull)
+  // The private referrer page (/referrals/[token]): only the token's
+  // SHA-256 is stored; a new link replaces it.
+  pageTokenHash    String?      @unique
+  pageTokenAt      DateTime?
   active           Boolean      @default(true)
   createdAt        DateTime     @default(now())
   deactivatedAt    DateTime?
@@ -656,9 +672,12 @@ model ReferralReward {
   code        String // snapshot: "LYDIA"
   dealRef     String // snapshot: "SLZ-1047"
   service     DealService
-  pct         Decimal     @db.Decimal(5, 2)
-  profitNaira Decimal     @db.Decimal(24, 8)
-  amountNaira Decimal     @db.Decimal(24, 8) // whole naira, rounded down
+  pct         Decimal           @db.Decimal(5, 2)
+  rewardBps   Int? // customer side: the campaign's basis points used (1500 = 15%)
+  campaignId  String?
+  campaign    ReferralCampaign? @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  profitNaira Decimal           @db.Decimal(24, 8)
+  amountNaira Decimal           @db.Decimal(24, 8) // whole naira, rounded down
 
   status    ReferralRewardStatus @default(PENDING)
   holdUntil DateTime // READY from here (unless capped or flagged)
@@ -718,4 +737,28 @@ model WhatsAppEvent {
   createdAt   DateTime          @default(now())
 
   @@index([waId, createdAt])
+}
+
+// A referral campaign (customer side): codes earn rewards on deals created
+// while one is active and in its dates. At most one active per org
+// (partial unique index). The bps used is copied onto each reward.
+model ReferralCampaign {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  startsAt       DateTime
+  endsAt         DateTime
+  active         Boolean      @default(false)
+  rewardBps      Int          @default(1500) // 1500 = 15% of our profit
+  includeCrypto  Boolean      @default(false)
+  createdById    String?
+  createdBy      Membership?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  deals   Deal[]
+  rewards ReferralReward[]
+
+  @@index([organizationId, active])
 }
