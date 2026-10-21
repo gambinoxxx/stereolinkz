@@ -684,3 +684,38 @@ model ReferralReward {
   @@index([organizationId, referrerKey, approvedAt])
   @@index([codeId])
 }
+
+// ─────────────────────────────────────────────────────────────
+// WhatsApp bot (Cloud API). No message bodies are ever stored.
+// ─────────────────────────────────────────────────────────────
+
+// One customer chat, by their WhatsApp id (the number, digits only).
+model WhatsAppContact {
+  id             String    @id @default(cuid())
+  waId           String    @unique
+  firstSeenAt    DateTime  @default(now())
+  lastInboundAt  DateTime?
+  botPausedUntil DateTime? // a person is handling the chat until then
+  state          String? // "awaiting_reference" while asking for a deal number
+  stateAt        DateTime? // when the state was set (it expires)
+
+  @@index([botPausedUntil])
+}
+
+enum WhatsAppDirection {
+  IN
+  OUT
+}
+
+// Message ids seen and sent: the webhook skips any id already here (Meta
+// retries deliveries). The type only ("text", "interactive"), never the text.
+model WhatsAppEvent {
+  id          String            @id @default(cuid())
+  waMessageId String            @unique
+  waId        String
+  direction   WhatsAppDirection
+  type        String
+  createdAt   DateTime          @default(now())
+
+  @@index([waId, createdAt])
+}

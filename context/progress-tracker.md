@@ -15,6 +15,26 @@ change.
 
 ## Completed
 
+- 2026-10-21: WhatsApp bot (branch `whatsapp-bot`, PR; not on main).
+  Cloud API, Meta direct. `/api/whatsapp/webhook`: GET verification
+  (verify token), POST checked with X-Hub-Signature-256 over the raw body
+  (timing-safe), 200 at once, the bot after the response; each message id
+  once (`WhatsAppEvent`). `features/whatsapp/`: pure `decide` + replies
+  (menu list, services → the existing /deal/new forms with what to have
+  ready, today's rates from the latest Forex and POF boards only, track a
+  deal only for its own number, talk to a person → 12-hour pause and a
+  team email with no customer details, at most hourly), the Graph client
+  (text, buttons, list, mark as read; no token or numbers in logs),
+  coexistence echoes pause the chat, "menu" resumes. Migration
+  `20261021120000_whatsapp_bot` (WhatsAppContact, WhatsAppEvent; no
+  message bodies). Architecture: the webhook is an Invariant 7 / 14
+  exception like the cron route. Checked locally with signed posts (test
+  secret, no token): verify 200 / 403, unsigned and wrong signatures 401,
+  a repeated id handled once, state and pause step by step. 22 tests.
+  Owner: the five WHATSAPP_* variables in Vercel, the webhook URL and the
+  "messages" field in Meta (docs/whatsapp-bot.md), and the production
+  migration before merging.
+
 - 2026-10-19: Phase 13c, Stage A (staff codes and the ledger), built,
   awaiting the owner's review before Stage B. Done when:
   - [x] A staff code from `?ref=` or the form attaches to a new deal while
