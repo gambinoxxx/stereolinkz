@@ -406,3 +406,27 @@ export function teamRateToAgreeEmail(d: {
     }),
   };
 }
+
+// WhatsApp bot: a customer tapped "Talk to a person". No customer details
+// (Invariant: team alerts never carry contact details); the team replies
+// from the WhatsApp Business app, where the chat already is.
+export function teamWhatsAppHandoverEmail(): Omit<Email, "to"> {
+  const lines = [
+    "A customer asked for a person on WhatsApp.",
+    "Check the WhatsApp Business app and reply there. The bot stays quiet in that chat for 12 hours.",
+  ];
+  return {
+    subject: "WhatsApp: a customer asked for a person",
+    text: lines.join("\n"),
+    html: shell({
+      preheader: "A customer asked for a person on WhatsApp.",
+      kicker: "WhatsApp",
+      badge: "TALK TO A PERSON",
+      title: "A customer asked for a person",
+      intro:
+        "Check the WhatsApp Business app and reply there. The bot stays quiet in that chat for 12 hours.",
+      rows: [["Asked at", lagosTime(new Date())]],
+      audience: "team",
+    }),
+  };
+}

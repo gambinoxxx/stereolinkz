@@ -417,9 +417,13 @@ the rest of this file. Decisions made during the build are recorded in
    when the history count is zero.
 7. Every server action and route handler calls `requireMember()` before
    any read or write, and scopes queries by `organizationId`. Exceptions:
-   the public deal routes (Invariant 14) and `/api/cron/crypto-watch`,
+   the public deal routes (Invariant 14), `/api/cron/crypto-watch`,
    which needs the `CRON_SECRET` bearer token and only runs the deposit
-   watcher (moves through `transitionDeal` as SYSTEM).
+   watcher (moves through `transitionDeal` as SYSTEM), and
+   `/api/whatsapp/webhook`, which needs Meta's `X-Hub-Signature-256`
+   (HMAC of the raw body with `WHATSAPP_APP_SECRET`) and writes only the
+   bot's own tables (WhatsAppContact, WhatsAppEvent); it reads a deal's
+   status only for the deal's own WhatsApp number.
 8. Final PNGs are produced by the server renderer (SVG → PNG), never by
    screenshotting the browser.
 9. Board templates render at exactly 1080 × 1920. Important content
@@ -436,7 +440,8 @@ the rest of this file. Decisions made during the build are recorded in
     It never reads rate tables and never shows invented reviews,
     figures or licence claims.
 14. The only unauthenticated writes are in
-    `features/deals/public-actions.ts` (rate-limited, validated, bot-checked).
+    `features/deals/public-actions.ts` (rate-limited, validated, bot-checked),
+    and the WhatsApp webhook's own tables (signed by Meta; Invariant 7).
     A customer reaches a deal only with its tracking token, and sees
     only that deal. Deal quotes come from board snapshots on the server.
 15. Deal history is append-only (DealEvent); quotedRate never changes;
