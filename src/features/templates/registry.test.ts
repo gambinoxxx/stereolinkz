@@ -17,8 +17,9 @@ describe("template registry", () => {
     expect(
       listTemplates("FOREX").map((t) => [t.key, t.maxRows, t.version]),
     ).toEqual([
-      ["forex/purple-signal", 4, 1],
-      ["forex/daylight", 4, 1],
+      // Version 2: the website in the small print.
+      ["forex/purple-signal", 4, 2],
+      ["forex/daylight", 4, 2],
     ]);
     expect(listTemplates("POF").map((t) => [t.key, t.maxRows])).toEqual([
       ["pof/purple-signal", 6],
