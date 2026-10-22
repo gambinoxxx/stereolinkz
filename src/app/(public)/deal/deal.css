@@ -1504,3 +1504,35 @@
     animation: none;
   }
 }
+
+/* Referrals: the referrer's masked deal list and the terms. */
+.dk .rlist {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.dk .rlist li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--lav);
+  font-size: 14.5px;
+}
+.dk .rlist li svg {
+  color: var(--violet);
+  flex-shrink: 0;
+}
+.dk .terms {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: var(--ink2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.dk .terms li + li {
+  margin-top: 6px;
+}

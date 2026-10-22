@@ -15,6 +15,21 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), the referrer's pages.
+  `referrer-queries.ts` loads the view by the private page token
+  (`/referrals/[token]`, looked up by hash only; anything not shaped like
+  a token is refused before the database) or by the deal's own tracking
+  token (`/deal/[ref]/referrals?t=…`, the code of that deal's number
+  only). `ReferrerView`: code, link, Copy, Share on WhatsApp, campaign
+  ("Active until …" or "No active campaign: links still work…"),
+  totals, the masked list ("SLZ-1087 · Completed · reward paid ₦4,500";
+  `REFERRER_DEAL_SELECT` reads ref, status, date and reward only), the
+  payout note with our WhatsApp, how it works and the terms. A wrong,
+  old or switched-off token is the same "Link not found". The tracking
+  page shows "Earn with Stereolinkz" on COMPLETED and PAID_OUT deals
+  (crypto too). `/referrals/*` gets no-referrer and noindex headers and
+  reuses the deal layout. Tests: `referrals/referrer.test.ts`.
+
 - 2026-10-22: Referrals (customer side), the link. `/r/[code]` checks the
   code and sets the httpOnly `slz_ref` cookie (60 days, sameSite lax,
   secure on https), then 303 to /deal/new; an unknown, inactive or

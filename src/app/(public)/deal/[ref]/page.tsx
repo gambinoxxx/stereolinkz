@@ -34,6 +34,8 @@ import { getDealDeskContext } from "@/features/deals/public-queries";
 import { SERVICE_LABELS } from "@/features/deals/services";
 import { formatAccountNumber } from "@/features/deals/settings-schema";
 import { whatsappLink } from "@/features/public/whatsapp";
+import { ReferralCard } from "@/features/referrals/components/customer/ReferralCard";
+import { cardForDeal } from "@/features/referrals/referrer-queries";
 import { customerEmailReady } from "@/lib/server/email";
 import { formatBoardDay, formatBoardTime } from "@/lib/format";
 
@@ -90,13 +92,25 @@ export default async function DealPage({
   const dealId = ctx ? await findDealIdByToken(ctx.org.id, ref, token) : null;
   // The deal and its crypto view load together (only the token lookup has
   // to come first); the crypto view is used for crypto deals only.
-  const [deal, cryptoView] = dealId
-    ? await Promise.all([
-        getDealForCustomer(dealId),
-        getCryptoDealForCustomer(dealId),
-      ])
-    : [null, null];
+  const [deal, cryptoView, card] =
+    ctx && dealId
+      ? await Promise.all([
+          getDealForCustomer(dealId),
+          getCryptoDealForCustomer(dealId),
+          cardForDeal(ctx.org.id, dealId),
+        ])
+      : [null, null, null];
   if (!ctx || !deal || !token) notFound();
+  // A completed deal's customer has their own referral code.
+  const referralCard = card && (
+    <ReferralCard
+      brand={ctx.org.name}
+      code={card.code}
+      shareUrl={card.shareUrl}
+      pct={card.pct}
+      viewHref={`/deal/${deal.ref}/referrals?t=${encodeURIComponent(token)}`}
+    />
+  );
 
   // Crypto deals go straight to their deposit / payout page.
   if (deal.service === "CRYPTO_SELL") {
@@ -110,6 +124,7 @@ export default async function DealPage({
           ctx.org.contactLine,
           aboutDealMessage(ctx.org.name, deal.ref),
         )}
+        extra={referralCard}
       />
     );
   }
@@ -473,6 +488,7 @@ export default async function DealPage({
               Message us about this deal
             </a>
           </section>
+          {referralCard}
         </aside>
       </div>
     </main>

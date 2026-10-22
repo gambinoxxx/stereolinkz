@@ -67,10 +67,12 @@ export async function CryptoDealView({
   deal,
   token,
   whatsappHref,
+  extra,
 }: {
   deal: CustomerCryptoDeal;
   token: string;
   whatsappHref: string;
+  extra?: React.ReactNode; // the referral card, once paid out
 }) {
   const net = NETWORKS[deal.network];
   const coins = (q: string) => coinsText(q, deal.network);
@@ -201,6 +203,7 @@ export async function CryptoDealView({
             />
             {message}
           </section>
+          {paid && extra}
         </div>
       </main>
     );
