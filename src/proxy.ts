@@ -18,10 +18,11 @@ export const config = {
   matcher: [
     // Skip Next.js internals and static files, unless found in search
     // params. Also skip the public site: the landing page ("/" itself, via
-    // .+), the deal pages (/deal/*), robots.txt and sitemap.xml read no
+    // .+), the deal pages (/deal/*), the referral link and page (/r/*,
+    // /referrals/*), robots.txt and sitemap.xml read no
     // session, and running Clerk there would send first-time visitors
     // through its handshake redirect. API routes still run it (below).
-    "/((?!_next|deal(?:/|$)|robots\\.txt$|sitemap\\.xml$|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).+)",
+    "/((?!_next|deal(?:/|$)|r(?:/|$)|referrals(?:/|$)|robots\\.txt$|sitemap\\.xml$|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).+)",
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],

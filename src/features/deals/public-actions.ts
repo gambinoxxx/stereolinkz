@@ -60,7 +60,12 @@ import {
 import { db } from "@/lib/server/db";
 import { compareDecimalStrings } from "@/lib/decimal";
 import { checkCode } from "@/features/referrals/attach";
-import { REF_COOKIE } from "@/features/referrals/rules";
+import {
+  activeCode,
+  REF_COOKIE,
+  REF_COOKIE_OPTIONS,
+} from "@/features/referrals/link";
+import { createLimiter } from "@/lib/server/rate-limit";
 import type { NewDeal } from "@/features/deals/create";
 
 const CHECK = "Please check the highlighted fields.";
@@ -162,7 +167,35 @@ async function referralFor(
   };
 }
 
-// Once a deal exists, the ?ref= cookie has done its job.
+// ?ref=CODE on any public page: the same check and cookie as /r/CODE.
+// Rate-limited; says nothing about whether the code exists.
+const allowReferral = createLimiter(30, 60_000);
+export const rememberReferral = publicAction(
+  "rememberReferral",
+  async (raw: unknown): Promise<ActionResult<{ saved: true }>> => {
+    const ip = await clientIp();
+    if (!allowReferral(ip ? hashIp(ip) : "unknown"))
+      return { ok: true, data: { saved: true } };
+    const ctx = await getDealDeskContext();
+    const code = ctx ? await activeCode(ctx.org.id, raw) : null;
+    if (code) (await cookies()).set(REF_COOKIE, code, REF_COOKIE_OPTIONS);
+    return { ok: true, data: { saved: true } };
+  },
+);
+
+// The deal form's prefill: the cookie's code, if it's still active (the
+// cookie is httpOnly, so the browser asks).
+export const referralFromCookie = publicAction(
+  "referralFromCookie",
+  async (): Promise<ActionResult<{ code: string | null }>> => {
+    const saved = (await cookies()).get(REF_COOKIE)?.value;
+    const ctx = saved ? await getDealDeskContext() : null;
+    const code = ctx ? await activeCode(ctx.org.id, saved) : null;
+    return { ok: true, data: { code } };
+  },
+);
+
+// Once a deal exists, the referral cookie has done its job.
 async function clearReferralCookie() {
   (await cookies()).delete(REF_COOKIE);
 }

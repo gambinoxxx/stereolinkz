@@ -7,9 +7,10 @@ import type {
 } from "@/generated/prisma/enums";
 import { multiplyDecimalStrings } from "@/lib/decimal";
 
-// stereolinkz.com/?ref=LYDIA → this first-party cookie, 30 days.
+// stereolinkz.com/r/LYDIA (or ?ref=LYDIA) → this first-party httpOnly
+// cookie, 60 days (features/referrals/link.ts).
 export const REF_COOKIE = "slz_ref";
-export const REF_COOKIE_DAYS = 30;
+export const REF_COOKIE_DAYS = 60;
 
 export const CODE_PATTERN = /^[A-Z0-9]{4,12}$/;
 

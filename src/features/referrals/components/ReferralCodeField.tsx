@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 
-import { readReferralCookie } from "@/features/referrals/cookie";
+import { referralFromCookie } from "@/features/deals/public-actions";
+import { normalizeCode } from "@/features/referrals/rules";
 
 // The deal forms' optional "Referral code" (deal.css .fld / .inp). Shown
-// only while the programme is on for the service; prefilled once from the
-// ?ref= cookie. A bad code gets a friendly error from the server, and the
+// only while a campaign covers the service; prefilled once from ?ref= or
+// the referral cookie. A bad code gets a friendly error from the server, and the
 // customer can clear it and submit without one.
 export function ReferralCodeField({
   id,
@@ -19,12 +20,25 @@ export function ReferralCodeField({
   onChange: (value: string) => void;
   error?: string;
 }) {
+  // Prefill once: ?ref= in this page's address, else the referral cookie
+  // (httpOnly, so the server reads it). The customer can clear or edit it.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const saved = readReferralCookie();
-      if (saved && !value) onChange(saved);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    let live = true;
+    const fromUrl = normalizeCode(
+      new URLSearchParams(window.location.search).get("ref"),
+    );
+    if (fromUrl) {
+      const timer = window.setTimeout(() => !value && onChange(fromUrl), 0);
+      return () => window.clearTimeout(timer);
+    }
+    referralFromCookie()
+      .then((r) => {
+        if (live && r.ok && r.data.code && !value) onChange(r.data.code);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
     // Once, after the first render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -15,6 +15,16 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), the link. `/r/[code]` checks the
+  code and sets the httpOnly `slz_ref` cookie (60 days, sameSite lax,
+  secure on https), then 303 to /deal/new; an unknown, inactive or
+  malformed code, or more than 30 opens a minute per IP hash, redirects
+  with no cookie. `?ref=` on any public page goes through
+  `rememberReferral` (same check, same cookie); the deal forms prefill
+  from `?ref=` or `referralFromCookie` (the cookie is httpOnly). Clerk is
+  skipped on /r/* and /referrals/* (proxy matcher), like /deal/*. Shared
+  `lib/server/rate-limit.ts`. Tests: `app/r/[code]/route.test.ts`.
+
 - 2026-10-22: Referrals (customer side), attribution, rewards and customer
   codes. `attach.ts`: a typed unknown or inactive code → "We couldn't find
   that code. Check it or leave it blank."; the five rules (a campaign in
