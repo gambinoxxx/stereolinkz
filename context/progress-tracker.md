@@ -15,6 +15,25 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), the 8-step walk on dev through
+  the real UI, screenshots at 1440 and 390 (`tmp/qa/out/walk-*`): (1)
+  campaign "Launch referrals (QA walk)" created and started, 15%; (2)
+  SLZ-1047 completed with ₦20,000 profit, its customer got SLZRWS3N and a
+  private link; (3) `/r/SLZRWS3N` fresh → /deal/new, cookie httpOnly,
+  Lax, 60 days; (4) a new customer's forex deal prefilled and submitted
+  (SLZ-1165), cookie cleared; (5) completed with ₦30,000 profit; (6)
+  reward ₦4,500 Pending (hold until 29 Oct); the referred customer got
+  their own code. (7) The hold can't be shortened on a reward (the
+  `referral_reward_guard` trigger refused it), so the hold was set to 0,
+  a second new customer (SLZ-1166) went through, its reward was approved
+  and paid (ref QAWALK-0001; "Approve ready" also approved the old dev
+  reward SLZ-1048), then the hold went back to 7. (8) The referrer page
+  shows SLZ-1166 paid and SLZ-1165 pending; the referred customer's
+  tracking page shows "Earn with Stereolinkz", and "View my referrals"
+  opens their own (empty) referrals. The QA campaign was ended after.
+  Checks: build, lint, tsc, 511 tests (+ 47 referral tests with the DB
+  tests on dev), format:check.
+
 - 2026-10-22: Referrals (customer side), admin. Admin → Referrals lists
   every code under the ledger (`CodesList`, `listReferralCodes`): code,
   owner (a team member's name, or the customer's name and masked
