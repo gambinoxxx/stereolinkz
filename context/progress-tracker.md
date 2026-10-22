@@ -1302,6 +1302,43 @@ change.
 
 ## Architecture Decisions
 
+- 2026-10-22: Referrals, customer side (owner's answers of 2026-10-21).
+  - **Code format:** customer codes are `SLZ` + 5 characters from
+    `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (no 0/O, 1/I/L), drawn with
+    rejection sampling; one active customer code per number (partial
+    unique index). Staff codes stay owner-chosen words.
+  - **Campaigns:** a `ReferralCampaign` table (name, dates, reward in
+    basis points, crypto on or off), one active per organization (partial
+    unique index). The reward % is snapshotted on the reward
+    (`rewardBps`), so a later campaign never changes an old reward. The
+    old Organization referral fields stay, unused. No campaign is active
+    after the deploy; the owner starts the first one.
+  - **Attribution:** a code attaches at deal creation only when a
+    campaign is in force, the code is active, it isn't the customer's own
+    number, the customer is new (no earlier deal from that number) and
+    the service is eligible. A typed unknown or inactive code is the one
+    error shown; every other failed rule is silent and never blocks the
+    deal. A team member may add a code to a NEW deal (reason required,
+    same rules) or remove one any time (reason; a pending or approved
+    reward becomes VOID with that reason); no swapping. The database
+    trigger enforces exactly that.
+  - **First deal only:** `FIRST_DEAL_ONLY = true`: a referrer earns on a
+    friend's first deal, not on repeats.
+  - **Crypto excluded by default:** `includeCrypto` is false unless the
+    campaign turns it on.
+  - **Profit:** the team records our profit once, when the deal
+    completes; the reward is floor(profit × bps / 10000) to whole naira
+    (BigInt). The 7-day hold, Ready and the monthly cap stay.
+  - **Cookie:** `slz_ref`, httpOnly, 60 days, sameSite lax, secure on
+    https; set by `/r/CODE` or `?ref=` only for an active code, cleared
+    when a deal is created.
+  - **Tokens:** the referrer page token is the tracking token pattern:
+    32 random bytes, base64url, only the SHA-256 hash stored
+    (`pageTokenHash`), shown once (the code email, or the admin "New
+    private link", which replaces the old one). The tracking page's "View
+    my referrals" uses the deal's own tracking token instead, scoped to
+    that deal's number.
+
 - 2026-10-21: The website on boards is an optional field on snapshot V1
   (`content.brand.website`), not a `boardSnapshotV2` (owner, after the
   protected-files rule was flagged). Why: it's optional, so every stored
@@ -1944,6 +1981,23 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-22: Referrals (customer side) built on main, committed but NOT
+  pushed. Unpushed commits: the boards website (c93c5b8, bfd3422, 63fee8d,
+  04a65fe, 5e9ec13), tracker commits, and the referral commits (e5cb61b
+  attribution and rewards, 05b3bcf the /r/ link, 3c5d1c2 the referrer
+  pages, 76d0a33 the admin codes list). Production needs migration
+  `20261022120000_referral_campaigns` (additive; on dev only) BEFORE the
+  push. After the deploy no campaign is active. Phase 14 must review:
+  `rememberReferral` and `/r/` rate limits (in memory, per instance);
+  the `deal_referral_locked` trigger; the advisory locks in
+  `recordProfitAndReward` / `ensureCustomerCode` under load; the
+  referrer page (no personal data; a bad deal token is a 200 "not found"
+  because the loading skeleton streams first, same as the tracking
+  page); the code email (sent in `after()`, never blocks); and the
+  monthly cap with campaigns. Dev test data: the opt-in DB tests make
+  and remove their own campaign; an interrupted run once left campaign
+  QA E1A1, code QAE1A1 and deals SLZ-1141/1142 (cleaned).
 
 - 2026-10-18: Phase 13b complete and tagged `phase-13b-complete`. Owner
   applied `20261018120000_btc_deposits` and `20261018130000_deal_amount_8dp`
