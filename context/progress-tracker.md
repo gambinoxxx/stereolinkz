@@ -15,6 +15,27 @@ change.
 
 ## Completed
 
+- 2026-10-22: Fix: referral attribution is never lost silently. A link's
+  code went nowhere when the deal form hid the code field (no campaign
+  running, or a form cached before one started): nothing was sent, no
+  event was logged, the deal had no code and no reward (reproduced on
+  dev: SLZ-1170). Now the submit falls back to the link's cookie when the
+  form sends no field (`referralForSubmit` in `referrals/link.ts`); an
+  emptied field still means no code; a typed unknown or inactive code is
+  still the customer's error, a cookie one is recorded as skipped. Every
+  outcome is a REFERRAL event with `data.skip` (no_campaign, unknown_code,
+  inactive_code, staff_own_number, customer_own_number, not_new_customer,
+  service_not_eligible). The admin deal page shows "Referred by CODE" or
+  "Not attached: <reason>" (`referrals/outcome.ts`, old events read from
+  their words). Completing or paying out a referred deal without a profit
+  is refused with the message in the panel (it was a greyed-out button).
+  Ledger: status tabs with counts, "On hold" with "Ready on <date>".
+  Settings → Referrals and Admin → Referrals: each code's deals used and
+  attached. No rule loosened, no migration. Tests: `outcome.test.ts`,
+  `link.test.ts`, `attribution.db.test.ts` (opt-in: link → submit →
+  attach → Mark completed and Mark paid out → reward → ledger, every skip
+  reason, no-profit refusal).
+
 - 2026-10-22: Referrals (customer side), the 8-step walk on dev through
   the real UI, screenshots at 1440 and 390 (`tmp/qa/out/walk-*`): (1)
   campaign "Launch referrals (QA walk)" created and started, 15%; (2)
@@ -1321,6 +1342,13 @@ change.
 
 ## Architecture Decisions
 
+- 2026-10-22: Referral attach outcomes are always shown to the team on
+  the deal page ("Referred by CODE" or "Not attached: <reason>"), never to
+  the customer. Why: a referral that a rule (or a hidden field) dropped
+  was invisible, so a lost referral looked like a bug. The reason is
+  stored on the deal's REFERRAL event (`data.skip`), so no migration; the
+  link's cookie goes with the deal when the form shows no code field.
+
 - 2026-10-22: Referrals, customer side (owner's answers of 2026-10-21).
   - **Code format:** customer codes are `SLZ` + 5 characters from
     `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (no 0/O, 1/I/L), drawn with
@@ -2000,6 +2028,25 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-22: Referral tracking fix, on top of the unpushed customer-side
+  work (owner's choice), committed but NOT pushed. Cause found on dev: a
+  link's code is silently dropped whenever the form hides the code field
+  (no campaign in force, or a cached form): no field → nothing sent → no
+  event, no code, no reward. The deployed Stage A code has the same gap
+  (`checkCode` ignored the code without logging when the programme was
+  off, outside its dates or not on for the service, and the field was
+  hidden then too), so the owner's test deal most likely hit it; the
+  other candidate is the owner's or a team number ("not applied: own
+  WhatsApp number", logged only in the activity). Not confirmed: the
+  read-only production check needs the deal's ref and the owner's go.
+  Also seen on dev: the completion transaction is 17 statements, 3.5–13 s
+  from here at ~150–200 ms a query; the first completion after a cold dev
+  restart took 18 s and hit the 15 s timeout (rolled back cleanly). From
+  Vercel it should be far quicker; Phase 14 should time it in production.
+  Dev data from the reproduction: deals SLZ-1167…1171, 1222, 1223; the QA
+  campaign is ended. Run the two referral DB test files one at a time
+  (both switch the campaign and the owner's number).
 
 - 2026-10-22: Referrals (customer side) built on main, committed but NOT
   pushed. Unpushed commits: the boards website (c93c5b8, bfd3422, 63fee8d,
