@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { z } from "zod";
 
+import { CodesList } from "@/features/referrals/components/admin/CodesList";
 import { LedgerView } from "@/features/referrals/components/admin/LedgerView";
 import { isoDayIn } from "@/features/referrals/labels";
-import { getLedger } from "@/features/referrals/queries";
+import { getLedger, listReferralCodes } from "@/features/referrals/queries";
 import { requireMember } from "@/lib/server/auth";
 
 export const metadata: Metadata = { title: "Referrals · RateBoard" };
@@ -22,7 +23,8 @@ const query = z.object({
 });
 
 // The referral rewards ledger (Phase 13c). Deal ref, service, date, code,
-// referrer, our profit and the reward, never the customer's details. The
+// referrer, our profit and the reward, never the referred customer's
+// details; then every code with its owner, deals and rewards. The
 // owner approves ready rewards, marks them paid with the bank reference,
 // or voids them; everyone on the team can look.
 export default async function ReferralsPage({
@@ -30,13 +32,19 @@ export default async function ReferralsPage({
 }: PageProps<"/admin/referrals">) {
   const { organizationId, role } = await requireMember();
   const filters = query.parse(await searchParams);
-  const ledger = await getLedger(organizationId, filters);
+  const [ledger, codes] = await Promise.all([
+    getLedger(organizationId, filters),
+    listReferralCodes(organizationId),
+  ]);
   return (
-    <LedgerView
-      isOwner={role === "OWNER"}
-      filters={filters}
-      today={isoDayIn(new Date(), ledger.timeZone)}
-      {...ledger}
-    />
+    <>
+      <LedgerView
+        isOwner={role === "OWNER"}
+        filters={filters}
+        today={isoDayIn(new Date(), ledger.timeZone)}
+        {...ledger}
+      />
+      <CodesList codes={codes} />
+    </>
   );
 }

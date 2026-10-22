@@ -15,6 +15,13 @@ change.
 
 ## Completed
 
+- 2026-10-22: Referrals (customer side), admin. Admin → Referrals lists
+  every code under the ledger (`CodesList`, `listReferralCodes`): code,
+  owner (a team member's name, or the customer's name and masked
+  number), deals, rewards (not void) and paid. The ledger names customer
+  referrers the same way instead of "Customer". The dashboard's rewards
+  to pay count was already there (`rewardsToPay`).
+
 - 2026-10-22: Referrals (customer side), the referrer's pages.
   `referrer-queries.ts` loads the view by the private page token
   (`/referrals/[token]`, looked up by hash only; anything not shaped like

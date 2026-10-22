@@ -9,6 +9,7 @@ import "server-only";
 import {
   bpsToPct,
   displayStatus,
+  maskPhone,
   pendingReason,
   type RewardDisplayStatus,
 } from "@/features/referrals/rules";
@@ -24,7 +25,7 @@ export type LedgerRow = {
   service: DealService;
   code: string;
   referrerKey: string;
-  referrer: string; // the team member's name (Stage B: "Customer")
+  referrer: string; // the team member's name, or the customer's name and masked number
   pct: string;
   profitNaira: string;
   amountNaira: string;
@@ -58,6 +59,24 @@ async function referrerNames(organizationId: string) {
     ),
   );
   return new Map(names);
+}
+
+// A customer referrer as the team sees them: name and masked number.
+const customerLabel = (name: string | null, whatsapp: string | null) =>
+  `${name ?? "Customer"} · ${maskPhone(whatsapp ?? "")}`;
+
+async function customerNames(organizationId: string) {
+  const codes = await db.referralCode.findMany({
+    where: { organizationId, kind: "CUSTOMER" },
+    select: { customerName: true, customerWhatsapp: true },
+  });
+  return codes.map(
+    (c) =>
+      [
+        `w:${c.customerWhatsapp}`,
+        customerLabel(c.customerName, c.customerWhatsapp),
+      ] as const,
+  );
 }
 
 export async function getLedger(
@@ -95,6 +114,8 @@ export async function getLedger(
       distinct: ["membershipId"],
     }),
   ]);
+  for (const [key, name] of await customerNames(organizationId))
+    names.set(key, name);
   const all = rewards.map((r): LedgerRow => {
     const status = displayStatus(r, now);
     return {
@@ -342,4 +363,67 @@ export async function getDealReferral(dealId: string, now = new Date()) {
       ? { code: own.code, linkMadeAt: own.pageTokenAt?.toISOString() ?? null }
       : null,
   };
+}
+
+export type CodeRow = {
+  id: string;
+  code: string;
+  kind: "STAFF" | "CUSTOMER";
+  active: boolean;
+  owner: string; // staff name, or customer name and masked number
+  deals: number;
+  rewards: number; // not void
+  rewardsNaira: string;
+  paidNaira: string;
+};
+
+// Admin → Referrals: every code, staff and customer, with its deals and
+// rewards. The owner's number is masked even here.
+export async function listReferralCodes(
+  organizationId: string,
+): Promise<CodeRow[]> {
+  const [codes, names] = await Promise.all([
+    db.referralCode.findMany({
+      where: { organizationId },
+      orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      take: 500,
+      select: {
+        id: true,
+        code: true,
+        kind: true,
+        active: true,
+        membershipId: true,
+        customerName: true,
+        customerWhatsapp: true,
+        _count: { select: { deals: true } },
+        rewards: {
+          where: { status: { not: "VOID" } },
+          select: { amountNaira: true, status: true },
+        },
+      },
+    }),
+    referrerNames(organizationId),
+  ]);
+  return codes.map((c) => {
+    let total = BigInt(0);
+    let paid = BigInt(0);
+    for (const r of c.rewards) {
+      total += BigInt(r.amountNaira.toFixed());
+      if (r.status === "PAID") paid += BigInt(r.amountNaira.toFixed());
+    }
+    return {
+      id: c.id,
+      code: c.code,
+      kind: c.kind,
+      active: c.active,
+      owner:
+        c.kind === "STAFF"
+          ? (names.get(`m:${c.membershipId}`) ?? "Team member")
+          : customerLabel(c.customerName, c.customerWhatsapp),
+      deals: c._count.deals,
+      rewards: c.rewards.length,
+      rewardsNaira: total.toString(),
+      paidNaira: paid.toString(),
+    };
+  });
 }
