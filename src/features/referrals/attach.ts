@@ -12,6 +12,7 @@ import "server-only";
 //    blocks the deal and is never shown to the customer: the deal goes
 //    ahead without a referral, and the reason is logged for the team.
 import {
+  type AttachSkip,
   type Campaign,
   campaignInForce,
   normalizeCode,
@@ -46,7 +47,12 @@ export const CODE_NOT_FOUND =
 
 export type CodeCheck =
   | { ok: true; code: CodeRow | null } // null: no code given
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      code: string; // as given, normalised (or cut short when malformed)
+      reason: "unknown_code" | "inactive_code";
+    };
 
 const CAMPAIGN_SELECT = {
   id: true,
@@ -79,12 +85,19 @@ export async function checkCode(
   if (typeof raw !== "string" || raw.trim() === "")
     return { ok: true, code: null };
   const code = normalizeCode(raw);
-  if (!code) return { ok: false, error: CODE_NOT_FOUND };
+  const notFound = (reason: "unknown_code" | "inactive_code") => ({
+    ok: false as const,
+    error: CODE_NOT_FOUND,
+    code: code ?? raw.trim().toUpperCase().slice(0, 20),
+    reason,
+  });
+  if (!code) return notFound("unknown_code");
   const row = await db.referralCode.findUnique({
     where: { organizationId_code: { organizationId, code } },
     select: CODE_SELECT,
   });
-  if (!row || !row.active) return { ok: false, error: CODE_NOT_FOUND };
+  if (!row) return notFound("unknown_code");
+  if (!row.active) return notFound("inactive_code");
   return {
     ok: true,
     code: {
@@ -99,7 +112,26 @@ export async function checkCode(
 
 export type AttachDecision =
   | { attach: true; campaignId: string; message: string }
-  | { attach: false; message: string };
+  | { attach: false; reason: AttachSkip; message: string };
+
+// The deal event's words for each reason.
+const SKIP_WORDS: Record<AttachSkip, string> = {
+  no_campaign: "no referral campaign is running",
+  unknown_code: "we don’t have that code",
+  inactive_code: "the code isn’t active",
+  staff_own_number: "it’s the code owner’s own WhatsApp number",
+  customer_own_number: "it’s the code owner’s own WhatsApp number",
+  not_new_customer: "this customer has completed a deal with us before",
+  service_not_eligible: "this service isn’t part of the campaign",
+};
+
+export function skipped(code: string, reason: AttachSkip) {
+  return {
+    attach: false as const,
+    reason,
+    message: `Referral code ${code} not applied: ${SKIP_WORDS[reason]}`,
+  };
+}
 
 // Statuses that make a number a returning customer.
 const DONE = ["COMPLETED", "PAID_OUT"] as const;
@@ -118,23 +150,20 @@ export async function decideAttach(
   },
 ): Promise<AttachDecision> {
   const { code } = input;
-  const notApplied = (why: string) => ({
-    attach: false as const,
-    message: `Referral code ${code.code} not applied: ${why}`,
-  });
+  const notApplied = (reason: AttachSkip) => skipped(code.code, reason);
 
   const campaign = await campaignInForceNow(
     tx,
     input.organizationId,
     input.now,
   );
-  if (!campaign) return notApplied("no referral campaign is running");
+  if (!campaign) return notApplied("no_campaign");
 
   const live = await tx.referralCode.findUnique({
     where: { id: code.id },
     select: { active: true },
   });
-  if (!live?.active) return notApplied("the code isn’t active");
+  if (!live?.active) return notApplied("inactive_code");
 
   if (code.kind === "STAFF" && code.membershipId) {
     const owner = await tx.membership.findFirst({
@@ -142,13 +171,13 @@ export async function decideAttach(
       select: { whatsapp: true },
     });
     if (owner?.whatsapp && owner.whatsapp === input.customerWhatsapp)
-      return notApplied("it’s the code owner’s own WhatsApp number");
+      return notApplied("staff_own_number");
   }
   if (
     code.kind === "CUSTOMER" &&
     code.customerWhatsapp === input.customerWhatsapp
   )
-    return notApplied("it’s the code owner’s own WhatsApp number");
+    return notApplied("customer_own_number");
 
   const earlier = await tx.deal.count({
     where: {
@@ -158,11 +187,10 @@ export async function decideAttach(
       ...(input.excludeDealId && { id: { not: input.excludeDealId } }),
     },
   });
-  if (earlier > 0)
-    return notApplied("this customer has completed a deal with us before");
+  if (earlier > 0) return notApplied("not_new_customer");
 
   if (!serviceEligible(campaign, input.service))
-    return notApplied("this service isn’t part of the campaign");
+    return notApplied("service_not_eligible");
 
   return {
     attach: true,

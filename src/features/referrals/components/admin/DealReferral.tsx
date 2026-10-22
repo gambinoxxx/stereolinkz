@@ -16,12 +16,18 @@ import {
   newReferralPageLink,
   removeDealReferral,
 } from "@/features/referrals/actions";
-import { STATUS_LABELS } from "@/features/referrals/labels";
-import type { RewardDisplayStatus } from "@/features/referrals/rules";
+import { ATTACH_SKIP_LABELS, STATUS_LABELS } from "@/features/referrals/labels";
+import type { AttachOutcome } from "@/features/referrals/outcome";
+import {
+  PROFIT_REQUIRED,
+  type RewardDisplayStatus,
+} from "@/features/referrals/rules";
 import { formatRate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export type DealReferralView = {
   code: string | null;
+  outcome: AttachOutcome;
   campaign: string | null;
   profitNaira: string | null;
   reward: {
@@ -74,7 +80,14 @@ export function ProfitInput({
         aria-describedby={`${id}-hint`}
         onChange={(e) => onChange(e.target.value)}
       />
-      <span id={`${id}-hint`} className="text-[13px] text-text-muted">
+      <span
+        id={`${id}-hint`}
+        role={error ? "alert" : undefined}
+        className={cn(
+          "text-[13px]",
+          error ? "font-semibold text-state-error" : "text-text-muted",
+        )}
+      >
         {error ??
           (code
             ? `Needed: referral code ${code} earns a share of it.`
@@ -111,8 +124,9 @@ export function CompletePanel({
         />
         <Button
           className="mt-3.5 w-full"
-          disabled={busy || (!!code && !profit.trim())}
-          onClick={() =>
+          disabled={busy}
+          onClick={() => {
+            if (code && !profit.trim()) return setError(PROFIT_REQUIRED);
             start(async () => {
               const r = await markDealCompleted({ ref: dealRef, profit });
               if (!r.ok) {
@@ -122,8 +136,8 @@ export function CompletePanel({
               }
               toast.success("Deal completed");
               router.refresh();
-            })
-          }
+            });
+          }}
         >
           {busy ? (
             <Loader2 className="animate-spin" />
@@ -134,6 +148,40 @@ export function CompletePanel({
         </Button>
       </Panel>
     </section>
+  );
+}
+
+// "Referred by CODE", or "Not attached: <reason>" with the code that came
+// with the deal (team only; the customer never sees why).
+function OutcomeLine({ outcome }: { outcome: AttachOutcome }) {
+  if (outcome.attached)
+    return (
+      <>
+        Referred by <span className="font-mono">{outcome.code}</span>
+      </>
+    );
+  const why =
+    outcome.reason === "other"
+      ? outcome.note
+      : ATTACH_SKIP_LABELS[outcome.reason];
+  return (
+    <span
+      className={
+        outcome.reason === "no_code"
+          ? "text-text-secondary"
+          : "text-accent-gold-text"
+      }
+    >
+      Not attached: {why}
+      {outcome.code && (
+        <span className="mt-0.5 block text-[13px] font-normal text-text-muted">
+          Code given: <span className="font-mono">{outcome.code}</span>
+          {outcome.reason === "removed" && outcome.note
+            ? ` · ${outcome.note}`
+            : ""}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -177,8 +225,10 @@ export function ReferralPanel({
       }
     >
       <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-2.5 text-[14.5px]">
-        <dt className="text-text-secondary">Code</dt>
-        <dd className="font-mono font-semibold">{view.code ?? "None"}</dd>
+        <dt className="text-text-secondary">Referral</dt>
+        <dd className="font-semibold">
+          <OutcomeLine outcome={view.outcome} />
+        </dd>
         {view.campaign && (
           <>
             <dt className="text-text-secondary">Campaign</dt>

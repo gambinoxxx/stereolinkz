@@ -627,6 +627,7 @@ export const attachDealReferral = safeAction(
             code: code.code,
             applied: d.attach,
             reason: parsed.data.reason,
+            ...(!d.attach && { skip: d.reason }),
           },
           actorType: "MEMBER",
           actorMembershipId: member.membershipId,

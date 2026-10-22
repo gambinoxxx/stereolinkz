@@ -59,11 +59,11 @@ import {
 } from "@/lib/server/deal-files";
 import { db } from "@/lib/server/db";
 import { compareDecimalStrings } from "@/lib/decimal";
-import { checkCode } from "@/features/referrals/attach";
 import {
   activeCode,
   REF_COOKIE,
   REF_COOKIE_OPTIONS,
+  referralForSubmit,
 } from "@/features/referrals/link";
 import { createLimiter } from "@/lib/server/rate-limit";
 import type { NewDeal } from "@/features/deals/create";
@@ -144,6 +144,8 @@ export const getMarketPrices = publicAction(
 // clear it and submit. The other rules (campaign, own number, new
 // customer, service) run when the deal is created, silently: the deal
 // never fails on them, and only the team sees why a code didn't apply.
+// With the field hidden, the link's cookie goes with the deal instead
+// (referralForSubmit), so its outcome is recorded rather than lost.
 async function referralFor(
   organizationId: string,
   raw: string | undefined,
@@ -151,20 +153,21 @@ async function referralFor(
   | { ok: true; referral: NewDeal["referral"] }
   | { ok: false; result: ActionResult<never> }
 > {
-  const check = await checkCode(organizationId, raw);
-  if (!check.ok)
-    return {
-      ok: false,
-      result: {
+  const r = await referralForSubmit(
+    organizationId,
+    raw,
+    (await cookies()).get(REF_COOKIE)?.value,
+  );
+  return r.ok
+    ? r
+    : {
         ok: false,
-        error: check.error,
-        fieldErrors: { referralCode: check.error },
-      },
-    };
-  return {
-    ok: true,
-    referral: check.code ? { code: check.code } : undefined,
-  };
+        result: {
+          ok: false,
+          error: r.error,
+          fieldErrors: { referralCode: r.error },
+        },
+      };
 }
 
 // ?ref=CODE on any public page: the same check and cookie as /r/CODE.

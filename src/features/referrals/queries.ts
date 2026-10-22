@@ -15,6 +15,7 @@ import {
 } from "@/features/referrals/rules";
 import type { DealService } from "@/generated/prisma/enums";
 import { LEDGER_SELECT } from "@/features/referrals/ledger-select";
+import { attachOutcome } from "@/features/referrals/outcome";
 import { db } from "@/lib/server/db";
 import { getUserDisplayName } from "@/lib/server/users";
 import { monthInTimeZone } from "@/lib/format";
@@ -31,6 +32,7 @@ export type LedgerRow = {
   amountNaira: string;
   status: RewardDisplayStatus;
   note: string | null; // why it's still pending, or the void reason
+  readyOn: string | null; // PENDING, not flagged: when it becomes Ready
   flagged: boolean;
   createdAt: string;
   approvedAt: string | null;
@@ -86,6 +88,7 @@ export async function getLedger(
 ): Promise<{
   rows: LedgerRow[];
   totals: Record<"PENDING" | "READY" | "APPROVED" | "PAID", string>;
+  counts: Record<RewardDisplayStatus, number>; // before the status filter
   referrers: { key: string; name: string }[];
   timeZone: string;
 }> {
@@ -136,6 +139,12 @@ export async function getLedger(
             ? pendingReason(r, now)
             : null,
       flagged: r.status === "PENDING" && !!r.flag,
+      readyOn:
+        r.status === "PENDING" && !r.flag
+          ? new Date(
+              Math.max(r.holdUntil.getTime(), r.notBefore?.getTime() ?? 0),
+            ).toISOString()
+          : null,
       createdAt: r.createdAt.toISOString(),
       approvedAt: r.approvedAt?.toISOString() ?? null,
       paidAt: r.paidAt?.toISOString() ?? null,
@@ -151,8 +160,11 @@ export async function getLedger(
     APPROVED: BigInt(0),
     PAID: BigInt(0),
   };
-  for (const r of all)
+  const counts = { PENDING: 0, READY: 0, APPROVED: 0, PAID: 0, VOID: 0 };
+  for (const r of all) {
+    counts[r.status]++;
     if (r.status !== "VOID") totals[r.status] += BigInt(r.amountNaira);
+  }
   return {
     rows,
     totals: {
@@ -161,6 +173,7 @@ export async function getLedger(
       APPROVED: totals.APPROVED.toString(),
       PAID: totals.PAID.toString(),
     },
+    counts,
     referrers: codes
       .filter((c) => c.membershipId)
       .map((c) => ({
@@ -283,14 +296,32 @@ export type StaffCodeRow = {
   active: boolean;
   membershipId: string;
   memberName: string;
-  deals: number;
+  deals: number; // attached now
+  used: number; // deals that came with the code, attached or not
   createdAt: string;
 };
+
+// Deals that came with each code (typed or from the link), attached or
+// not: one attach-outcome event per deal (`data.applied` is set on those
+// only, never on reward events).
+export async function codeUses(
+  organizationId: string,
+): Promise<Map<string, number>> {
+  const rows = await db.$queryRaw<{ code: string; used: number }[]>`
+    SELECT e."data"->>'code' AS code, COUNT(DISTINCT e."dealId")::int AS used
+    FROM "DealEvent" e
+    JOIN "Deal" d ON d."id" = e."dealId"
+    WHERE d."organizationId" = ${organizationId}
+      AND e."type" = 'REFERRAL'
+      AND e."data" ? 'applied'
+    GROUP BY 1`;
+  return new Map(rows.map((r) => [r.code, r.used]));
+}
 
 export async function listStaffCodes(
   organizationId: string,
 ): Promise<StaffCodeRow[]> {
-  const [codes, names] = await Promise.all([
+  const [codes, names, uses] = await Promise.all([
     db.referralCode.findMany({
       where: { organizationId, kind: "STAFF" },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
@@ -304,6 +335,7 @@ export async function listStaffCodes(
       },
     }),
     referrerNames(organizationId),
+    codeUses(organizationId),
   ]);
   return codes.map((c) => ({
     id: c.id,
@@ -312,12 +344,13 @@ export async function listStaffCodes(
     membershipId: c.membershipId!,
     memberName: names.get(`m:${c.membershipId}`) ?? "Team member",
     deals: c._count.deals,
+    used: Math.max(uses.get(c.code) ?? 0, c._count.deals),
     createdAt: c.createdAt.toISOString(),
   }));
 }
 
-// A deal's referral details for the admin deal page: its code and
-// campaign, our profit and the reward, and the customer's own code (from
+// A deal's referral details for the admin deal page: its code (or why
+// none is attached) and campaign, our profit and the reward, and the customer's own code (from
 // a completed deal) with the date its private link was last made.
 export async function getDealReferral(dealId: string, now = new Date()) {
   const d = await db.deal.findUnique({
@@ -329,6 +362,11 @@ export async function getDealReferral(dealId: string, now = new Date()) {
       referralCode: { select: { code: true, kind: true } },
       referralCampaign: { select: { name: true } },
       referralReward: { select: LEDGER_SELECT },
+      events: {
+        where: { type: { in: ["REFERRAL", "REFERRAL_REMOVED"] } },
+        orderBy: { createdAt: "asc" },
+        select: { type: true, message: true, data: true },
+      },
     },
   });
   if (!d) return null;
@@ -344,6 +382,7 @@ export async function getDealReferral(dealId: string, now = new Date()) {
   const r = d.referralReward;
   return {
     code: d.referralCode?.code ?? null,
+    outcome: attachOutcome(d.referralCode?.code ?? null, d.events),
     campaign: d.referralCampaign?.name ?? null,
     profitNaira: d.profitNaira?.toFixed() ?? null,
     reward: r
@@ -371,7 +410,8 @@ export type CodeRow = {
   kind: "STAFF" | "CUSTOMER";
   active: boolean;
   owner: string; // staff name, or customer name and masked number
-  deals: number;
+  deals: number; // attached now
+  used: number; // came with the code, attached or not
   rewards: number; // not void
   rewardsNaira: string;
   paidNaira: string;
@@ -404,6 +444,7 @@ export async function listReferralCodes(
     }),
     referrerNames(organizationId),
   ]);
+  const uses = await codeUses(organizationId);
   return codes.map((c) => {
     let total = BigInt(0);
     let paid = BigInt(0);
@@ -421,6 +462,7 @@ export async function listReferralCodes(
           ? (names.get(`m:${c.membershipId}`) ?? "Team member")
           : customerLabel(c.customerName, c.customerWhatsapp),
       deals: c._count.deals,
+      used: Math.max(uses.get(c.code) ?? 0, c._count.deals),
       rewards: c.rewards.length,
       rewardsNaira: total.toString(),
       paidNaira: paid.toString(),

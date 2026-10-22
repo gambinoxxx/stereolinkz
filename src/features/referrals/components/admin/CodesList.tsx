@@ -41,7 +41,10 @@ export function CodesList({ codes }: { codes: CodeRow[] }) {
                 </span>
               </div>
               <div className="col-start-2 row-start-1 text-right tabular-nums sheet:col-start-auto sheet:row-start-auto">
-                {c.deals} deal{c.deals === 1 ? "" : "s"}
+                {c.deals} of {c.used}
+                <span className="block text-[12.5px] text-text-muted">
+                  attached
+                </span>
               </div>
               <div className="col-start-2 row-start-2 text-right tabular-nums sheet:col-start-auto sheet:row-start-auto">
                 <b>{naira(c.rewardsNaira)}</b>

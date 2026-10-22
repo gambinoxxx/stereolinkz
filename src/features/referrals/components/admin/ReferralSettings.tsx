@@ -405,7 +405,8 @@ function StaffCodes({
               <div className="min-w-0">
                 <b className="block font-mono tracking-wide">{c.code}</b>
                 <span className="text-[13px] text-text-secondary">
-                  {c.memberName} · {c.deals} deal{c.deals === 1 ? "" : "s"}
+                  {c.memberName} · used on {c.used} deal
+                  {c.used === 1 ? "" : "s"} · {c.deals} attached
                 </span>
               </div>
               <Badge variant={c.active ? "success" : "default"}>

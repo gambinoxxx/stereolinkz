@@ -24,6 +24,7 @@ describe("ledger CSV", () => {
           amountNaira: "15000",
           status: "PAID",
           note: null,
+          readyOn: null,
           flagged: false,
           createdAt: "2026-10-18T10:00:00.000Z",
           approvedAt: "2026-10-26T10:00:00.000Z",

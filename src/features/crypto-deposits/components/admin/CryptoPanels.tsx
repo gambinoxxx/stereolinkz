@@ -31,6 +31,7 @@ import {
   NETWORKS,
 } from "@/features/crypto-deposits/tokens";
 import { ProfitInput } from "@/features/referrals/components/admin/DealReferral";
+import { PROFIT_REQUIRED } from "@/features/referrals/rules";
 import { KV, Panel } from "@/features/deals/components/admin/parts";
 import { nairaText } from "@/features/deals/format";
 import type { TeamDeal } from "@/features/deals/queries";
@@ -341,6 +342,7 @@ export function CryptoPayoutPanel({
   const { busy, errors, run } = useRun();
   const [reference, setReference] = useState("");
   const [profit, setProfit] = useState("");
+  const [profitError, setProfitError] = useState<string | undefined>();
   const [from, setFrom] = useState(
     deal.accounts.find((a) => a.active)?.id ?? "",
   );
@@ -454,19 +456,17 @@ export function CryptoPayoutPanel({
                 value={profit}
                 onChange={setProfit}
                 code={referralCode}
-                error={errors.profit}
+                error={profitError ?? errors.profit}
               />
             </div>
           </div>
           <Button
             className="mt-3.5 w-full"
-            disabled={
-              busy ||
-              reference.trim().length < 3 ||
-              !from ||
-              (!!referralCode && !profit.trim())
-            }
-            onClick={() =>
+            disabled={busy || reference.trim().length < 3 || !from}
+            onClick={() => {
+              if (referralCode && !profit.trim())
+                return setProfitError(PROFIT_REQUIRED);
+              setProfitError(undefined);
               run(
                 () =>
                   markPaidOut({
@@ -476,8 +476,8 @@ export function CryptoPayoutPanel({
                     profit,
                   }),
                 "Paid out. The customer’s page is updated.",
-              )
-            }
+              );
+            }}
           >
             {busy ? (
               <Loader2 className="animate-spin" />

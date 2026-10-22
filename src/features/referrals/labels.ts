@@ -1,6 +1,9 @@
 // Display strings for the referral programme (Phase 13c), shared by the
 // admin pages.
-import type { RewardDisplayStatus } from "@/features/referrals/rules";
+import type {
+  AttachSkip,
+  RewardDisplayStatus,
+} from "@/features/referrals/rules";
 
 const MONTHS = [
   "Jan",
@@ -58,4 +61,20 @@ export const STATUS_LABELS: Record<RewardDisplayStatus, string> = {
   APPROVED: "Approved",
   PAID: "Paid",
   VOID: "Void",
+};
+
+// The deal page's "Not attached: …".
+export const ATTACH_SKIP_LABELS: Record<
+  AttachSkip | "no_code" | "removed",
+  string
+> = {
+  no_campaign: "no active programme",
+  unknown_code: "unknown code",
+  inactive_code: "inactive code",
+  staff_own_number: "staff’s own number",
+  customer_own_number: "the code owner’s own number",
+  not_new_customer: "not a new customer",
+  service_not_eligible: "service not eligible",
+  no_code: "no code given",
+  removed: "removed by the team",
 };

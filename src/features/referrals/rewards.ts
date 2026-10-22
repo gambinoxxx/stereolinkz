@@ -46,8 +46,8 @@ export const profitField = z
   )
   .transform((v) => (v === "" ? null : v));
 
-export const PROFIT_REQUIRED =
-  "This deal has a referral code: enter our profit on it (0 if none).";
+// The message lives in rules.ts so the admin panels can show it too.
+export { PROFIT_REQUIRED } from "@/features/referrals/rules";
 
 type Tx = Prisma.TransactionClient;
 

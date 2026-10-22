@@ -200,11 +200,12 @@ describe.skipIf(!enabled)(
     });
 
     it("refuses an unknown or inactive typed code with the friendly error", async () => {
-      expect(await checkCode(organizationId, "NOPE9999")).toEqual({
+      expect(await checkCode(organizationId, "NOPE9999")).toMatchObject({
         ok: false,
         error: CODE_NOT_FOUND,
+        reason: "unknown_code",
       });
-      expect(await checkCode(organizationId, "not a code!")).toEqual({
+      expect(await checkCode(organizationId, "not a code!")).toMatchObject({
         ok: false,
         error: CODE_NOT_FOUND,
       });

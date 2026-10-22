@@ -9,6 +9,8 @@ import {
   REF_COOKIE,
   REF_COOKIE_DAYS,
 } from "@/features/referrals/rules";
+import type { NewDeal } from "@/features/deals/create";
+import { checkCode } from "@/features/referrals/attach";
 import { db } from "@/lib/server/db";
 import { siteUrl } from "@/lib/site-url";
 
@@ -32,6 +34,35 @@ export async function activeCode(
     select: { active: true },
   });
   return row?.active ? code : null;
+}
+
+// The referral that goes with a website deal. `typed`: the form's code
+// (undefined when the form didn't show the field: no campaign, or a cached
+// form); `cookie`: the link's cookie. An unknown or inactive TYPED code is
+// the customer's field error. With no field, the cookie's code goes with
+// the deal so its outcome is recorded rather than lost, and a bad one never
+// blocks the deal (it's logged as skipped). A field the customer emptied
+// means no code. The attribution rules run later, in createDeal.
+export async function referralForSubmit(
+  organizationId: string,
+  typed: string | undefined,
+  cookie: string | undefined,
+): Promise<
+  { ok: true; referral: NewDeal["referral"] } | { ok: false; error: string }
+> {
+  const fromCookie = typed === undefined;
+  const check = await checkCode(organizationId, fromCookie ? cookie : typed);
+  if (check.ok)
+    return {
+      ok: true,
+      referral: check.code ? { code: check.code } : undefined,
+    };
+  return fromCookie
+    ? {
+        ok: true,
+        referral: { skipped: { code: check.code, reason: check.reason } },
+      }
+    : { ok: false, error: check.error };
 }
 
 export { REF_COOKIE };

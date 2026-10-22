@@ -85,6 +85,12 @@ export default async function DealDetailPage({
       referral={
         referral ?? {
           code: null,
+          outcome: {
+            attached: false,
+            code: null,
+            reason: "no_code",
+            note: null,
+          },
           campaign: null,
           profitNaira: null,
           reward: null,

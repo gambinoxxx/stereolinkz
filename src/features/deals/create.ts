@@ -12,7 +12,11 @@ import {
   uniqueSats,
 } from "@/features/crypto-deposits/amounts";
 import type { Quote } from "@/features/deals/quote";
-import { type CodeRow, decideAttach } from "@/features/referrals/attach";
+import {
+  type CodeRow,
+  decideAttach,
+  skipped,
+} from "@/features/referrals/attach";
 import { formatRef } from "@/features/deals/refs";
 import type { DealDetails } from "@/features/deals/schema";
 import type { DealActorRef } from "@/features/deals/transitions";
@@ -65,7 +69,11 @@ export type NewDeal = {
   };
   // Referral: a code already checked (checkCode); the five attribution
   // rules run in the transaction, and the outcome is logged on the deal.
-  referral?: { code: CodeRow };
+  // `skipped`: a code from the link's cookie that checkCode refused
+  // (unknown or inactive): no deal error, but the outcome is logged too.
+  referral?:
+    | { code: CodeRow }
+    | { skipped: { code: string; reason: "unknown_code" | "inactive_code" } };
   now?: Date;
 };
 
@@ -181,15 +189,22 @@ export async function insertDeal(
     };
   }
   const status = crypto ? "AWAITING_DEPOSIT" : "NEW";
-  const referral = input.referral
-    ? await decideAttach(tx, {
-        organizationId: input.organizationId,
-        code: input.referral.code,
-        customerWhatsapp: input.customer.whatsapp,
-        service: input.service,
-        now,
-      })
-    : null;
+  const given = input.referral;
+  const referral = !given
+    ? null
+    : "skipped" in given
+      ? skipped(given.skipped.code, given.skipped.reason)
+      : await decideAttach(tx, {
+          organizationId: input.organizationId,
+          code: given.code,
+          customerWhatsapp: input.customer.whatsapp,
+          service: input.service,
+          now,
+        });
+  const attachedCode = given && "code" in given ? given.code : null;
+  const givenCode =
+    attachedCode?.code ??
+    (given && "skipped" in given ? given.skipped.code : null);
   const deal = await tx.deal.create({
     data: {
       organizationId: input.organizationId,
@@ -212,7 +227,7 @@ export async function insertDeal(
       ownerMembershipId: input.ownerMembershipId,
       trackingTokenHash: input.trackingTokenHash,
       ipHash: input.ipHash,
-      referralCodeId: referral?.attach ? input.referral!.code.id : null,
+      referralCodeId: referral?.attach ? attachedCode!.id : null,
       referralCampaignId: referral?.attach ? referral.campaignId : null,
       statusChangedAt: now,
       createdAt: now,
@@ -261,7 +276,11 @@ export async function insertDeal(
         dealId: deal.id,
         type: "REFERRAL",
         message: referral.message,
-        data: { code: input.referral!.code.code, applied: referral.attach },
+        data: {
+          code: givenCode,
+          applied: referral.attach,
+          ...(!referral.attach && { skip: referral.reason }),
+        },
         actorType: input.actor.type,
         actorMembershipId:
           input.actor.type === "MEMBER" ? input.actor.membershipId : null,

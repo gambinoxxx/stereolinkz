@@ -134,6 +134,25 @@ export const CAP_FLAG_NOTE = "Cap reached";
 
 // ── Customer side (campaigns, customer codes) ─────────────────────────
 
+// Completing (or paying out) a referred deal needs our profit: the reward
+// is a share of it. Refused without one, on the server and in the panel.
+export const PROFIT_REQUIRED =
+  "This deal has a referral code: enter our profit on it (0 if none).";
+
+// Why a code that came with a deal (typed, or from the link's cookie)
+// wasn't attached. Stored on the deal's REFERRAL event (`data.skip`) and
+// shown to the team on the deal page; never to the customer.
+export const ATTACH_SKIPS = [
+  "no_campaign",
+  "unknown_code",
+  "inactive_code",
+  "staff_own_number",
+  "customer_own_number",
+  "not_new_customer",
+  "service_not_eligible",
+] as const;
+export type AttachSkip = (typeof ATTACH_SKIPS)[number];
+
 // Only a referred customer's FIRST deal earns a reward. One named switch,
 // so the rule can change later without hunting for it.
 export const FIRST_DEAL_ONLY = true;

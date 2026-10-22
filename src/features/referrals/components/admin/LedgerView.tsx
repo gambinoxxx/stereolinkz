@@ -54,6 +54,7 @@ export function LedgerView({
   filters,
   rows,
   totals,
+  counts,
   referrers,
   timeZone,
   today,
@@ -62,6 +63,7 @@ export function LedgerView({
   filters: LedgerFilters;
   rows: LedgerRow[];
   totals: Record<"PENDING" | "READY" | "APPROVED" | "PAID", string>;
+  counts: Record<RewardDisplayStatus, number>;
   referrers: { key: string; name: string }[];
   timeZone: string;
   today: string;
@@ -164,6 +166,50 @@ export function LedgerView({
           </div>
         ))}
       </div>
+
+      <nav
+        aria-label="Rewards by status"
+        className="mb-3.5 flex gap-1.5 overflow-x-auto pb-1"
+      >
+        {(
+          [
+            [
+              "",
+              "All",
+              counts.PENDING +
+                counts.READY +
+                counts.APPROVED +
+                counts.PAID +
+                counts.VOID,
+            ],
+            ["PENDING", "On hold", counts.PENDING],
+            ["READY", "Ready", counts.READY],
+            ["APPROVED", "Approved", counts.APPROVED],
+            ["PAID", "Paid", counts.PAID],
+            ["VOID", "Void", counts.VOID],
+          ] as const
+        ).map(([key, label, n]) => {
+          const on = (filters.status ?? "") === key;
+          const next = new URLSearchParams(params);
+          if (key) next.set("status", key);
+          else next.delete("status");
+          return (
+            <Link
+              key={label}
+              href={`${pathname}?${next}`}
+              aria-current={on ? "page" : undefined}
+              className={cn(
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-[13.5px] font-semibold whitespace-nowrap",
+                on
+                  ? "border-accent-primary bg-accent-soft text-accent-primary-hover"
+                  : "border-border-default bg-bg-surface text-text-secondary hover:text-text-primary",
+              )}
+            >
+              {label} <span className="tabular-nums opacity-70">{n}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       <div className="mb-3.5 grid gap-2.5 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
@@ -336,7 +382,9 @@ export function LedgerView({
                   >
                     {r.status === "PAID" && r.paidAt
                       ? `${day(r.paidAt, timeZone)} · ${r.bankReference}`
-                      : r.note}
+                      : r.readyOn
+                        ? `${r.note === "In the hold period" ? "On hold" : r.note} · Ready on ${day(r.readyOn, timeZone)}`
+                        : r.note}
                   </span>
                 </div>
               </div>
