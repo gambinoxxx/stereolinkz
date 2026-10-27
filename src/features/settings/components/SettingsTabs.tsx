@@ -28,7 +28,7 @@ export function SettingsTabs({
           key={tab.key}
           href={tab.href}
           aria-current={tab.key === current ? "page" : undefined}
-          className="-mb-px shrink-0 border-b-2 border-transparent px-3.5 py-2.5 text-[14.5px] font-[650] text-text-secondary hover:text-text-primary aria-[current=page]:border-accent-primary aria-[current=page]:text-text-primary"
+          className="-mb-px shrink-0 border-b-2 border-transparent px-2.5 py-2.5 text-[14px] sm:px-3.5 sm:text-[14.5px] font-[650] text-text-secondary hover:text-text-primary aria-[current=page]:border-accent-primary aria-[current=page]:text-text-primary"
         >
           {tab.label}
         </Link>
