@@ -23,10 +23,11 @@ import {
   trackInvalidReply,
   unknownReply,
 } from "@/features/whatsapp/bot";
+import { alertTeam } from "@/features/notifications/alert";
+import { whatsappHandoverPayload } from "@/features/notifications/events";
 import { markAsRead, sendReply } from "@/features/whatsapp/client";
 import { type Inbound, parseWebhook } from "@/features/whatsapp/payload";
 import { Prisma } from "@/generated/prisma/client";
-import { alertRecipients, emailReady, sendEach } from "@/lib/server/email";
 import { db } from "@/lib/server/db";
 import { formatBoardPrice, formatRate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
@@ -65,12 +66,20 @@ async function send(to: string, reply: Reply) {
 
 // One alert per chat per hour at most, however often "Talk to a person"
 // is tapped: the hour's alert is itself an event id.
-async function alertTeam(waId: string, now: Date) {
+async function handover(waId: string, now: Date) {
   const hour = Math.floor(now.getTime() / 3_600_000);
   if (!(await claim(`alert:${waId}:${hour}`, waId, "OUT", "alert"))) return;
-  const team = alertRecipients();
-  if (emailReady() && team.length)
-    await sendEach(team, teamWhatsAppHandoverEmail());
+  const ctx = await getDealDeskContext();
+  if (!ctx) return;
+  // Email and push together; the push says only that someone is waiting.
+  await alertTeam({
+    organizationId: ctx.org.id,
+    event: "whatsappHandover",
+    dealId: null,
+    email: teamWhatsAppHandoverEmail(),
+    push: whatsappHandoverPayload(),
+    label: "Team alerted: WhatsApp handover",
+  });
 }
 
 async function handleMessage(m: Inbound, now: Date) {
@@ -181,7 +190,7 @@ async function handleMessage(m: Inbound, now: Date) {
     }
     case "person":
       await send(m.from, personReply);
-      return alertTeam(m.from, now);
+      return handover(m.from, now);
     case "unknown":
       return send(m.from, unknownReply);
   }
