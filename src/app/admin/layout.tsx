@@ -6,6 +6,7 @@ import { Sidebar, SidebarContent } from "@/components/shell/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { countDealsNeedingAction } from "@/features/deals/queries";
+import { AppServiceWorker } from "@/features/notifications/components/AppServiceWorker";
 import { getViewer, requireMember } from "@/lib/server/auth";
 
 // App shell (ui-context.md → Layout Patterns): a 248px sidebar from 900px
@@ -47,6 +48,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <BottomTabBar />
         </MobileMenuProvider>
         <Toaster />
+        <AppServiceWorker needsAction={needsAction} />
       </TooltipProvider>
     </AuthProvider>
   );
