@@ -10,10 +10,25 @@ change.
 
 ## Current Goal
 
-- Referrals: customer side, in progress (campaigns, customer codes, /r/
-  links, the referrer page; owner's answers of 2026-10-21).
+- Notifications (web push) on the team's phones: built on dev; screenshots,
+  production migration and the push to do.
 
 ## Completed
+
+- 2026-10-27: Notifications (web push), parts 1–4 built on dev, committed,
+  not pushed. `PushSubscription` and `NotificationPreference` (migration
+  `20261027120000_push_notifications`, additive, dev only); `web-push`
+  3.6.7. Installable app: `app/manifest.ts` (standalone, `/admin`,
+  `#150730`), icons in `public/icons/` (192, 512, maskable, Android
+  badge), `public/sw.js` (push, click, subscription change; caches
+  nothing) registered only from the admin layout, which also sets the app
+  badge. Settings → Notifications (`features/notifications/`): this
+  device (on / off / iPhone Home Screen steps / blocked help / test), your
+  devices, the alert switches. `notifyTeam` (push.ts) and the single
+  `alertTeam` (alert.ts) for new deals, payments to confirm, deposits
+  complete (and rate to agree), payouts overdue and the WhatsApp
+  handover. Tests: events, device, push, alert, actions, manifest, and
+  the opt-in `devices.db.test.ts`.
 
 - 2026-10-22: Fix: referral attribution is never lost silently. A link's
   code went nowhere when the deal form hid the code field (no campaign
@@ -1342,6 +1357,24 @@ change.
 
 ## Architecture Decisions
 
+- 2026-10-27: Notifications (owner's brief of 2026-10-27).
+  - **Web push via VAPID** (the official protocol, `web-push`), no
+    third-party push service. Keys in `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+    `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; never rotated (new keys break
+    every saved device).
+  - **Lock-screen-safe payloads:** the deal ref, the service, the amount
+    and what happened; never a name, number, email or account number.
+    Each payload builder takes only the fields it may use (tested with
+    rows full of personal data).
+  - **Each member manages their own devices and switches** (no owner
+    check; actions touch only the signed-in member's records).
+  - **A single `alertTeam` entry point:** every team alert sends email
+    (organization switches unchanged) and push (each member's switches)
+    together, inside after(), logged once as ALERT_SENT. The WhatsApp
+    handover is an alert too (`whatsappHandover`, on by default);
+    `dealCancelled` exists but its switch is hidden until customers can
+    cancel (owner).
+
 - 2026-10-22: Referral attach outcomes are always shown to the team on
   the deal page ("Referred by CODE" or "Not attached: <reason>"), never to
   the customer. Why: a referral that a rule (or a hidden field) dropped
@@ -2028,6 +2061,21 @@ change.
   an uploaded logo, Phase 9).
 
 ## Session Notes
+
+- 2026-10-27: Notifications in progress (parts 1–4 committed, NOT pushed;
+  screenshots, production migration and push still to do). **Dev is now
+  `ep-rough-bread`**: the old dev branch `ep-soft-haze` expired; the owner
+  made a new one from production with its data. iOS findings: web push
+  only in a Home Screen app on iOS/iPadOS 16.4+, manifest `display`
+  standalone or fullscreen, the permission request straight from a tap,
+  every push must show a notification (no silent push), `setAppBadge`
+  from 16.4; Apple advises feature detection. Android Chrome and desktop:
+  HTTPS, a service worker and a tapped permission. Env names:
+  `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT=mailto:support@stereolinkz.com` (Production and
+  Preview); the owner generates them with `npx web-push generate-vapid-keys`.
+  Payout-overdue alerts are only as prompt as the cron (Vercel Hobby runs
+  it daily; the external every-minute scheduler is the owner's to set up).
 
 - 2026-10-22: Referral tracking fix, on top of the unpushed customer-side
   work (owner's choice), committed but NOT pushed. Cause found on dev: a
