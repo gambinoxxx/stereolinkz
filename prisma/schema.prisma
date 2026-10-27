@@ -75,6 +75,7 @@ model Organization {
   referralCodes     ReferralCode[]
   referralRewards   ReferralReward[]
   referralCampaigns ReferralCampaign[]
+  pushSubscriptions PushSubscription[]
   currencies        Currency[]
   banks             Bank[]
   coins             Coin[]
@@ -105,18 +106,21 @@ model Membership {
   role           MemberRole   @default(ADMIN)
   createdAt      DateTime     @default(now())
 
-  defaultOwnerOf   Organization[]     @relation("DealDefaultOwner")
-  ownedDeals       Deal[]             @relation("DealOwner")
-  agreedDeals      Deal[]             @relation("DealAgreedBy")
-  dealEvents       DealEvent[]
+  defaultOwnerOf         Organization[]          @relation("DealDefaultOwner")
+  ownedDeals             Deal[]                  @relation("DealOwner")
+  agreedDeals            Deal[]                  @relation("DealAgreedBy")
+  dealEvents             DealEvent[]
   // Phase 13c: their own WhatsApp number (normalised), so their referral
   // code is never attached to their own deals.
-  whatsapp         String?
-  referralCodes    ReferralCode[]
-  rewardsApproved  ReferralReward[]   @relation("RewardApprovedBy")
-  rewardsPaid      ReferralReward[]   @relation("RewardPaidBy")
-  rewardsVoided    ReferralReward[]   @relation("RewardVoidedBy")
-  campaignsCreated ReferralCampaign[]
+  whatsapp               String?
+  referralCodes          ReferralCode[]
+  rewardsApproved        ReferralReward[]        @relation("RewardApprovedBy")
+  rewardsPaid            ReferralReward[]        @relation("RewardPaidBy")
+  rewardsVoided          ReferralReward[]        @relation("RewardVoidedBy")
+  campaignsCreated       ReferralCampaign[]
+  // Notifications: their own devices and which alerts they want.
+  pushSubscriptions      PushSubscription[]
+  notificationPreference NotificationPreference?
 
   @@unique([organizationId, clerkUserId])
   @@index([clerkUserId])
@@ -761,4 +765,43 @@ model ReferralCampaign {
   rewards ReferralReward[]
 
   @@index([organizationId, active])
+}
+
+// ── Notifications (web push) ─────────────────────────────────────────
+
+// One browser or home-screen app that a team member turned notifications
+// on for. The endpoint and keys come from the browser's PushSubscription;
+// they're never logged. A device that's gone (404 / 410), or fails 5 sends
+// in a row, is deleted.
+model PushSubscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membershipId   String
+  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  endpoint       String       @unique
+  p256dh         String
+  auth           String
+  deviceLabel    String // "iPhone · Safari", from the user agent
+  userAgent      String
+  createdAt      DateTime     @default(now())
+  lastSuccessAt  DateTime?
+  failureCount   Int          @default(0)
+
+  @@index([membershipId])
+  @@index([organizationId])
+}
+
+// Which alerts a team member wants as notifications (all their devices).
+// No row means the defaults.
+model NotificationPreference {
+  membershipId          String     @id
+  membership            Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  newDeal               Boolean    @default(true)
+  customerPaid          Boolean    @default(true)
+  cryptoDepositComplete Boolean    @default(true)
+  payoutOverdue         Boolean    @default(true)
+  whatsappHandover      Boolean    @default(true)
+  dealCancelled         Boolean    @default(false) // shown once customers can cancel
+  updatedAt             DateTime   @updatedAt
 }
